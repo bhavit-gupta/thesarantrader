@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Courses - The Saran Trader</title>
+    <link rel="stylesheet" href="/stylesheets/output.css">
+</head>
+
+<body class="font-sans antialiased text-slate-600 bg-white flex flex-col min-h-screen">
+
+    <!-- Navbar -->
+    <%- include('../partials/navbar')%>
+
+        <main class="flex-grow">
+            <!-- Page Header -->
+            <section class="pt-32 pb-12 bg-slate-50">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <h1 class="text-4xl font-bold text-slate-800 mb-4">Explore Our Premium Courses</h1>
+                    <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                        Master the art of trading with our structured learning programs designed for beginners to
+                        advanced traders.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Courses Grid -->
+            <section class="py-16 bg-white">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div id="courses-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <!-- Courses will be loaded here dynamically -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <%- include('../partials/footer') %>
+
+            <script src="/javascripts/script.js"></script>
+</body>
+
+</html>

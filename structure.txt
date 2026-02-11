@@ -1,0 +1,80 @@
+course-platform/
+│
+├── src/                      # Main application source code
+│
+│   ├── app.js                # Configures Express app (middlewares, routes, views)
+│   ├── server.js             # Starts the HTTP server and listens on a port
+│
+│   ├── config/               # Centralized configuration files
+│   │   ├── db.js             # Database connection and initialization
+│   │   ├── env.js            # Loads and validates environment variables
+│   │   └── jwt.js            # JWT secrets, expiry, and token helpers
+│
+│   ├── models/               # Database schemas / ORM models
+│   │   ├── User.model.js     # User accounts and authentication data
+│   │   ├── Course.model.js   # Course metadata and pricing info
+│   │   ├── Lesson.model.js   # Individual lessons inside a course
+│   │   ├── Order.model.js    # Payment orders and transactions
+│   │   └── Subscription.model.js # Subscription plans and validity
+│
+│   ├── controllers/          # Handle HTTP requests and responses
+│   │   ├── auth.controller.js    # Login, signup, logout actions
+│   │   ├── course.controller.js  # Course listing, details, enrollment
+│   │   ├── user.controller.js    # User profile and dashboard actions
+│   │   ├── admin.controller.js   # Admin course and user management
+│   │   └── payment.controller.js # Payment initiation and verification
+│
+│   ├── services/             # Business logic and external integrations
+│   │   ├── auth.service.js       # Password hashing, token generation
+│   │   ├── course.service.js     # Course access and availability logic
+│   │   ├── payment.service.js    # Payment gateway integration logic
+│   │   └── mail.service.js       # Email sending and notifications
+│
+│   ├── routes/               # URL-to-controller mappings
+│   │   ├── web.routes.js     # Routes that render EJS pages
+│   │   ├── api.routes.js     # JSON APIs for mobile applications
+│   │   ├── admin.routes.js   # Admin-only protected routes
+│   │   └── auth.routes.js    # Authentication-related routes
+│
+│   ├── middlewares/          # Functions that run before controllers
+│   │   ├── auth.middleware.js    # Verifies JWT and user authentication
+│   │   ├── admin.middleware.js   # Restricts access to admin users
+│   │   └── error.middleware.js   # Centralized error handling
+│
+│   ├── views/                # EJS templates for server-rendered UI
+│   │   ├── layouts/          # Base layout templates
+│   │   │   └── main.ejs      # Main HTML layout wrapper
+│   │   │
+│   │   ├── partials/         # Reusable UI components
+│   │   │   ├── navbar.ejs    # Navigation bar
+│   │   │   ├── footer.ejs    # Footer section
+│   │   │   └── alerts.ejs    # Flash messages / alerts
+│   │   │
+│   │   ├── auth/             # Authentication pages
+│   │   │   ├── login.ejs     # Login page
+│   │   │   └── signup.ejs    # Signup page
+│   │   │
+│   │   ├── courses/          # Course-related pages
+│   │   │   ├── list.ejs      # Course listing page
+│   │   │   └── details.ejs   # Course details page
+│   │   │
+│   │   ├── dashboard/        # Dashboard pages
+│   │   │   ├── user.ejs      # User dashboard
+│   │   │   └── admin.ejs     # Admin dashboard
+│   │   │
+│   │   └── home.ejs          # Landing / home page
+│
+│   ├── public/               # Static files served to the browser
+│   │   ├── css/              # Compiled CSS (Tailwind output)
+│   │   ├── js/               # Client-side JavaScript
+│   │   └── images/           # Images and assets
+│
+│   └── utils/                # Reusable helper utilities
+│       ├── response.js       # Standard API response helpers
+│       ├── logger.js         # Logging utilities
+│       └── helpers.js        # Common helper functions
+│
+├── .env                      # Environment variables (secrets)
+├── .gitignore                # Files/folders to ignore in Git
+├── package.json              # Dependencies and npm scripts
+└── README.md                 # Project documentation
