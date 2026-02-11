@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     minlength: 3,
     maxlength: 20,
-    match: /^[a-z0-9_]+$/ // 🔧 fixed (lowercase only)
+    match: /^[a-z0-9_]+$/
   },
 
   email: {
@@ -27,14 +27,13 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true,
     lowercase: true
-    // ❌ removed strict regex (better validated elsewhere)
   },
 
   phone: {
     type: String,
     required: true,
     trim: true,
-    match: /^[0-9]{10}$/ // 🔧 better than min/max length
+    match: /^[0-9]{10}$/
   },
 
   state: {
@@ -58,7 +57,6 @@ const userSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-// 🔐 Hash password
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 10);
