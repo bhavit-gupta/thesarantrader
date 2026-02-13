@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - The Saran Trader</title>
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
+
+    <%- include('../partials/navbar') %>
+
+        <main class="flex-grow pt-24 pb-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                <!-- Admin Header -->
+                <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-800">Admin Control Center 🛡️</h1>
+                        <p class="text-slate-500 mt-1">Manage your platform and live sessions.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <span class="px-4 py-2 rounded-lg bg-blue-100 text-blue-700 font-bold text-sm">
+                            v1.0.0
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Main Control Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+                    <!-- Link to Course Page -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-bold text-slate-800">Live Session Controls</h2>
+                            <span class="text-sm text-slate-500 bg-slate-200 px-3 py-1 rounded-full">
+                                <%= courses.length %> Active Courses
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4">
+                            <% courses.forEach(course=> {
+                                const session = liveSessions[course.id] || { isLive: false, startTime: null };
+                                const isLive = session.isLive;
+                                %>
+                                <div
+                                    class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center justify-between gap-6">
+                                    <div class="flex items-center gap-4 flex-1">
+                                        <div
+                                            class="hidden sm:flex w-12 h-12 rounded-lg bg-<%= course.iconBg %> text-<%= course.iconColor %> items-center justify-center text-2xl shrink-0">
+                                            <%= course.icon %>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-slate-800 text-lg">
+                                                <%= course.title %>
+                                            </h3>
+                                            <div class="flex items-center gap-3 text-sm mt-1">
+                                                <span class="text-slate-500"><i class="fa-solid fa-users mr-1"></i>
+                                                    <%= course.students %> Students
+                                                </span>
+                                                <% if (isLive) { %>
+                                                    <span class="text-green-600 font-semibold flex items-center gap-1">
+                                                        <span
+                                                            class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                                        Live Now
+                                                    </span>
+                                                    <span id="timer-<%= course.id %>" class="text-slate-400 font-mono"
+                                                        data-start="<%= session.startTime %>">00:00:00</span>
+                                                    <% } else { %>
+                                                        <span class="text-slate-400">Offline</span>
+                                                        <% } %>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button data-course-id="<%= course.id %>"
+                                        class="toggle-live-btn relative px-6 py-2.5 rounded-full font-bold text-sm transition-all focus:outline-none shrink-0 w-32
+                                    <%= isLive ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-200 shadow-lg shadow-slate-500/20' %>">
+
+                                        <% if (isLive) { %>
+                                            <i class="fa-solid fa-stop mr-2"></i>End Live
+                                            <% } else { %>
+                                                <i class="fa-solid fa-satellite-dish mr-2"></i>Go Live
+                                                <% } %>
+                                    </button>
+                                </div>
+                                <% }); %>
+                        </div>
+                    </div>
+                    <!-- Quick Stats Column -->
+                    <div class="space-y-4">
+                        <!-- Total Students -->
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 text-xl">
+                                <i class="fa-solid fa-user-graduate"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-500 font-medium">Total Students</p>
+                                <h3 class="text-2xl font-bold text-slate-800">1,248</h3>
+                            </div>
+                        </div>
+
+                        <!-- Revenue -->
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600 text-xl">
+                                <i class="fa-solid fa-indian-rupee-sign"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-500 font-medium">Total Revenue</p>
+                                <h3 class="text-2xl font-bold text-slate-800">₹4.2L</h3>
+                            </div>
+                        </div>
+
+                        <!-- Active Now -->
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 text-xl">
+                                <i class="fa-solid fa-globe"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-500 font-medium">Online Users</p>
+                                <h3 class="text-2xl font-bold text-slate-800">42</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Table Placeholder -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-slate-800">Recent Registrations</h3>
+                        <button class="text-sm text-blue-600 font-semibold hover:text-blue-700">View All</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                                    <th class="px-8 py-4 font-semibold">User</th>
+                                    <th class="px-8 py-4 font-semibold">Email</th>
+                                    <th class="px-8 py-4 font-semibold">Phone</th>
+                                    <th class="px-8 py-4 font-semibold">Joined</th>
+                                    <th class="px-8 py-4 font-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <!-- Mock Data Row 1 -->
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="px-8 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
+                                                JD</div>
+                                            <span class="font-medium text-slate-800">John Doe</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-8 py-4 text-slate-600">john@example.com</td>
+                                    <td class="px-8 py-4 text-slate-600">9876543210</td>
+                                    <td class="px-8 py-4 text-slate-500 text-sm">2 hours ago</td>
+                                    <td class="px-8 py-4"><span
+                                            class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">Active</span>
+                                    </td>
+                                </tr>
+                                <!-- Mock Data Row 2 -->
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="px-8 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
+                                                AS</div>
+                                            <span class="font-medium text-slate-800">Amit Singh</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-8 py-4 text-slate-600">amit@test.com</td>
+                                    <td class="px-8 py-4 text-slate-600">9988776655</td>
+                                    <td class="px-8 py-4 text-slate-500 text-sm">5 hours ago</td>
+                                    <td class="px-8 py-4"><span
+                                            class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">Active</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <script src="/javascripts/main.js"></script>
+        <div id="admin-data" data-live-sessions='<%- JSON.stringify(locals.liveSessions || {}) %>'></div>
+        <script src="/javascripts/admin.js"></script>
+</body>
+
+</html>

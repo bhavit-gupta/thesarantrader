@@ -1,5 +1,5 @@
-const User = require("../models/user.model");
-const bcrypt = require("bcryptjs");
+// const User = require("../models/user.model"); // Removed MongoDB dependency
+const bcrypt = require("bcryptjs"); // Ensure bcryptjs is installed
 
 // In-memory OTP store (Global variable for demo purposes)
 const otpStore = {};
@@ -9,9 +9,9 @@ const registeredUsers = [];
 
 // Mock User Data for Validation (Hardcoded users with passwords)
 const mockUsers = [
-    { username: "admin", email: "admin@example.com", phone: "9876543210", password: "password123" },
-    { username: "testuser", email: "test@example.com", phone: "9999999999", password: "password123" },
-    { username: "kundan_raj", email: "kundan@example.com", phone: "9876543211", password: "password123" }
+    { username: "admin", email: "admin@example.com", phone: "9876543210", password: "password123", role: "admin" },
+    { username: "testuser", email: "test@example.com", phone: "9999999999", password: "password123", role: "user" },
+    { username: "kundan_raj", email: "kundan@example.com", phone: "9876543211", password: "password123", role: "user" }
 ];
 
 // ===== Check Existence API =====
@@ -81,12 +81,12 @@ exports.sendOtp = async (req, res) => {
 // ===== Signup =====
 exports.registerUser = async (req, res) => {
     try {
-        const { name, username, email, phone, state, city, password, otp, mobileOtp } = req.body;
+        const { name, username, email, phone, state, city, password, otp } = req.body;
 
         // Verify Email OTP
         const storedEmailOtp = otpStore[email];
         if (!storedEmailOtp || storedEmailOtp.otp !== otp || Date.now() > storedEmailOtp.expires) {
-            return res.render("layouts/signup", {
+            return res.render("auth/signup", {
                 error: "Invalid or expired Email OTP.",
                 formData: req.body
             });
@@ -97,7 +97,7 @@ exports.registerUser = async (req, res) => {
         const mobileOtpValue = req.body['mobile-otp'];
         const storedMobileOtp = otpStore[phone];
         if (!storedMobileOtp || storedMobileOtp.otp !== mobileOtpValue || Date.now() > storedMobileOtp.expires) {
-            return res.render("layouts/signup", {
+            return res.render("auth/signup", {
                 error: "Invalid or expired Phone OTP.",
                 formData: req.body
             });
@@ -106,14 +106,14 @@ exports.registerUser = async (req, res) => {
         // Check Mock DB & Session DB for Existing User (Double check)
         const exists = [...mockUsers, ...registeredUsers].find(u => u.username === username || u.email === email || u.phone === phone);
         if (exists) {
-            return res.render("layouts/signup", {
+            return res.render("auth/signup", {
                 error: "User already exists.",
                 formData: req.body
             });
         }
 
         // Mock User Creation - Save to Session Memory
-        const newUser = { name, username, email, phone, state, city, password }; // Storing password plainly for mock demo
+        const newUser = { name, username, email, phone, state, city, password, role: "user" }; // Storing password plainly for mock demo
         registeredUsers.push(newUser);
 
         console.log("✅ [Mock DB] User Registered & Saved to Session Memory:");
@@ -126,7 +126,7 @@ exports.registerUser = async (req, res) => {
         res.redirect("/login");
     } catch (err) {
         console.error(err);
-        res.render("layouts/signup", {
+        res.render("auth/signup", {
             error: "Error creating user. Please try again.",
             formData: req.body
         });
@@ -136,33 +136,46 @@ exports.registerUser = async (req, res) => {
 // ===== Login =====
 exports.loginUser = async (req, res) => {
     try {
-        const { loginIdentifier, password } = req.body;
+        const { loginIdentifier, password, loginType } = req.body;
 
-        console.log(`[Login Attempt] Identifier: ${loginIdentifier}`);
+        console.log(`[Login Attempt] Identifier: ${loginIdentifier}, Type: ${loginType}`);
 
-        // Find by email, username, or phone in Mock Data OR Registered Session Data
+        // Find by specific field based on loginType (strict mode)
         const allUsers = [...mockUsers, ...registeredUsers];
-        const user = allUsers.find(u =>
-            u.email === loginIdentifier ||
-            u.username === loginIdentifier ||
-            u.phone === loginIdentifier
-        );
+        const user = allUsers.find(u => {
+            if (loginType === 'email') return u.email === loginIdentifier;
+            if (loginType === 'phone') return u.phone === loginIdentifier;
+            if (loginType === 'username') return u.username === loginIdentifier;
+
+            // Fallback for API calls without loginType (legacy/flexible behavior)
+            return u.email === loginIdentifier || u.username === loginIdentifier || u.phone === loginIdentifier;
+        });
 
         if (!user) {
-            return res.render("layouts/login", { error: "Invalid credentials (User not found)" });
+            return res.render("auth/login", { error: "Invalid credentials (User not found)" });
         }
 
         // Simple string comparison for mock (Real app uses bcrypt)
         if (user.password !== password) {
-            return res.render("layouts/login", { error: "Invalid credentials (Password mismatch)" });
+            return res.render("auth/login", { error: "Invalid credentials (Password mismatch)" });
         }
 
         console.log(`✅ [Login Success] User: ${user.username}`);
-        // TODO: Add session or JWT here for login persistence
-        res.redirect("/");
+        // Store user in session
+        req.session.user = {
+            name: user.name || user.username,
+            username: user.username,
+            email: user.email,
+            role: user.role || "user"
+        };
+        if (user.username === 'admin') {
+            res.redirect("/admin/dashboard");
+        } else {
+            res.redirect("/dashboard");
+        }
     } catch (err) {
         console.error(err);
-        res.render("layouts/login", { error: "Login error. Please try again." });
+        res.render("auth/login", { error: "Login error. Please try again." });
     }
 };
 
@@ -253,4 +266,11 @@ exports.resetPassword = async (req, res) => {
         console.error(err);
         res.status(500).json({ success: false, message: "Error resetting password" });
     }
+};
+
+// ===== Logout =====
+exports.logoutUser = (req, res) => {
+    req.session.destroy(() => {
+        res.redirect('/');
+    });
 };

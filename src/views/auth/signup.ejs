@@ -26,8 +26,8 @@
                                 <%= error %>
                             </span> </div>
                         <% } %>
-                            <form action="/auth/register" method="POST" class="space-y-5 w-full"
-                                onsubmit="validateSignup(event)"> <!-- Name & Username Row -->
+                            <form action="/auth/register" method="POST" class="space-y-5 w-full">
+                                <!-- Name & Username Row -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div> <label for="name" class="block text-sm font-medium text-slate-700 mb-1">Full
                                             Name</label> <input type="text" id="name" name="name"
@@ -39,20 +39,21 @@
                                         <input type="text" id="username" name="username"
                                             class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                             placeholder="kundan_raj"
-                                            value="<%= locals.formData ? formData.username : '' %>" required> </div>
+                                            value="<%= locals.formData ? formData.username : '' %>" required>
+                                    </div>
                                 </div> <!-- Email & Get OTP Row -->
                                 <div class="w-full"> <label for="email"
                                         class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
                                     <div class="flex items-center w-full gap-2"> <input type="email" name="email"
-                                            id="email" style="width: 75%;"
-                                            class="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 border-r-0 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                            id="email"
+                                            class="w-[calc(75%-4px)] px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 border-r-0 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                             placeholder="kundan@example.com"
                                             value="<%= locals.formData ? formData.email : '' %>" required> <button
-                                            type="button" onclick="sendOTP()" style="width: 25%;"
-                                            class="px-4 py-3 bg-blue-100 text-blue-600 font-semibold rounded-xl hover:bg-blue-200 transition-colors whitespace-nowrap text-sm border border-l-0 border-blue-100">
+                                            type="button" id="btn-send-email-otp"
+                                            class="w-[calc(25%-4px)] px-4 py-3 bg-blue-100 text-blue-600 font-semibold rounded-xl hover:bg-blue-200 transition-colors whitespace-nowrap text-sm border border-l-0 border-blue-100">
                                             Get OTP </button> </div>
                                 </div> <!-- OTP Input (Hidden by default) -->
-                                <div id="otp-container" style="display: none;"> <label for="otp"
+                                <div id="otp-container" class="hidden"> <label for="otp"
                                         class="block text-sm font-medium text-slate-700 mb-1">Enter OTP</label> <input
                                         type="text" id="otp" name="otp"
                                         class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
@@ -60,20 +61,19 @@
                                 <div class="w-full"> <label for="phone"
                                         class="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
                                     <div class="flex items-center w-full gap-2"> <input type="tel" id="phone"
-                                            style="width: calc(75% - 4px);"
-                                            class="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                            class="w-[calc(75%-4px)] px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                             placeholder="9876543210" maxlength="10"
-                                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                             value="<%= locals.formData ? formData.phone : '' %>" required> <button
-                                            type="button" onclick="sendMobileOTP()" style="width: calc(25% - 4px);"
-                                            class="px-4 py-3 bg-blue-100 text-blue-600 font-semibold rounded-xl hover:bg-blue-200 transition-colors whitespace-nowrap text-sm border border-blue-100">
+                                            type="button" id="btn-send-mobile-otp"
+                                            class="w-[calc(25%-4px)] px-4 py-3 bg-blue-100 text-blue-600 font-semibold rounded-xl hover:bg-blue-200 transition-colors whitespace-nowrap text-sm border border-blue-100">
                                             Get OTP </button> </div>
                                 </div> <!-- Mobile OTP Input (Hidden by default) -->
-                                <div id="mobile-otp-container" style="display: none;"> <label for="mobile-otp"
+                                <div id="mobile-otp-container" class="hidden"> <label for="mobile-otp"
                                         class="block text-sm font-medium text-slate-700 mb-1">Enter Mobile OTP</label>
                                     <input type="text" id="mobile-otp" name="mobile-otp"
                                         class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                        placeholder="123456" maxlength="6"> </div> <!-- State & City Row -->
+                                        placeholder="123456" maxlength="6">
+                                </div> <!-- State & City Row -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div> <label for="state"
                                             class="block text-sm font-medium text-slate-700 mb-1">State</label> <input
@@ -93,8 +93,8 @@
                                     <div class="relative flex"> <input type="password" id="password" name="password"
                                             class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pr-12"
                                             placeholder="Create a password" required> <button type="button"
-                                            onclick="togglePassword('password', this)"
-                                            class="absolute right-4 text-slate-400 hover:text-blue-600 transition-colors h-full py-auto">
+                                            class="absolute right-4 text-slate-400 hover:text-blue-600 transition-colors h-full py-auto toggle-password-btn"
+                                            data-target="password">
                                             <div class="icon-placeholder"><i class="fa-solid fa-eye"></i></div>
                                         </button> </div>
                                 </div>
@@ -104,14 +104,15 @@
                                             name="confirm-password"
                                             class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pr-12"
                                             placeholder="Re-enter your password" required> <button type="button"
-                                            onclick="togglePassword('confirm-password', this)"
-                                            class="absolute right-4 text-slate-400 hover:text-blue-600 transition-colors h-full py-auto">
+                                            class="absolute right-4 text-slate-400 hover:text-blue-600 transition-colors h-full py-auto toggle-password-btn"
+                                            data-target="confirm-password">
                                             <div class="icon-placeholder"><i class="fa-solid fa-eye"></i></div>
                                         </button> </div>
                                 </div>
                                 <div class="text-xs text-slate-500 leading-relaxed"> By clicking Sign Up, you agree to
                                     our <a href="#" class="text-blue-600 hover:text-blue-700">Terms of Service</a> and
-                                    <a href="#" class="text-blue-600 hover:text-blue-700">Privacy Policy</a>. </div>
+                                    <a href="#" class="text-blue-600 hover:text-blue-700">Privacy Policy</a>.
+                                </div>
                                 <button type="submit"
                                     class="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5">
                                     Sign Up </button>
@@ -123,7 +124,8 @@
                 </div>
             </div>
         </div>
-        <script src="/javascripts/script.js"></script>
+        <script src="/javascripts/main.js"></script>
+        <script src="/javascripts/auth.js"></script>
 </body>
 
 </html>
