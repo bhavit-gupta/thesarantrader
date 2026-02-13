@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Rooms - TheSaranTrader</title>
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
+
+    <%- include('../partials/navbar') %>
+
+        <main class="flex-grow pt-24 pb-12">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                <!-- Header -->
+                <div class="mb-8 text-center">
+                    <h1 class="text-4xl font-bold text-slate-800 mb-2">
+                        Course <span
+                            class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Chat
+                            Rooms</span>
+                    </h1>
+                    <p class="text-slate-500">Connect with fellow students in your purchased courses</p>
+                </div>
+
+                <!-- Course Chat Rooms Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <% purchasedCourses.forEach(course=> { %>
+                        <a href="/chat/<%= course.id %>"
+                            class="group block bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg transition-all transform hover:-translate-y-1 overflow-hidden">
+                            <!-- Course Emoji Header -->
+                            <div class="p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-b border-slate-100">
+                                <div class="text-6xl mb-3 text-center">
+                                    <%= course.emoji %>
+                                </div>
+                                <h3 class="text-xl font-bold text-slate-800 text-center">
+                                    <%= course.name %>
+                                </h3>
+                            </div>
+
+                            <!-- Chat Info -->
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-2 text-sm text-slate-500">
+                                        <i class="fa-solid fa-comments"></i>
+                                        <span>Chat Room</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-sm text-green-600">
+                                        <i class="fa-solid fa-circle text-xs"></i>
+                                        <span>Active</span>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-semibold group-hover:bg-blue-100 transition-colors">
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                    <span>Enter Chat</span>
+                                </div>
+                            </div>
+                        </a>
+                        <% }); %>
+                </div>
+
+                <% if (purchasedCourses.length===0) { %>
+                    <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
+                        <div class="text-6xl mb-4">💬</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">No Chat Rooms Yet</h3>
+                        <p class="text-slate-500 mb-4">Purchase a course to access exclusive chat rooms</p>
+                        <a href="/courses"
+                            class="inline-block px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                            <i class="fa-solid fa-book mr-2"></i>Browse Courses
+                        </a>
+                    </div>
+                    <% } %>
+
+            </div>
+        </main>
+
+        <script src="/javascripts/main.js"></script>
+</body>
+
+</html>

@@ -134,18 +134,17 @@
                             </div>
                             <% } %>
 
-                                <% // Tailwind Safe Classes Map (Ensures scanner picks them up) const safeClasses={
-                                    blue: { bg: 'bg-blue-50' , text: 'text-blue-500' , badgeBg: 'bg-blue-100' ,
-                                    badgeText: 'text-blue-700' }, indigo: { bg: 'bg-indigo-50' , text: 'text-indigo-500'
-                                    , badgeBg: 'bg-indigo-100' , badgeText: 'text-indigo-700' }, green: {
-                                    bg: 'bg-green-50' , text: 'text-green-500' , badgeBg: 'bg-green-100' ,
+                                <% var safeClasses={ blue: { bg: 'bg-blue-50' , text: 'text-blue-500' ,
+                                    badgeBg: 'bg-blue-100' , badgeText: 'text-blue-700' }, indigo: { bg: 'bg-indigo-50'
+                                    , text: 'text-indigo-500' , badgeBg: 'bg-indigo-100' , badgeText: 'text-indigo-700'
+                                    }, green: { bg: 'bg-green-50' , text: 'text-green-500' , badgeBg: 'bg-green-100' ,
                                     badgeText: 'text-green-700' }, purple: { bg: 'bg-purple-50' ,
                                     text: 'text-purple-500' , badgeBg: 'bg-purple-100' , badgeText: 'text-purple-700' },
                                     orange: { bg: 'bg-orange-50' , text: 'text-orange-500' , badgeBg: 'bg-orange-100' ,
                                     badgeText: 'text-orange-700' }, red: { bg: 'bg-red-50' , text: 'text-red-500' ,
-                                    badgeBg: 'bg-red-100' , badgeText: 'text-red-700' }, // Default fallback default: {
+                                    badgeBg: 'bg-red-100' , badgeText: 'text-red-700' } }; safeClasses['default']={
                                     bg: 'bg-slate-100' , text: 'text-slate-500' , badgeBg: 'bg-slate-100' ,
-                                    badgeText: 'text-slate-700' } }; %>
+                                    badgeText: 'text-slate-700' }; %>
 
                                     <% courses.forEach(course=> {
                                         const themeKey = course.iconBg ? course.iconBg.split('-')[0] : 'blue';

@@ -18,8 +18,14 @@
                     class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Features</a>
                 <a href="/courses"
                     class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Courses</a>
-                <a href="#testimonials"
-                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Testimonials</a>
+                <a href="/community"
+                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Community</a>
+                <% if (hasPurchasedCourses) { %>
+                    <a href="/chat"
+                        class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Chat</a>
+                    <% } %>
+                        <a href="/testimonials"
+                            class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Testimonials</a>
             </div>
             <!-- CTA Button -->
             <div class="hidden md:flex items-center gap-3">
@@ -89,23 +95,30 @@
                 class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Features</a>
             <a href="/courses"
                 class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Courses</a>
-            <a href="/index#testimonials"
-                class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Testimonials</a>
-            <% if (user) { %>
-                <a href="#" id="mobile-join-live-btn"
-                    class="join-live-btn block px-3 py-2 rounded-md text-base font-medium text-slate-400 bg-slate-100 cursor-not-allowed pointer-events-none">
-                    🔴 Live Offline
-                </a>
-                <a href="/dashboard"
-                    class="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-blue-50">📊
-                    Dashboard</a>
-                <a href="/logout"
-                    class="block px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-red-50">🚪 Logout</a>
-                <% } else { %>
-                    <a href="/login"
-                        class="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700">Get
-                        Started</a>
-                    <% } %>
+            <a href="/community"
+                class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Community</a>
+            <% if (hasPurchasedCourses) { %>
+                <a href="/chat"
+                    class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Chat</a>
+                <% } %>
+                    <a href="/testimonials"
+                        class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Testimonials</a>
+                    <% if (user) { %>
+                        <a href="#" id="mobile-join-live-btn"
+                            class="join-live-btn block px-3 py-2 rounded-md text-base font-medium text-slate-400 bg-slate-100 cursor-not-allowed pointer-events-none">
+                            🔴 Live Offline
+                        </a>
+                        <a href="/dashboard"
+                            class="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-blue-50">📊
+                            Dashboard</a>
+                        <a href="/logout"
+                            class="block px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-red-50">🚪
+                            Logout</a>
+                        <% } else { %>
+                            <a href="/login"
+                                class="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700">Get
+                                Started</a>
+                            <% } %>
         </div>
     </div>
 </nav>

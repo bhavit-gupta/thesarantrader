@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community - TheSaranTrader</title>
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
+
+    <%- include('../partials/navbar') %>
+
+        <main class="flex-grow pt-24 pb-12">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                <!-- Header -->
+                <div class="mb-8 text-center">
+                    <h1 class="text-4xl font-bold text-slate-800 mb-2">
+                        Community <span
+                            class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Hub</span>
+                    </h1>
+                    <p class="text-slate-500">Connect, share, and learn together</p>
+                </div>
+
+                <!-- Create Post Card -->
+                <% if (user) { %>
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+                        <h2 class="text-lg font-bold text-slate-800 mb-4">Share with the community</h2>
+                        <form id="create-post-form">
+                            <input type="text" id="post-title" placeholder="Title (optional)"
+                                class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3">
+                            <textarea id="post-content" rows="4" placeholder="What's on your mind?" required
+                                class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-2"></textarea>
+                            <div class="flex items-center justify-between">
+                                <span id="post-char-count" class="text-xs text-slate-400">0 / 1000</span>
+                                <button type="submit"
+                                    class="px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                                    <i class="fa-solid fa-paper-plane mr-2"></i>Post
+                                </button>
+                            </div>
+                        </form>
+                        <div id="post-feedback" class="hidden mt-3"></div>
+                    </div>
+                    <% } else { %>
+                        <div
+                            class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200 p-8 mb-8 text-center">
+                            <i class="fa-solid fa-lock text-4xl text-blue-600 mb-4"></i>
+                            <h2 class="text-xl font-bold text-slate-800 mb-2">Join the Conversation</h2>
+                            <p class="text-slate-600 mb-4">Log in to share your thoughts and connect with the community
+                            </p>
+                            <a href="/login"
+                                class="inline-block px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                                <i class="fa-solid fa-sign-in-alt mr-2"></i>Log In to Post
+                            </a>
+                        </div>
+                        <% } %>
+
+                            <!-- Posts Feed -->
+                            <div id="posts-loading" class="text-center py-12">
+                                <i class="fa-solid fa-spinner fa-spin text-4xl text-blue-500"></i>
+                                <p class="text-slate-500 mt-4">Loading posts...</p>
+                            </div>
+
+                            <div id="posts-container" class="hidden space-y-6">
+                                <!-- Posts will be loaded here dynamically -->
+                            </div>
+
+                            <div id="empty-state"
+                                class="hidden bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
+                                <div class="text-6xl mb-4">💬</div>
+                                <h3 class="text-xl font-bold text-slate-800 mb-2">No posts yet</h3>
+                                <p class="text-slate-500">Be the first to share something with the community!</p>
+                            </div>
+
+            </div>
+        </main>
+
+        <script>
+            // Set current user ID for client-side use
+            window.currentUserId = '<%= user ? user.username : "" %>';
+            window.isAdmin = <%= user && user.username === 'admin' ? 'true' : 'false' %>;
+        </script>
+        <script src="/javascripts/main.js"></script>
+        <script src="/javascripts/community.js"></script>
+</body>
+
+</html>

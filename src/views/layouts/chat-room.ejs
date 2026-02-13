@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= course.name %> Chat - TheSaranTrader
+    </title>
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
+
+    <%- include('../partials/navbar') %>
+
+        <main class="flex-grow pt-24 pb-12">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col">
+
+                <!-- Chat Header -->
+                <div class="bg-white rounded-t-2xl border border-slate-200 p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <a href="/chat" class="text-slate-400 hover:text-slate-600 transition-colors">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </a>
+                        <div class="text-3xl">
+                            <%= course.emoji %>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800">
+                                <%= course.name %>
+                            </h2>
+                            <p class="text-sm text-slate-500">Course Chat Room</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-green-600">
+                        <i class="fa-solid fa-circle text-xs"></i>
+                        <span>Active</span>
+                    </div>
+                </div>
+
+                <!-- Messages Container -->
+                <div id="messages-container" class="flex-1 bg-white border-x border-slate-200 p-6 overflow-y-auto"
+                    style="max-height: 500px;">
+                    <div id="messages-loading" class="text-center py-12">
+                        <i class="fa-solid fa-spinner fa-spin text-4xl text-blue-500"></i>
+                        <p class="text-slate-500 mt-4">Loading messages...</p>
+                    </div>
+                    <div id="messages-list" class="hidden space-y-4">
+                        <!-- Messages will be loaded here -->
+                    </div>
+                    <div id="empty-messages" class="hidden text-center py-12">
+                        <div class="text-6xl mb-4">💬</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">No messages yet</h3>
+                        <p class="text-slate-500">Be the first to start the conversation!</p>
+                    </div>
+                </div>
+
+                <!-- Message Input -->
+                <div class="bg-white rounded-b-2xl border border-slate-200 p-4">
+                    <form id="message-form" class="flex gap-3">
+                        <input type="text" id="message-input" placeholder="Type your message..." required
+                            maxlength="500"
+                            class="flex-1 px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit"
+                            class="px-6 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all">
+                            <i class="fa-solid fa-paper-plane mr-2"></i>Send
+                        </button>
+                    </form>
+                    <div id="message-feedback" class="hidden mt-2"></div>
+                </div>
+
+            </div>
+        </main>
+
+        <script>
+            window.courseId = <%= course.id %>;
+            window.currentUserId = '<%= user.username %>';
+            window.currentUserName = '<%= user.name %>';
+        </script>
+        <script src="/javascripts/main.js"></script>
+        <script src="/javascripts/chat.js"></script>
+</body>
+
+</html>

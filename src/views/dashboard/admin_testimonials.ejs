@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Testimonials - Admin</title>
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
+
+    <%- include('../partials/navbar') %>
+
+        <main class="flex-grow pt-24 pb-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                <!-- Header -->
+                <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-800">Testimonial Management 💬</h1>
+                        <p class="text-slate-500 mt-1">Review and manage user testimonials</p>
+                    </div>
+                    <a href="/admin/dashboard"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition-colors">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600 text-xl">
+                                <i class="fa-solid fa-clock"></i>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-slate-800">
+                                    <%= pendingTestimonials.length %>
+                                </p>
+                                <p class="text-sm text-slate-500">Pending Review</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600 text-xl">
+                                <i class="fa-solid fa-check-circle"></i>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-slate-800">
+                                    <%= approvedTestimonials.length %>
+                                </p>
+                                <p class="text-sm text-slate-500">Approved</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center text-red-600 text-xl">
+                                <i class="fa-solid fa-times-circle"></i>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-slate-800">
+                                    <%= rejectedTestimonials.length %>
+                                </p>
+                                <p class="text-sm text-slate-500">Rejected</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Testimonials Section -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <i class="fa-solid fa-hourglass-half text-yellow-600"></i>
+                        Pending Testimonials
+                    </h2>
+
+                    <% if (pendingTestimonials.length===0) { %>
+                        <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
+                            <div class="text-5xl mb-4">✅</div>
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">All caught up!</h3>
+                            <p class="text-slate-500">No pending testimonials to review.</p>
+                        </div>
+                        <% } else { %>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <% pendingTestimonials.forEach(testimonial=> { %>
+                                    <div class="bg-white rounded-2xl border border-yellow-200 shadow-sm p-6 hover:shadow-md transition-all"
+                                        data-testimonial-id="<%= testimonial.id %>">
+                                        <!-- Header -->
+                                        <div class="flex items-start justify-between mb-4">
+                                            <div class="flex items-center gap-3">
+                                                <div
+                                                    class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white font-bold text-sm">
+                                                    <%= testimonial.userName.charAt(0).toUpperCase() %>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-bold text-slate-800">
+                                                        <%= testimonial.userName %>
+                                                    </p>
+                                                    <p class="text-xs text-slate-500">
+                                                        <%= testimonial.userRole %>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <span
+                                                class="px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">Pending</span>
+                                        </div>
+
+                                        <!-- Rating -->
+                                        <div class="flex gap-1 mb-3">
+                                            <% for (let i=0; i < testimonial.rating; i++) { %>
+                                                <span class="text-yellow-400">⭐</span>
+                                                <% } %>
+                                        </div>
+
+                                        <!-- Message -->
+                                        <p class="text-slate-600 text-sm leading-relaxed mb-4 italic">"<%=
+                                                testimonial.message %>"</p>
+
+                                        <!-- Submitted Date -->
+                                        <p class="text-xs text-slate-400 mb-4">
+                                            Submitted <%= new Date(testimonial.submittedAt).toLocaleDateString() %>
+                                        </p>
+
+                                        <!-- Actions -->
+                                        <div class="flex gap-2">
+                                            <button onclick="approveTestimonial( <%= testimonial.id %> )"
+                                                class="flex-1 px-4 py-2 rounded-lg bg-green-600 text-white font-semibold text-sm hover:bg-green-700 transition-colors">
+                                                <i class="fa-solid fa-check mr-1"></i> Approve
+                                            </button>
+                                            <button onclick="rejectTestimonial( <%= testimonial.id %> )"
+                                                class="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors">
+                                                <i class="fa-solid fa-times mr-1"></i> Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                            </div>
+                            <% } %>
+                </div>
+
+                <!-- Approved Testimonials Section -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <i class="fa-solid fa-check-circle text-green-600"></i>
+                        Approved Testimonials (Live on Homepage)
+                    </h2>
+
+                    <% if (approvedTestimonials.length===0) { %>
+                        <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
+                            <div class="text-5xl mb-4">📝</div>
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">No approved testimonials yet</h3>
+                            <p class="text-slate-500">Approved testimonials will appear here and on the homepage.</p>
+                        </div>
+                        <% } else { %>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <% approvedTestimonials.forEach(testimonial=> { %>
+                                    <div class="bg-white rounded-2xl border border-green-200 shadow-sm p-6 hover:shadow-md transition-all"
+                                        data-testimonial-id="<%= testimonial.id %>">
+                                        <!-- Header -->
+                                        <div class="flex items-start justify-between mb-4">
+                                            <div class="flex items-center gap-3">
+                                                <div
+                                                    class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-sm">
+                                                    <%= testimonial.userName.charAt(0).toUpperCase() %>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-bold text-slate-800">
+                                                        <%= testimonial.userName %>
+                                                    </p>
+                                                    <p class="text-xs text-slate-500">
+                                                        <%= testimonial.userRole %>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <span
+                                                class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">Live</span>
+                                        </div>
+
+                                        <!-- Rating -->
+                                        <div class="flex gap-1 mb-3">
+                                            <% for (let i=0; i < testimonial.rating; i++) { %>
+                                                <span class="text-yellow-400">⭐</span>
+                                                <% } %>
+                                        </div>
+
+                                        <!-- Message -->
+                                        <p class="text-slate-600 text-sm leading-relaxed mb-4 italic">"<%=
+                                                testimonial.message %>"</p>
+
+                                        <!-- Approved Date -->
+                                        <p class="text-xs text-slate-400 mb-4">
+                                            Approved <%= new Date(testimonial.reviewedAt).toLocaleDateString() %>
+                                        </p>
+
+                                        <!-- Actions -->
+                                        <button onclick="rejectTestimonial(<%= testimonial.id %>)"
+                                            class="w-full px-4 py-2 rounded-lg bg-red-50 text-red-600 font-semibold text-sm hover:bg-red-100 transition-colors border border-red-200">
+                                            <i class="fa-solid fa-times mr-1"></i> Remove from Homepage
+                                        </button>
+                                    </div>
+                                    <% }); %>
+                            </div>
+                            <% } %>
+                </div>
+
+            </div>
+        </main>
+
+        <script src="/javascripts/main.js"></script>
+        <script src="/javascripts/admin-testimonials.js"></script>
+</body>
+
+</html>
