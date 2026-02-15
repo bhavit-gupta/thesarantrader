@@ -20,7 +20,11 @@ function pollLiveStatus() {
         try {
             const response = await fetch('/api/live-status');
             const data = await response.json();
-            updateLiveUI(data.isLive);
+            // Check if ANY course is live
+            const isAnyLive = data.liveSessions
+                ? Object.values(data.liveSessions).some(s => s.isLive)
+                : false;
+            updateLiveUI(isAnyLive);
         } catch (err) {
             console.error('Error polling live status:', err);
         }
@@ -33,21 +37,21 @@ function pollLiveStatus() {
             const text = btn.querySelector('.live-text');
 
             if (isLive) {
-                // Activate button
-                btn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed', 'pointer-events-none', 'bg-slate-200', 'text-slate-400', 'bg-slate-100');
-                btn.classList.add('bg-green-500', 'text-white', 'shadow-lg', 'shadow-green-500/25', 'hover:bg-green-600', 'hover:-translate-y-0.5');
+                // Activate indicator
+                btn.classList.remove('bg-slate-100', 'text-slate-400');
+                btn.classList.add('bg-green-500', 'text-white', 'shadow-lg', 'shadow-green-500/25');
                 btn.setAttribute('aria-disabled', 'false');
                 if (dot) {
                     dot.classList.remove('bg-slate-400');
                     dot.classList.add('bg-white', 'live-pulse');
                 }
-                if (text) text.textContent = 'Join Live Now';
+                if (text) text.textContent = 'Live Now';
                 // For mobile button without inner spans
-                if (!text && !dot) btn.textContent = '🟢 Join Live Now';
+                if (!text && !dot) btn.textContent = '🟢 Live Now';
             } else {
-                // Deactivate button
-                btn.classList.remove('bg-green-500', 'text-white', 'shadow-lg', 'shadow-green-500/25', 'hover:bg-green-600', 'hover:-translate-y-0.5');
-                btn.classList.add('bg-slate-300', 'text-slate-500', 'cursor-not-allowed', 'pointer-events-none');
+                // Deactivate indicator
+                btn.classList.remove('bg-green-500', 'text-white', 'shadow-lg', 'shadow-green-500/25');
+                btn.classList.add('bg-slate-100', 'text-slate-400');
                 btn.setAttribute('aria-disabled', 'true');
                 if (dot) {
                     dot.classList.remove('bg-white', 'live-pulse');

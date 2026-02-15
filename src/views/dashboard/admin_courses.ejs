@@ -7,6 +7,26 @@
     <title>Manage Courses - Admin Dashboard</title>
     <link rel="stylesheet" href="/stylesheets/output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #94a3b8;
+        }
+    </style>
 </head>
 
 <body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
@@ -70,6 +90,20 @@
                                         class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"></textarea>
                                 </div>
 
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Live Class Link
+                                        (Zoom/Meet)</label>
+                                    <div class="relative">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fa-solid fa-link text-slate-400"></i>
+                                        </div>
+                                        <input type="url" name="liveLink" placeholder="https://zoom.us/j/..."
+                                            class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-1">Leave empty if not applicable</p>
+                                </div>
+
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-semibold text-slate-700 mb-1">Price (₹)</label>
@@ -85,25 +119,104 @@
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div>
+                                    <div class="relative">
                                         <label class="block text-sm font-semibold text-slate-700 mb-1">Icon
                                             Emoji</label>
-                                        <input type="text" name="icon" required maxlength="2" placeholder="📈"
-                                            value="📚"
-                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-center text-xl">
+                                        <input type="hidden" name="icon" id="icon-input" value="📚">
+
+                                        <!-- Dropdown Trigger -->
+                                        <button type="button" id="icon-dropdown-trigger"
+                                            onclick="toggleIconDropdown('add')"
+                                            class="w-full px-4 py-3 text-left bg-white border border-slate-300 rounded-lg flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all group">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 flex items-center justify-center">
+                                                    <span id="selected-icon-display"
+                                                        class="text-2xl leading-none">📚</span>
+                                                </div>
+                                                <span id="selected-icon-label"
+                                                    class="text-sm font-semibold text-slate-700">Books</span>
+                                            </div>
+                                            <i
+                                                class="fa-solid fa-chevron-down text-slate-400 text-sm group-hover:text-blue-500 transition-colors"></i>
+                                        </button>
+
+                                        <!-- Dropdown Menu -->
+                                        <div id="icon-dropdown-menu-add"
+                                            class="hidden absolute z-20 bottom-full mb-1 w-72 max-h-60 overflow-y-auto custom-scrollbar bg-white border border-slate-200 rounded-xl shadow-xl p-3 transform transition-all origin-bottom left-0 sm:left-auto">
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <% const icons=[ { emoji: '📚' , label: 'Books' }, { emoji: '📈' ,
+                                                    label: 'Chart Up' }, { emoji: '📉' , label: 'Chart Down' }, {
+                                                    emoji: '💰' , label: 'Money' }, { emoji: '🎓' , label: 'Graduation'
+                                                    }, { emoji: '💎' , label: 'Premium' }, { emoji: '🚀' ,
+                                                    label: 'Growth' }, { emoji: '📊' , label: 'Analysis' }, {
+                                                    emoji: '🧠' , label: 'Psychology' }, { emoji: '🎯' , label: 'Target'
+                                                    }, { emoji: '💡' , label: 'Idea' }, { emoji: '⭐' , label: 'Featured'
+                                                    } ]; %>
+                                                    <% icons.forEach(item=> { %>
+                                                        <button type="button"
+                                                            onclick="selectIcon(this, '<%= item.emoji %>', '<%= item.label %>')"
+                                                            class="icon-btn w-full flex items-center justify-start gap-2 px-1 py-2 rounded-lg border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition-all group/btn <%= item.emoji === '📚' ? 'bg-blue-50 border-blue-500' : 'bg-white' %>">
+                                                            <span
+                                                                class="text-2xl transition-transform group-hover/btn:scale-110 <%= item.emoji === '📚' ? '' : 'grayscale group-hover/btn:grayscale-0' %>">
+                                                                <%= item.emoji %>
+                                                            </span>
+                                                            <span
+                                                                class="text-sm font-medium text-slate-700 group-hover/btn:text-slate-900">
+                                                                <%= item.label %>
+                                                            </span>
+                                                        </button>
+                                                        <% }); %>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
+                                    <div class="relative">
                                         <label class="block text-sm font-semibold text-slate-700 mb-1">Color
                                             Theme</label>
-                                        <select name="colorTheme"
-                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                                            <option value="blue">Blue</option>
-                                            <option value="indigo">Indigo</option>
-                                            <option value="green">Green</option>
-                                            <option value="purple">Purple</option>
-                                            <option value="orange">Orange</option>
-                                            <option value="red">Red</option>
-                                        </select>
+                                        <input type="hidden" name="colorTheme" id="color-input" value="blue">
+
+                                        <!-- Dropdown Trigger -->
+                                        <button type="button" id="color-dropdown-trigger"
+                                            onclick="toggleColorDropdown('add')"
+                                            class="w-full px-4 py-3 text-left bg-white border border-slate-300 rounded-lg flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all group">
+                                            <div class="flex items-center gap-3">
+                                                <div id="selected-color-preview"
+                                                    class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center border border-blue-100">
+                                                    <div class="w-4 h-4 rounded-full bg-current"></div>
+                                                </div>
+                                                <span id="selected-color-label"
+                                                    class="text-sm font-semibold text-slate-700">Blue</span>
+                                            </div>
+                                            <i
+                                                class="fa-solid fa-chevron-down text-slate-400 text-sm group-hover:text-blue-500 transition-colors"></i>
+                                        </button>
+
+                                        <!-- Dropdown Menu -->
+                                        <div id="color-dropdown-menu-add"
+                                            class="hidden absolute z-20 bottom-full mb-1 w-72 max-h-60 overflow-y-auto custom-scrollbar bg-white border border-slate-200 rounded-xl shadow-xl p-3 transform transition-all origin-bottom left-0 sm:left-auto">
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <% const colors=[ { value: 'blue' , label: 'Blue' , bg: 'bg-blue-50' ,
+                                                    text: 'text-blue-500' }, { value: 'indigo' , label: 'Indigo' ,
+                                                    bg: 'bg-indigo-50' , text: 'text-indigo-500' }, { value: 'green' ,
+                                                    label: 'Green' , bg: 'bg-green-50' , text: 'text-green-500' }, {
+                                                    value: 'purple' , label: 'Purple' , bg: 'bg-purple-50' ,
+                                                    text: 'text-purple-500' }, { value: 'orange' , label: 'Orange' ,
+                                                    bg: 'bg-orange-50' , text: 'text-orange-500' }, { value: 'red' ,
+                                                    label: 'Red' , bg: 'bg-red-50' , text: 'text-red-500' } ]; %>
+                                                    <% colors.forEach(item=> { %>
+                                                        <button type="button"
+                                                            onclick="selectColor(this, '<%= item.value %>', '<%= item.label %>', '<%= item.bg %>', '<%= item.text %>')"
+                                                            class="color-btn w-full flex items-center justify-start gap-2 px-2 py-2 rounded-lg border border-slate-100 hover:bg-slate-50 transition-all group/btn <%= item.value === 'blue' ? 'bg-slate-50 border-blue-500' : 'bg-white' %>">
+                                                            <div
+                                                                class="w-8 h-8 rounded-full <%= item.bg %> <%= item.text %> flex items-center justify-center border border-slate-100">
+                                                                <div class="w-4 h-4 rounded-full bg-current"></div>
+                                                            </div>
+                                                            <span class="text-sm font-medium text-slate-700">
+                                                                <%= item.label %>
+                                                            </span>
+                                                        </button>
+                                                        <% }); %>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -223,7 +336,7 @@
     <!-- Edit Course Modal -->
     <div id="editCourseModal"
         class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg transform transition-all scale-100">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <h3 class="text-lg font-bold text-slate-800">Edit Course</h3>
                 <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
@@ -243,6 +356,17 @@
                         class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"></textarea>
                 </div>
 
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Live Class Link</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-link text-slate-400"></i>
+                        </div>
+                        <input type="url" name="liveLink" id="edit-liveLink" placeholder="https://zoom.us/j/..."
+                            class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1">Price (₹)</label>
@@ -257,22 +381,92 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
+                    <div class="relative">
                         <label class="block text-sm font-semibold text-slate-700 mb-1">Icon Emoji</label>
-                        <input type="text" name="icon" id="edit-icon" required maxlength="2"
-                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-center text-xl">
+                        <input type="hidden" name="icon" id="edit-icon-input">
+
+                        <!-- Dropdown Trigger -->
+                        <button type="button" id="edit-icon-dropdown-trigger" onclick="toggleIconDropdown('edit')"
+                            class="w-full px-4 py-3 text-left bg-white border border-slate-300 rounded-lg flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 flex items-center justify-center">
+                                    <span id="edit-selected-icon-display" class="text-2xl leading-none">📚</span>
+                                </div>
+                                <span id="edit-selected-icon-label"
+                                    class="text-sm font-semibold text-slate-700">Books</span>
+                            </div>
+                            <i
+                                class="fa-solid fa-chevron-down text-slate-400 text-sm group-hover:text-blue-500 transition-colors"></i>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="icon-dropdown-menu-edit"
+                            class="hidden absolute z-20 bottom-full mb-1 w-72 max-h-60 overflow-y-auto custom-scrollbar bg-white border border-slate-200 rounded-xl shadow-xl p-3 transform transition-all origin-bottom left-0 sm:left-auto">
+                            <div class="grid grid-cols-2 gap-2">
+                                <% const editIcons=[ { emoji: '📚' , label: 'Books' }, { emoji: '📈' , label: 'Chart Up'
+                                    }, { emoji: '📉' , label: 'Chart Down' }, { emoji: '💰' , label: 'Money' }, {
+                                    emoji: '🎓' , label: 'Graduation' }, { emoji: '💎' , label: 'Premium' }, {
+                                    emoji: '🚀' , label: 'Growth' }, { emoji: '📊' , label: 'Analysis' }, { emoji: '🧠'
+                                    , label: 'Psychology' }, { emoji: '🎯' , label: 'Target' }, { emoji: '💡' ,
+                                    label: 'Idea' }, { emoji: '⭐' , label: 'Featured' } ]; %>
+                                    <% editIcons.forEach(item=> { %>
+                                        <button type="button"
+                                            onclick="selectEditIcon(this, '<%= item.emoji %>', '<%= item.label %>')"
+                                            data-icon="<%= item.emoji %>" data-label="<%= item.label %>"
+                                            class="edit-icon-btn w-full flex items-center justify-start gap-2 px-1 py-2 rounded-lg border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition-all group/btn bg-white">
+                                            <span
+                                                class="text-2xl transition-transform group-hover/btn:scale-110 text-slate-400 grayscale group-hover/btn:grayscale-0">
+                                                <%= item.emoji %>
+                                            </span>
+                                            <span
+                                                class="text-sm font-medium text-slate-700 group-hover/btn:text-slate-900">
+                                                <%= item.label %>
+                                            </span>
+                                        </button>
+                                        <% }); %>
+                            </div>
+                        </div>
                     </div>
-                    <div>
+                    <div class="relative">
                         <label class="block text-sm font-semibold text-slate-700 mb-1">Color Theme</label>
-                        <select name="colorTheme" id="edit-colorTheme"
-                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                            <option value="blue">Blue</option>
-                            <option value="indigo">Indigo</option>
-                            <option value="green">Green</option>
-                            <option value="purple">Purple</option>
-                            <option value="orange">Orange</option>
-                            <option value="red">Red</option>
-                        </select>
+                        <input type="hidden" name="colorTheme" id="edit-color-input">
+
+                        <!-- Dropdown Trigger -->
+                        <button type="button" id="edit-color-dropdown-trigger" onclick="toggleColorDropdown('edit')"
+                            class="w-full px-4 py-3 text-left bg-white border border-slate-300 rounded-lg flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all group">
+                            <div class="flex items-center gap-3">
+                                <div id="edit-selected-color-preview"
+                                    class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center border border-blue-100">
+                                    <div class="w-4 h-4 rounded-full bg-current"></div>
+                                </div>
+                                <span id="edit-selected-color-label"
+                                    class="text-sm font-semibold text-slate-700">Blue</span>
+                            </div>
+                            <i
+                                class="fa-solid fa-chevron-down text-slate-400 text-sm group-hover:text-blue-500 transition-colors"></i>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="color-dropdown-menu-edit"
+                            class="hidden absolute z-20 bottom-full mb-1 w-72 max-h-60 overflow-y-auto custom-scrollbar bg-white border border-slate-200 rounded-xl shadow-xl p-3 transform transition-all origin-bottom left-0 sm:left-auto">
+                            <div class="grid grid-cols-2 gap-2">
+                                <% colors.forEach(item=> { %>
+                                    <button type="button"
+                                        onclick="selectEditColor(this, '<%= item.value %>', '<%= item.label %>', '<%= item.bg %>', '<%= item.text %>')"
+                                        data-color="<%= item.value %>" data-label="<%= item.label %>"
+                                        data-bg="<%= item.bg %>" data-text="<%= item.text %>"
+                                        class="edit-color-btn w-full flex items-center justify-start gap-2 px-2 py-2 rounded-lg border border-slate-100 hover:bg-slate-50 transition-all group/btn bg-white">
+                                        <div
+                                            class="w-8 h-8 rounded-full <%= item.bg %> <%= item.text %> flex items-center justify-center border border-slate-100">
+                                            <div class="w-4 h-4 rounded-full bg-current"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-slate-700">
+                                            <%= item.label %>
+                                        </span>
+                                    </button>
+                                    <% }); %>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -301,6 +495,7 @@
     <%- include('../partials/footer') %>
 
         <script src="/javascripts/main.js"></script>
+        <script src="/javascripts/admin-icons.js"></script>
         <script src="/javascripts/admin.js"></script>
 </body>
 

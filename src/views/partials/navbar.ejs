@@ -14,7 +14,7 @@
             <!-- Desktop Menu -->
             <div class="hidden md:flex space-x-8 items-center">
                 <a href="/" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Home</a>
-                <a href="#features"
+                <a href="/features"
                     class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Features</a>
                 <a href="/courses"
                     class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Courses</a>
@@ -47,17 +47,17 @@
                                 }
                                 %>
 
-                                <a href="/dashboard" id="join-live-btn" class="join-live-btn px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2
+                                <div id="join-live-btn" class="join-live-btn px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2 cursor-default
                                 <%= isAnyCourseLive 
-                                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/25 hover:bg-green-600 hover:-translate-y-0.5' 
-                                    : 'bg-slate-300 text-slate-500 cursor-not-allowed pointer-events-none' %>">
+                                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/25' 
+                                    : 'bg-slate-100 text-slate-400' %>">
 
                                     <span
                                         class="live-dot w-2 h-2 rounded-full <%= isAnyCourseLive ? 'bg-white live-pulse' : 'bg-slate-400' %>"></span>
                                     <span class="live-text">
-                                        <%= isAnyCourseLive ? 'Join Live Class' : 'Live Offline' %>
+                                        <%= isAnyCourseLive ? 'Live Now' : 'Live Offline' %>
                                     </span>
-                                </a>
+                                </div>
                                 <% } %>
                                     <!-- User Avatar + Dropdown -->
                                     <a href="<%= user.username === 'admin' ? '/admin/dashboard' : '/dashboard' %>"
@@ -91,7 +91,7 @@
         <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <a href="/"
                 class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Home</a>
-            <a href="/index#features"
+            <a href="/features"
                 class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Features</a>
             <a href="/courses"
                 class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Courses</a>
@@ -104,10 +104,10 @@
                     <a href="/testimonials"
                         class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Testimonials</a>
                     <% if (user) { %>
-                        <a href="#" id="mobile-join-live-btn"
-                            class="join-live-btn block px-3 py-2 rounded-md text-base font-medium text-slate-400 bg-slate-100 cursor-not-allowed pointer-events-none">
+                        <div id="mobile-join-live-btn"
+                            class="join-live-btn block px-3 py-2 rounded-md text-base font-medium text-slate-400 bg-slate-100">
                             🔴 Live Offline
-                        </a>
+                        </div>
                         <a href="/dashboard"
                             class="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-blue-50">📊
                             Dashboard</a>

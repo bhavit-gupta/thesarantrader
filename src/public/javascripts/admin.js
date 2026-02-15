@@ -113,9 +113,87 @@ window.openEditModal = function (course) {
     // Populate fields
     document.getElementById('edit-title').value = course.title;
     document.getElementById('edit-description').value = course.description;
+    document.getElementById('edit-liveLink').value = course.liveLink || '';
     document.getElementById('edit-price').value = course.price;
     document.getElementById('edit-originalPrice').value = course.originalPrice;
-    document.getElementById('edit-icon').value = course.icon;
+
+    // Set icon value and highlight correct button
+    const editIconInput = document.getElementById('edit-icon-input');
+    const displaySpan = document.getElementById('edit-selected-icon-display');
+
+    if (editIconInput) {
+        const currentIcon = course.icon || '📚';
+        editIconInput.value = currentIcon;
+        if (displaySpan) displaySpan.textContent = currentIcon;
+
+        // Reset all
+        document.querySelectorAll('.edit-icon-btn').forEach(b => {
+            b.classList.remove('bg-blue-50', 'border-blue-500');
+            b.classList.add('bg-white');
+
+            const emojiSpan = b.querySelector('span:first-child');
+            if (emojiSpan) {
+                emojiSpan.classList.add('grayscale');
+                emojiSpan.classList.remove('grayscale-0');
+            }
+        });
+
+        // Find and highlight matches
+        const activeBtn = document.querySelector(`.edit-icon-btn[data-icon="${currentIcon}"]`) ||
+            document.querySelector(`.edit-icon-btn[data-icon="📚"]`);
+
+        if (activeBtn) {
+            activeBtn.classList.remove('bg-white');
+            activeBtn.classList.add('bg-blue-50', 'border-blue-500');
+
+            const activeEmoji = activeBtn.querySelector('span:first-child');
+            if (activeEmoji) {
+                activeEmoji.classList.remove('grayscale');
+                activeEmoji.classList.add('grayscale-0');
+            }
+
+            // Set label on trigger
+            const label = activeBtn.getAttribute('data-label');
+            const labelSpan = document.getElementById('edit-selected-icon-label');
+            if (label && labelSpan) labelSpan.textContent = label;
+        }
+    }
+
+    // Initialize Color Dropdown
+    const editColorInput = document.getElementById('edit-color-input');
+    const colorLabel = document.getElementById('edit-selected-color-label');
+    const colorPreview = document.getElementById('edit-selected-color-preview');
+
+    if (editColorInput) {
+        // Fallback to blue if not found
+        // Note: Assuming course object has colorTheme or similar. 
+        // Based on select name='colorTheme', likely course.colorTheme
+        const currentColor = course.colorTheme || 'blue';
+        editColorInput.value = currentColor;
+
+        // Reset all
+        document.querySelectorAll('.edit-color-btn').forEach(b => {
+            b.classList.remove('bg-slate-50', 'border-blue-500');
+            b.classList.add('bg-white');
+        });
+
+        // Find match
+        const activeBtn = document.querySelector(`.edit-color-btn[data-color="${currentColor}"]`) ||
+            document.querySelector(`.edit-color-btn[data-color="blue"]`);
+
+        if (activeBtn) {
+            activeBtn.classList.remove('bg-white');
+            activeBtn.classList.add('bg-slate-50', 'border-blue-500');
+
+            // Update trigger
+            if (colorLabel) colorLabel.textContent = activeBtn.getAttribute('data-label');
+            if (colorPreview) {
+                const bg = activeBtn.getAttribute('data-bg');
+                const text = activeBtn.getAttribute('data-text');
+                colorPreview.className = `w-8 h-8 rounded-full ${bg} ${text} flex items-center justify-center border border-blue-100`;
+            }
+        }
+    }
 
     // Handle Color Theme (derive from iconBg e.g., 'blue-50' -> 'blue')
     const theme = course.iconBg.split('-')[0];

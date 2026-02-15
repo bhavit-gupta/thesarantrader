@@ -110,6 +110,7 @@ app.get('/forgetPassword', (req, res) => res.render("auth/forgetPassword"));
 app.get('/verifyOTP', (req, res) => res.render("auth/verifyOTP"));
 app.get('/enroll', (req, res) => res.render("courses/enroll"));
 app.get('/testimonials', (req, res) => res.render("layouts/testimonials"));
+app.get('/features', (req, res) => res.render("layouts/features"));
 
 // Dashboard (protected)
 app.get('/dashboard', (req, res) => {
@@ -190,7 +191,7 @@ app.post('/admin/courses/add', (req, res) => {
         return res.status(403).send("Unauthorized");
     }
 
-    const { title, description, price, originalPrice, icon, colorTheme } = req.body;
+    const { title, description, price, originalPrice, icon, colorTheme, liveLink } = req.body;
 
     // Create new course object
     const newCourse = {
@@ -205,7 +206,8 @@ app.post('/admin/courses/add', (req, res) => {
         iconBg: `${colorTheme || 'blue'}-50`,
         iconColor: `${colorTheme || 'blue'}-500`,
         badge: "New",
-        badgeColor: "green"
+        badgeColor: "green",
+        liveLink: liveLink || "" // Store the live link
     };
 
     // Add to in-memory DB
@@ -244,7 +246,7 @@ app.post('/admin/courses/edit/:id', (req, res) => {
     }
 
     const courseId = parseInt(req.params.id);
-    const { title, description, price, originalPrice, icon, colorTheme } = req.body;
+    const { title, description, price, originalPrice, icon, colorTheme, liveLink } = req.body;
 
     const course = courses.find(c => c.id === courseId);
 
@@ -253,6 +255,7 @@ app.post('/admin/courses/edit/:id', (req, res) => {
         course.description = description;
         course.price = parseInt(price);
         course.originalPrice = parseInt(originalPrice);
+        course.liveLink = liveLink || ""; // Update live link
         if (icon) course.icon = icon;
         if (colorTheme) {
             course.iconBg = `${colorTheme}-50`;
