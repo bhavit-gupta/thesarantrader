@@ -31,13 +31,23 @@
                         Real experiences from traders who transformed their journey with Kundan Sir's expert guidance.
                         Join thousands of successful students today!
                     </p>
-                    <!-- CTA Button -->
-                    <a href="/courses"
-                        class="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-lg shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all">
-                        <i class="fa-solid fa-graduation-cap"></i>
-                        Explore Courses
-                        <i class="fa-solid fa-arrow-right text-sm opacity-75"></i>
-                    </a>
+                    <!-- CTA Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <a href="/courses"
+                            class="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-lg shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            Explore Courses
+                            <i class="fa-solid fa-arrow-right text-sm opacity-75"></i>
+                        </a>
+
+                        <% if (locals.user) { %>
+                            <a href="/dashboard"
+                                class="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-white text-slate-700 font-semibold text-lg border border-slate-200 hover:border-blue-500 hover:text-blue-600 hover:-translate-y-1 transition-all shadow-sm">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                Share Your Experience
+                            </a>
+                            <% } %>
+                    </div>
                 </div>
             </div>
         </section>
@@ -61,11 +71,20 @@
                         <div class="text-5xl mb-4">💬</div>
                         <h3 class="text-xl font-bold text-slate-800 mb-2">No testimonials yet</h3>
                         <p class="text-slate-500 mb-6">Be the first to share your experience!</p>
-                        <a href="/login"
-                            class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-blue-600 text-white font-semibold shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:-translate-y-0.5 transition-all">
-                            <i class="fa-solid fa-user"></i>
-                            Login to Share
-                        </a>
+
+                        <% if (locals.user) { %>
+                            <a href="/dashboard"
+                                class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-blue-600 text-white font-semibold shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:-translate-y-0.5 transition-all">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                Share Experience
+                            </a>
+                            <% } else { %>
+                                <a href="/login"
+                                    class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-blue-600 text-white font-semibold shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:-translate-y-0.5 transition-all">
+                                    <i class="fa-solid fa-user"></i>
+                                    Login to Share
+                                </a>
+                                <% } %>
                     </div>
                 </div>
 
@@ -90,10 +109,17 @@
                         class="px-8 py-4 rounded-full bg-blue-600 text-white font-semibold text-center shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-1">
                         Explore Courses
                     </a>
-                    <a href="/login"
-                        class="px-8 py-4 rounded-full bg-white text-slate-700 font-semibold text-center border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all">
-                        Login/Signup
-                    </a>
+                    <% if (locals.user) { %>
+                        <a href="/dashboard"
+                            class="px-8 py-4 rounded-full bg-white text-slate-700 font-semibold text-center border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all">
+                            Share Experience
+                        </a>
+                        <% } else { %>
+                            <a href="/login"
+                                class="px-8 py-4 rounded-full bg-white text-slate-700 font-semibold text-center border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all">
+                                Login/Signup
+                            </a>
+                            <% } %>
                 </div>
             </div>
         </section>

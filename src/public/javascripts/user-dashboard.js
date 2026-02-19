@@ -80,19 +80,27 @@ function initTestimonialForm() {
 
         // Submit
         const submitBtn = document.getElementById('submit-testimonial-btn');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        console.log(`[Testimonial] Submitting: Rating=${selectedRating}, CSRF=${!!csrfToken}`);
+
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
 
         try {
             const response = await fetch('/api/testimonials/submit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
                 body: JSON.stringify({ message, rating: selectedRating, userRole: userRole || 'Student' })
             });
 
             const data = await response.json();
 
             if (data.success) {
+                console.log('[Testimonial] Success:', data.message);
                 showFeedback(data.message, 'success');
                 form.reset();
                 selectedRating = 0;

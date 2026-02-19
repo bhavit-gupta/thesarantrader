@@ -17,13 +17,32 @@ const viewDataMiddleware = async (req, res, next) => {
 
         // Check cache for global course data
         if (!courseCache.data || (now - courseCache.lastFetch > courseCache.TTL)) {
-            // Fetch from DB
-            const courses = await prisma.course.findMany({
-                orderBy: { startDate: 'asc' },
+            // Fetch courses and dynamically calculate live student counts
+            const [allCourses, allEnrollments] = await Promise.all([
+                prisma.course.findMany({ orderBy: { startDate: 'asc' } }),
+                prisma.user.findMany({
+                    where: { purchasedCourseIds: { isEmpty: false } },
+                    select: { purchasedCourseIds: true }
+                })
+            ]);
+
+            // Recalculate counts in memory for speed
+            const enrollmentMap = {};
+            allEnrollments.forEach(u => {
+                u.purchasedCourseIds.forEach(cid => {
+                    enrollmentMap[cid] = (enrollmentMap[cid] || 0) + 1;
+                });
             });
-            courseCache.data = courses;
+
+            // Merge calculated counts into course objects
+            const coursesWithLiveCounts = allCourses.map(c => ({
+                ...c,
+                students: enrollmentMap[c.id] || 0
+            }));
+
+            courseCache.data = coursesWithLiveCounts;
             courseCache.lastFetch = now;
-            console.log("🔄 [Cache] Global course data refreshed");
+            console.log("🔄 [Cache] Global course data refreshed with live enrollment counts");
         }
 
         const courses = courseCache.data;

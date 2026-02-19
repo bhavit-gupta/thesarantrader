@@ -39,7 +39,45 @@ async function runVerification() {
         success = false;
     }
 
-    // 3. Verify Critical File Structure
+    // 3. Student Count Consistency
+    try {
+        console.log('\n📈 Checking Student Count Consistency...');
+        const courses = await prisma.course.findMany({
+            select: { id: true, title: true, students: true }
+        });
+        const users = await prisma.user.findMany({
+            where: { purchasedCourseIds: { isEmpty: false } },
+            select: { purchasedCourseIds: true }
+        });
+
+        const actualCounts = {};
+        users.forEach(u => {
+            u.purchasedCourseIds.forEach(cid => {
+                actualCounts[cid] = (actualCounts[cid] || 0) + 1;
+            });
+        });
+
+        let driftFound = false;
+        courses.forEach(course => {
+            const actual = actualCounts[course.id] || 0;
+            if (course.students !== actual) {
+                console.warn(`   ⚠️  Drift found in "${course.title}": DB=${course.students}, Actual=${actual}`);
+                driftFound = true;
+            }
+        });
+
+        if (!driftFound) {
+            console.log('   ✅ Student counts are perfectly synchronized.');
+        } else {
+            console.warn('   ⚠️  Some student counts are out of sync. Run sync-student-counts.js to fix.');
+            // We don't fail the whole verification for drift, just warn.
+        }
+    } catch (error) {
+        console.error('   ❌ Student count check failed!', error.message);
+        success = false;
+    }
+
+    // 4. Verify Critical File Structure
     console.log('\n📁 Verifying Critical File Structure...');
     const criticalDirs = [
         'src/controllers',

@@ -138,8 +138,26 @@ router.get('/admin/dashboard', async (req, res) => {
 
         const totalUsers = await prisma.user.count();
 
-        courses.forEach(course => {
+        // Use the live-calculated courses from res.locals if available, 
+        // or calculate them here to ensure accuracy.
+        const allEnrollments = await prisma.user.findMany({
+            where: { purchasedCourseIds: { isEmpty: false } },
+            select: { purchasedCourseIds: true }
+        });
 
+        const enrollmentMap = {};
+        allEnrollments.forEach(u => {
+            u.purchasedCourseIds.forEach(cid => {
+                enrollmentMap[cid] = (enrollmentMap[cid] || 0) + 1;
+            });
+        });
+
+        const enrichedCourses = courses.map(c => ({
+            ...c,
+            students: enrollmentMap[c.id] || 0
+        }));
+
+        enrichedCourses.forEach(course => {
             // Filtering
             const start = course.startDate ? new Date(course.startDate) : null;
             const end = course.endDate ? new Date(course.endDate) : null;
@@ -149,18 +167,13 @@ router.get('/admin/dashboard', async (req, res) => {
             } else if (end && end < now) {
                 expiredCourses.push(course);
             } else {
-                // If no start date, or start date is past/today AND (no end date or end date is future)
-                // This covers:
-                // 1. Started in past, no end date (Ongoing forever)
-                // 2. Started in past, ends in future (Ongoing)
-                // 3. No start date (maybe verify this? For now treating as available/ongoing if not upcoming/expired)
                 ongoingCourses.push(course);
             }
         });
 
         res.render("dashboard/admin", {
             liveSessions: res.locals.liveSessions,
-            courses: courses, // Keep for raw list if needed
+            courses: enrichedCourses,
             ongoingCourses,
             upcomingCourses,
             expiredCourses,

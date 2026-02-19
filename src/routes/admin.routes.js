@@ -25,22 +25,23 @@ router.post('/api/admin/approve-payment', isAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: "Purchase already completed" });
         }
 
-        // Update Purchase Status
-        await prisma.purchase.update({
-            where: { id: purchaseId },
-            data: { status: 'completed' }
-        });
+        // Update Purchase Status, User Enrollment, and Course Student Count in a transaction
+        await prisma.$transaction([
+            prisma.purchase.update({
+                where: { id: purchaseId },
+                data: { status: 'completed' }
+            }),
+            prisma.user.update({
+                where: { id: purchase.userId },
+                data: { purchasedCourseIds: { push: purchase.courseId } }
+            }),
+            prisma.course.update({
+                where: { id: purchase.courseId },
+                data: { students: { increment: 1 } }
+            })
+        ]);
 
-        // Add Course to User's purchasedCourseIds
-        await prisma.user.update({
-            where: { id: purchase.userId },
-            data: {
-                purchasedCourseIds: {
-                    push: purchase.courseId
-                }
-            }
-        });
-
+        console.log(`✅ [Manual Approval] User ${purchase.userId} enrolled in ${purchase.courseId}. Student count incremented.`);
         res.json({ success: true, message: "Payment approved and user enrolled." });
 
     } catch (error) {
@@ -76,18 +77,21 @@ router.get('/admin/users', isAdmin, async (req, res) => {
             orderBy: { createdAt: 'desc' }
         });
 
-        // SANITIZE USER LIST
-        const sanitizedUsers = (users || []).map(user => ({
-            ...user,
-            id: user.id || user._id || '',
-            name: user.name || user.username || 'N/A',
-            username: user.username || 'unknown',
-            email: user.email || 'N/A',
-            phone: user.phone || 'N/A',
-            role: user.role || 'user',
-            createdAt: user.createdAt || new Date(),
-            purchasedCourseIds: user.purchasedCourseIds || []
-        }));
+        // SANITIZE USER LIST (Exclude password)
+        const sanitizedUsers = (users || []).map(user => {
+            const { password, ...rest } = user;
+            return {
+                ...rest,
+                id: user.id || user._id || '',
+                name: user.name || user.username || 'N/A',
+                username: user.username || 'unknown',
+                email: user.email || 'N/A',
+                phone: user.phone || 'N/A',
+                role: user.role || 'user',
+                createdAt: user.createdAt || new Date(),
+                purchasedCourseIds: user.purchasedCourseIds || []
+            };
+        });
 
         res.render('dashboard/admin_users', { users: sanitizedUsers }, (err, html) => {
             if (err) {
@@ -121,9 +125,10 @@ router.get('/admin/users/:id', isAdmin, async (req, res) => {
 
         if (!user) return res.status(404).send('User not found');
 
-        // SANITIZE USER DATA
+        // SANITIZE USER DATA (Exclude password)
+        const { password, ...rest } = user;
         const sanitizedProfileUser = {
-            ...user,
+            ...rest,
             id: user.id || user._id || '',
             name: user.name || 'N/A',
             username: user.username || 'unknown',
