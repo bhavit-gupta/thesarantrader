@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <title>Manage Testimonials - Admin</title>
     <link rel="stylesheet" href="/stylesheets/output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -98,7 +99,8 @@
                                             <div class="flex items-center gap-3">
                                                 <div
                                                     class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white font-bold text-sm">
-                                                    <%= testimonial.userName.charAt(0).toUpperCase() %>
+                                                    <%= (testimonial.userName && testimonial.userName.length> 0) ?
+                                                        testimonial.userName.charAt(0).toUpperCase() : 'U' %>
                                                 </div>
                                                 <div>
                                                     <p class="text-sm font-bold text-slate-800">
@@ -126,17 +128,17 @@
 
                                         <!-- Submitted Date -->
                                         <p class="text-xs text-slate-400 mb-4">
-                                            Submitted <%= new Date(testimonial.submittedAt).toLocaleDateString() %>
+                                            Submitted <%= formatDate(testimonial.submittedAt) %>
                                         </p>
 
                                         <!-- Actions -->
                                         <div class="flex gap-2">
-                                            <button onclick="approveTestimonial( <%= testimonial.id %> )"
-                                                class="flex-1 px-4 py-2 rounded-lg bg-green-600 text-white font-semibold text-sm hover:bg-green-700 transition-colors">
+                                            <button data-id="<%= testimonial.id %>"
+                                                class="approve-btn flex-1 px-4 py-2 rounded-lg bg-green-600 text-white font-semibold text-sm hover:bg-green-700 transition-colors">
                                                 <i class="fa-solid fa-check mr-1"></i> Approve
                                             </button>
-                                            <button onclick="rejectTestimonial( <%= testimonial.id %> )"
-                                                class="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors">
+                                            <button data-id="<%= testimonial.id %>"
+                                                class="reject-btn flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors">
                                                 <i class="fa-solid fa-times mr-1"></i> Reject
                                             </button>
                                         </div>
@@ -169,7 +171,8 @@
                                             <div class="flex items-center gap-3">
                                                 <div
                                                     class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-sm">
-                                                    <%= testimonial.userName.charAt(0).toUpperCase() %>
+                                                    <%= (testimonial.userName && testimonial.userName.length> 0) ?
+                                                        testimonial.userName.charAt(0).toUpperCase() : 'U' %>
                                                 </div>
                                                 <div>
                                                     <p class="text-sm font-bold text-slate-800">
@@ -197,12 +200,12 @@
 
                                         <!-- Approved Date -->
                                         <p class="text-xs text-slate-400 mb-4">
-                                            Approved <%= new Date(testimonial.reviewedAt).toLocaleDateString() %>
+                                            Approved <%= formatDate(testimonial.reviewedAt) %>
                                         </p>
 
                                         <!-- Actions -->
-                                        <button onclick="rejectTestimonial(<%= testimonial.id %>)"
-                                            class="w-full px-4 py-2 rounded-lg bg-red-50 text-red-600 font-semibold text-sm hover:bg-red-100 transition-colors border border-red-200">
+                                        <button data-id="<%= testimonial.id %>"
+                                            class="reject-btn w-full px-4 py-2 rounded-lg bg-red-50 text-red-600 font-semibold text-sm hover:bg-red-100 transition-colors border border-red-200">
                                             <i class="fa-solid fa-times mr-1"></i> Remove from Homepage
                                         </button>
                                     </div>
@@ -214,8 +217,8 @@
             </div>
         </main>
 
-        <script src="/javascripts/main.js"></script>
-        <script src="/javascripts/admin-testimonials.js"></script>
+        <script src="/javascripts/main.js?v=<%= Date.now() %>"></script>
+        <script src="/javascripts/admin-testimonials.js?v=<%= Date.now() %>"></script>
 </body>
 
 </html>

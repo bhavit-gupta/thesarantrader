@@ -3,6 +3,7 @@
 // Global courses array (fetched from server)
 let courses = [];
 
+/* ---------------- DATA LOADING ---------------- */
 // Fetch Courses from Server
 async function fetchCourses() {
     try {
@@ -14,6 +15,7 @@ async function fetchCourses() {
     }
 }
 
+/* ---------------- HELPER FUNCTIONS ---------------- */
 // Star Rating Generator
 function generateStars(rating) {
     const fullStars = Math.floor(rating);
@@ -24,6 +26,8 @@ function generateStars(rating) {
     return starsHtml;
 }
 
+/* ---------------- GLOBAL PURCHASE LOGIC ---------------- */
+/* ---------------- GRID RENDERING ---------------- */
 // Render Courses Grid (Home Page / Courses Page)
 function renderCourses() {
     const grid = document.getElementById('courses-grid');
@@ -44,49 +48,109 @@ function renderCourses() {
             </div>
             <div class="p-6">
                 <div class="flex items-center gap-2 mb-3">
-                    <div class="flex text-yellow-400 text-xs">${generateStars(course.rating)}</div>
-                    <span class="text-xs text-slate-500 font-medium">(${course.rating})</span>
-                    <span class="text-xs text-slate-400">•</span>
-                    <span class="text-xs text-slate-500 font-medium">${course.students} students enrolled</span>
+                    <span class="text-xs text-slate-500 font-medium"><i class="fa-solid fa-user-group text-blue-500 mr-1"></i> ${course.students} students enrolled</span>
                 </div>
                 <h3 class="text-lg font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">${course.title}</h3>
                 <p class="text-slate-600 text-sm mb-4 line-clamp-2">${course.description}</p>
+                
+                ${course.startDate ? `
+                <div class="mb-4 space-y-1 text-xs font-medium text-slate-500">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar text-blue-500"></i>
+                        <span>Starts: ${formatDate(course.startDate)}</span>
+                    </div>
+                    ${course.endDate ? `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-flag text-red-500"></i>
+                        <span>Ends: ${formatDate(course.endDate)}</span>
+                    </div>` : ''}
+                    ${course.enrollmentDeadline ? `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-hourglass-half text-orange-500"></i>
+                        <span class="${new Date() > new Date(course.enrollmentDeadline) ? 'text-red-500 font-bold' : ''}">
+                            Enroll by: ${formatDate(course.enrollmentDeadline)}
+                        </span>
+                    </div>` : ''}
+                </div>` : ''}
+
                 <div class="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
                     <div><span class="text-2xl font-bold text-slate-800">₹${course.price}</span><span class="text-sm text-slate-400 line-through ml-2">₹${course.originalPrice}</span></div>
-                    <a href="/enroll?id=${course.id}" class="px-4 py-2 rounded-lg bg-slate-50 text-slate-700 font-semibold text-sm hover:bg-blue-600 hover:text-white transition-all transform hover:-translate-y-0.5">Enroll Now</a>
+                    
+                    ${(() => {
+            const isPending = window.__PENDING_COURSES__ && window.__PENDING_COURSES__.some(id => String(id) === String(course.id));
+
+            if (isPending) {
+                return `<div class="px-4 py-2 rounded-lg bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-200 flex items-center gap-1"><i class="fa-solid fa-clock"></i> Awaiting Verification</div>`;
+            } else if (course.enrollmentDeadline && new Date() > new Date(course.enrollmentDeadline)) {
+                return `<button disabled class="px-4 py-2 rounded-lg bg-slate-100 text-slate-400 font-semibold text-sm cursor-not-allowed">Enrollment Closed</button>`;
+            } else {
+                return `<a href="/enroll?id=${course.id}" class="px-4 py-2 rounded-lg bg-slate-50 text-slate-700 font-semibold text-sm hover:bg-blue-600 hover:text-white transition-all transform hover:-translate-y-0.5">Enroll Now</a>`;
+            }
+        })()}
                 </div>
             </div>
         </div>
     `).join('');
 }
 
+/* ---------------- ENROLLMENT PAGE ---------------- */
 // Render Enrollment Page
 function renderEnrollmentPage() {
     const container = document.getElementById('enrollment-container');
     if (!container) return;
 
     const urlParams = new URLSearchParams(window.location.search);
-    const courseId = parseInt(urlParams.get('id'));
+    const courseId = urlParams.get('id');
 
     // Ensure courses are loaded before finding
     if (courses.length === 0) {
         container.innerHTML = '<div class="col-span-full text-center py-20">Loading course details...</div>';
-        // Retry shortly if data fetch might be pending, though main init handles sequential await usually.
-        // But since we call renderEnrollmentPage after fetchCourses await, it should be fine.
         return;
     }
 
-    const course = courses.find(c => c.id === courseId);
+    const course = courses.find(c => String(c.id) === String(courseId));
 
     if (!course) {
-        container.innerHTML = `<div class="col-span-2 text-center py-20"><h2 class="text-3xl font-bold text-slate-800 mb-4">Course not found</h2><a href="/courses" class="text-blue-600 hover:text-blue-700 font-semibold">Browse all courses</a></div>`;
+        container.innerHTML = `<div class="col-span-2 text-center py-20"><h2 class="text-3xl font-bold text-slate-800 mb-4">Course not found (ID: ${courseId})</h2><a href="/courses" class="text-blue-600 hover:text-blue-700 font-semibold">Browse all courses</a></div>`;
         return;
     }
 
-    // Payment Logic Placeholder
-    window.buyCourse = function (price) {
-        alert('Payment gateway coming soon! Price: ₹' + price);
-    };
+    // Determine Button State
+    let actionButton = '';
+    const isPurchased = window.__PURCHASED_COURSES__ && window.__PURCHASED_COURSES__.some(id => String(id) === String(courseId));
+    const isPending = window.__PENDING_COURSES__ && window.__PENDING_COURSES__.some(id => String(id) === String(courseId));
+
+    if (!window.__AUTH_USER__) {
+        // Guest User
+        actionButton = `
+            <a href="/login?redirect=${encodeURIComponent(window.location.href)}" class="w-full block text-center py-4 bg-slate-800 text-white font-bold rounded-xl shadow-lg hover:bg-slate-900 transition-all transform hover:-translate-y-0.5 text-lg">
+                Login to Enroll
+            </a>`;
+    } else if (isPurchased) {
+        // Already Enrolled
+        actionButton = `
+            <div class="w-full py-4 bg-green-50 text-green-700 font-bold rounded-xl border border-green-100 flex items-center justify-center gap-2 text-lg">
+                <i class="fa-solid fa-circle-check"></i> Already Enrolled
+            </div>
+            <a href="/dashboard" class="block text-center text-sm font-semibold text-blue-600 hover:text-blue-700 mt-2">
+                Go to Learning Dashboard →
+            </a>`;
+    } else if (isPending) {
+        // Payment pending verification
+        actionButton = `
+            <div class="w-full py-4 bg-amber-50 text-amber-700 font-bold rounded-xl border border-amber-200 flex items-center justify-center gap-2 text-lg">
+                <i class="fa-solid fa-clock"></i> Awaiting Verification
+            </div>
+            <p class="text-center text-sm text-amber-600 mt-2">
+                Your payment proof has been submitted. Admin will verify shortly.
+            </p>`;
+    } else {
+        // Logged in but not purchased
+        actionButton = `
+            <a href="/checkout/${course.id}" class="w-full block text-center py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5 text-lg">
+                Enroll Now — ₹${course.price}
+            </a>`;
+    }
 
     container.innerHTML = `
         <div class="space-y-8">
@@ -125,11 +189,9 @@ function renderEnrollmentPage() {
                     <span class="inline-block mt-2 px-3 py-1 rounded-full bg-white/20 text-xs font-bold">${Math.round((1 - course.price / course.originalPrice) * 100)}% OFF</span>
                 </div>
 
-                <!-- Buy Button -->
+                <!-- Action Button Container -->
                 <div class="p-6 space-y-4">
-                    <button onclick="buyCourse(${course.price})" class="w-full py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5 text-lg">
-                        Buy Now — ₹${course.price}
-                    </button>
+                    ${actionButton}
 
                     <!-- Course Highlights -->
                     <div class="space-y-3 pt-4 border-t border-slate-100">
@@ -138,13 +200,13 @@ function renderEnrollmentPage() {
                             <span class="text-blue-500">📹</span> Live trading sessions with Kundan Sir
                         </div>
                         <div class="flex items-center gap-3 text-sm text-slate-600">
-                            <span class="text-blue-500">♾️</span> Lifetime access to course material
+                            <span class="text-blue-500">📱</span> Access on Mobile and Web
                         </div>
                         <div class="flex items-center gap-3 text-sm text-slate-600">
                             <span class="text-blue-500">📊</span> Real-world case studies
                         </div>
                         <div class="flex items-center gap-3 text-sm text-slate-600">
-                            <span class="text-blue-500">🎓</span> Certificate of completion
+                            <span class="text-blue-500">👥</span> Exclusive Community Access
                         </div>
                         <div class="flex items-center gap-3 text-sm text-slate-600">
                             <span class="text-blue-500">💬</span> Doubt clearing support
@@ -154,8 +216,8 @@ function renderEnrollmentPage() {
                     <!-- Stats -->
                     <div class="flex items-center justify-between pt-4 border-t border-slate-100 text-sm">
                         <div class="text-center">
-                            <p class="font-bold text-slate-800">${course.rating}⭐</p>
-                            <p class="text-slate-500 text-xs">Rating</p>
+                            <p class="font-bold text-slate-800">Verified</p>
+                            <p class="text-slate-500 text-xs">Content</p>
                         </div>
                         <div class="text-center">
                             <p class="font-bold text-slate-800">${course.students}+</p>
@@ -172,6 +234,7 @@ function renderEnrollmentPage() {
     `;
 }
 
+/* ---------------- INITIALIZATION ---------------- */
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
     // Fetch courses first

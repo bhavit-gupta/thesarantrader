@@ -1,5 +1,19 @@
 // Main Global Scripts (Navbar, Live Status)
 
+/* ---------------- HELPER FUNCTIONS ---------------- */
+window.formatDate = function (dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; // Return original if invalid
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+};
+
+/* ---------------- MOBILE MENU ---------------- */
 // Mobile Menu Toggle
 function setupMobileMenu() {
     const btn = document.getElementById('mobile-menu-btn');
@@ -11,6 +25,7 @@ function setupMobileMenu() {
     }
 }
 
+/* ---------------- LIVE STATUS ---------------- */
 // Live Status Polling
 function pollLiveStatus() {
     const liveButtons = document.querySelectorAll('.join-live-btn');
@@ -84,7 +99,7 @@ function pollLiveStatus() {
     setInterval(checkLive, 5000);
 }
 
-// Initialization
+/* ---------------- INITIALIZATION ---------------- */
 document.addEventListener('DOMContentLoaded', () => {
     setupMobileMenu();
     pollLiveStatus();

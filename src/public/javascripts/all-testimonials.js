@@ -1,5 +1,6 @@
 // All Testimonials Page - Dynamic Loading
 
+/* ---------------- DATA LOADING & RENDERING ---------------- */
 async function loadAllTestimonials() {
     const loading = document.getElementById('testimonials-loading');
     const grid = document.getElementById('all-testimonials-grid');
@@ -93,6 +94,7 @@ async function loadAllTestimonials() {
     }
 }
 
+/* ---------------- HELPER FUNCTIONS ---------------- */
 // Helper function to escape HTML
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -100,5 +102,6 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+/* ---------------- INITIALIZATION ---------------- */
 // Load testimonials when page loads
 document.addEventListener('DOMContentLoaded', loadAllTestimonials);

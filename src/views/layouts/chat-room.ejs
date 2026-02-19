@@ -4,8 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <title>
-        <%= course.name %> Chat - TheSaranTrader
+        <%= course.title %> Chat - TheSaranTrader
     </title>
     <link rel="stylesheet" href="/stylesheets/output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -25,11 +26,11 @@
                             <i class="fa-solid fa-arrow-left"></i>
                         </a>
                         <div class="text-3xl">
-                            <%= course.emoji %>
+                            <%= course.icon %>
                         </div>
                         <div>
                             <h2 class="text-lg font-bold text-slate-800">
-                                <%= course.name %>
+                                <%= course.title %>
                             </h2>
                             <p class="text-sm text-slate-500">Course Chat Room</p>
                         </div>
@@ -75,9 +76,9 @@
         </main>
 
         <script>
-            window.courseId = <%= course.id %>;
-            window.currentUserId = '<%= user.username %>';
-            window.currentUserName = '<%= user.name %>';
+            window.courseId = "<%= course.id %>";
+            window.currentUserId = '<%= (typeof user !== "undefined" && user) ? user.id : "" %>';
+            window.currentUserName = '<%= (typeof user !== "undefined" && user) ? user.name : "" %>';
         </script>
         <script src="/javascripts/main.js"></script>
         <script src="/javascripts/chat.js"></script>

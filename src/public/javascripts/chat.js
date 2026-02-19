@@ -1,7 +1,11 @@
 // Chat functionality for course-specific chat rooms
 
+// Chat functionality for course-specific chat rooms
+
+let lastMessageTimestamp = 0;
 let messageRefreshInterval;
 
+/* ---------------- INITIALIZATION ---------------- */
 // Load messages when page loads
 document.addEventListener('DOMContentLoaded', () => {
     loadMessages();
@@ -16,42 +20,84 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+/* ---------------- MESSAGE LOADING ---------------- */
+// Load messages from server
 // Load messages from server
 async function loadMessages() {
     try {
-        const response = await fetch(`/api/chat/${window.courseId}/messages`);
+        let url = `/api/chat/${window.courseId}/messages`;
+
+        // Smart Polling: Only fetch messages after the last received one
+        if (lastMessageTimestamp > 0) {
+            url += `?after=${lastMessageTimestamp}`;
+        }
+
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.success) {
-            displayMessages(data.messages);
+            if (data.messages.length > 0) {
+                // Update timestamp from the latest message (last in the array)
+                const latestMsg = data.messages[data.messages.length - 1];
+                lastMessageTimestamp = new Date(latestMsg.timestamp).getTime();
+
+                // Append new messages
+                displayMessages(data.messages, true); // true = append
+            } else if (lastMessageTimestamp === 0) {
+                // First load, but no messages exist
+                displayMessages([], false);
+            }
         }
     } catch (error) {
         console.error('Failed to load messages:', error);
     }
 }
 
+/* ---------------- MESSAGE RENDERING ---------------- */
 // Display messages in the chat
-function displayMessages(messages) {
+// Display messages in the chat
+function displayMessages(messages, append = false) {
     const loadingEl = document.getElementById('messages-loading');
     const listEl = document.getElementById('messages-list');
     const emptyEl = document.getElementById('empty-messages');
 
     loadingEl.classList.add('hidden');
 
-    if (messages.length === 0) {
+    // Handle "No Messages" State
+    if (messages.length === 0 && !append) {
         listEl.classList.add('hidden');
         emptyEl.classList.remove('hidden');
         return;
     }
 
+    // If we have messages, ensure list is visible and empty state is hidden
     emptyEl.classList.add('hidden');
     listEl.classList.remove('hidden');
 
-    // Clear existing messages
-    listEl.innerHTML = '';
+    // Clear existing messages ONLY if not appending (Initial Refresh)
+    // Note: Since we use lastMessageTimestamp, we practically always append 
+    // unless it's a hard refresh logic we haven't implemented yet.
+    // But for the very first load (lastMessageTimestamp=0), we passed append=true 
+    // effectively because we want to fill the list. 
+    // Actually, in loadMessages:
+    // If lastMessageTimestamp > 0 (polling) -> append=true
+    // If lastMessageTimestamp == 0 (initial) -> append=true (it's empty accessing anyway)
+    // Wait, let's keep it clean: 
+    // We only clear if we specifically want to reset (e.g. manual refresh?).
+    // For now, let's just NOT clear if append is true.
+
+    // Safety check for duplicates could be added here if needed, 
+    // but timestamp filtering should handle it.
+
+    if (!append) {
+        listEl.innerHTML = '';
+    }
 
     // Add each message
     messages.forEach(msg => {
+        // Prevent duplicates just in case (e.g. slight timestamp overlap)
+        if (document.getElementById(`msg-${msg.id}`)) return;
+
         const messageEl = createMessageElement(msg);
         listEl.appendChild(messageEl);
     });
@@ -65,7 +111,8 @@ function createMessageElement(msg) {
     const isOwnMessage = msg.userId === window.currentUserId;
 
     const messageDiv = document.createElement('div');
-    messageDiv.className = `flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
+    messageDiv.id = `msg-${msg.id}`; // Add ID for duplicate checking
+    messageDiv.className = `flex ${isOwnMessage ? 'justify-end' : 'justify-start'} animate-fade-in-up`; // Add animation
 
     const gradients = [
         'from-blue-400 to-blue-600',
@@ -100,6 +147,7 @@ function createMessageElement(msg) {
     return messageDiv;
 }
 
+/* ---------------- MESSAGE SENDING ---------------- */
 // Send message
 async function sendMessage(e) {
     e.preventDefault();
@@ -110,10 +158,12 @@ async function sendMessage(e) {
     if (!message) return;
 
     try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const response = await fetch(`/api/chat/${window.courseId}/messages`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'csrf-token': csrfToken
             },
             body: JSON.stringify({ message })
         });
@@ -122,7 +172,16 @@ async function sendMessage(e) {
 
         if (data.success) {
             input.value = '';
-            loadMessages(); // Reload messages immediately
+            // We do NOT reloadMessages() here immediately because the polling will pick it up,
+            // OR we can manually append it to feel instant.
+            // Let's manually append it for instant feedback.
+            if (data.chatMessage) {
+                // Update timestamp so we don't re-fetch it
+                lastMessageTimestamp = Math.max(lastMessageTimestamp, new Date(data.chatMessage.timestamp).getTime());
+                displayMessages([data.chatMessage], true);
+            } else {
+                loadMessages();
+            }
             showFeedback('Message sent!', 'success');
         } else {
             showFeedback(data.message || 'Failed to send message', 'error');
@@ -133,6 +192,7 @@ async function sendMessage(e) {
     }
 }
 
+/* ---------------- HELPER FUNCTIONS ---------------- */
 // Show feedback message
 function showFeedback(message, type) {
     const feedbackEl = document.getElementById('message-feedback');
@@ -165,7 +225,7 @@ function formatTimeAgo(timestamp) {
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
 
-    return new Date(timestamp).toLocaleDateString();
+    return formatDate(timestamp);
 }
 
 // Escape HTML to prevent XSS

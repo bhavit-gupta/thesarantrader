@@ -1,8 +1,9 @@
 // User Dashboard Scripts
 
+/* ---------------- TIMER LOGIC ---------------- */
 // Live session timer
 function startUserTimers() {
-    const timers = document.querySelectorAll('[id^="user-timer-"]');
+    const timers = document.querySelectorAll('[id^="live-timer-"]');
     timers.forEach(timer => {
         const startTime = parseInt(timer.dataset.start);
         if (!startTime) return;
@@ -23,6 +24,7 @@ function startUserTimers() {
 // Testimonial functionality
 let selectedRating = 0;
 
+/* ---------------- TESTIMONIAL LOGIC ---------------- */
 function initTestimonialForm() {
     const form = document.getElementById('testimonial-form');
     const starBtns = document.querySelectorAll('.star-btn');
@@ -113,6 +115,7 @@ function initTestimonialForm() {
     });
 }
 
+/* ---------------- HELPER FUNCTIONS ---------------- */
 function updateStarDisplay(rating) {
     const starBtns = document.querySelectorAll('.star-btn');
     starBtns.forEach((btn, index) => {
@@ -180,7 +183,14 @@ async function loadExistingTestimonials() {
                     statusBadgeHTML = '<span class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-700">Pending Review</span>';
                 } else if (testimonial.status === 'approved') {
                     statusBadgeHTML = '<span class="px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700">Approved ✓</span>';
+                } else if (testimonial.status === 'rejected') {
+                    statusBadgeHTML = '<span class="px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">Rejected</span>';
                 }
+
+                // Delete button (visible for all statuses on user dashboard)
+                const deleteBtnHTML = `<button class="delete-testimonial-btn text-xs text-red-400 hover:text-red-600 transition-colors" data-id="${testimonial.id}">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>`;
 
                 testimonialCard.innerHTML = `
                     <div class="flex items-start justify-between gap-4 mb-2">
@@ -188,7 +198,10 @@ async function loadExistingTestimonials() {
                             <span class="text-xs text-slate-500">#${data.testimonials.length - index}</span>
                             ${statusBadgeHTML}
                         </div>
-                        <span class="text-xs text-slate-400">${new Date(testimonial.submittedAt).toLocaleDateString()}</span>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-slate-400">${formatDate(testimonial.submittedAt)}</span>
+                            ${deleteBtnHTML}
+                        </div>
                     </div>
                     <div class="flex gap-1 mb-2">${starsHTML}</div>
                     <p class="text-slate-600 text-sm leading-relaxed italic">"${testimonial.message}"</p>
@@ -198,13 +211,86 @@ async function loadExistingTestimonials() {
             });
 
             existingDiv.classList.remove('hidden');
-            // Don't hide the form - allow multiple submissions
+
+            existingDiv.classList.remove('hidden');
+        } else {
+            document.getElementById('existing-testimonial').classList.add('hidden');
         }
     } catch (error) {
         console.error('Failed to load existing testimonials:', error);
     }
 }
 
+// Use Event Delegation for the container
+const existingDiv = document.getElementById('existing-testimonial');
+if (existingDiv) {
+    console.log('🔗 Attaching master listener to existing-testimonial container');
+    existingDiv.addEventListener('click', async (e) => {
+        // Find the button (could be the icon inside being clicked)
+        const btn = e.target.closest('.delete-testimonial-btn');
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        console.log('🖱️ Delete button clicked (via delegation)');
+        const id = btn.dataset.id;
+        console.log('🆔 Testimonial ID found:', id);
+
+        if (confirm('Are you sure you want to delete this testimonial?')) {
+            console.log('✅ Deletion confirmed for ID:', id);
+            await deleteTestimonial(id);
+        } else {
+            console.log('❌ Deletion cancelled');
+        }
+    });
+} else {
+    console.warn('⚠️ #existing-testimonial container not found for delegation');
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+}
+
+async function deleteTestimonial(id) {
+    console.log('🗑️ Attempting to delete testimonial:', id);
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        console.log('🔑 CSRF Token for deletion:', csrfToken);
+
+        const response = await fetch(`/api/testimonials/delete/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            }
+        });
+
+        console.log('📡 Delete response status:', response.status);
+        const data = await response.json();
+        console.log('📦 Delete response data:', data);
+
+        if (data.success) {
+            showFeedback('Testimonial deleted successfully', 'success');
+            loadExistingTestimonials();
+        } else {
+            showFeedback(data.message || 'Failed to delete testimonial', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting testimonial:', error);
+        showFeedback('Failed to delete testimonial. Please try again.', 'error');
+    }
+}
+
+/* ---------------- INITIALIZATION ---------------- */
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     startUserTimers();

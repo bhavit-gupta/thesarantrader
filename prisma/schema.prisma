@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// ---------------- GENERATOR & DATASOURCE ----------------
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------- USER MODELS ----------------
+model User {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  username           String   @unique
+  email              String   @unique
+  phone              String   @unique
+  password           String
+  name               String?
+  role               String   @default("user") // "user" or "admin"
+  state              String?
+  city               String?
+  currentSessionId   String? // For single session/device enforcement
+  purchasedCourseIds String[] @db.ObjectId
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// ---------------- COURSE CONTENT ----------------
+model Course {
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  title              String
+  description        String
+  price              Int
+  originalPrice      Int
+  rating             Float     @default(0)
+  students           Int       @default(0)
+  badge              String?
+  badgeColor         String?
+  icon               String?
+  iconBg             String?
+  iconColor          String?
+  liveLink           String?
+  isLive             Boolean   @default(false)
+  lastLiveStartedAt  DateTime?
+  startDate          DateTime?
+  endDate            DateTime?
+  enrollmentDeadline DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+// ---------------- SOCIAL FEATURES ----------------
+model Testimonial {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  userName    String
+  userRole    String    @default("Student")
+  message     String
+  rating      Int
+  status      String    @default("pending") // pending, approved, rejected
+  submittedAt DateTime  @default(now())
+  reviewedAt  DateTime?
+}
+
+model CommunityPost {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
+  userName  String
+  title     String?
+  content   String
+  likes     Int       @default(0)
+  likedBy   String[]  @db.ObjectId // Array of user IDs who liked
+  comments  Comment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+type Comment {
+  id        String   @default(uuid())
+  userId    String   @db.ObjectId
+  userName  String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model ChatMessage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  courseId  String   @db.ObjectId
+  userId    String   @db.ObjectId
+  userName  String
+  message   String
+  timestamp DateTime @default(now())
+}
+
+// ---------------- COMMERCE ----------------
+model Purchase {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  courseId      String   @db.ObjectId
+  amount        Int
+  transactionId String?
+  paymentMethod String   @default("gateway") // "gateway" or "manual"
+  screenshotUrl String?
+  status        String   @default("pending") // "pending", "completed", "rejected"
+  date          DateTime @default(now())
+}
+
+model CommunityLike {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  postId    String   @db.ObjectId
+  userId    String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}

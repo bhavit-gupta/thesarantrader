@@ -4,227 +4,634 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <title>Admin Dashboard - The Saran Trader</title>
     <link rel="stylesheet" href="/stylesheets/output.css">
+    <!-- ... -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
+<!-- 
+    Tailwind Safelist for Dynamic Classes (Do not remove):
+    bg-blue-50 bg-indigo-50 bg-green-50 bg-purple-50 bg-orange-50 bg-red-50 bg-yellow-50 bg-teal-50
+    text-blue-500 text-indigo-500 text-green-500 text-purple-500 text-orange-500 text-red-500 text-yellow-500 text-teal-500
+    bg-blue-100 text-blue-700 bg-green-100 text-green-700 bg-purple-100 text-purple-700 bg-orange-100 text-orange-700
+-->
 
 <body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
 
     <%- include('../partials/navbar') %>
+        <% const liveSessions=typeof locals.liveSessions !=='undefined' ? locals.liveSessions : {}; %>
+            <% /* Defensive initialization to prevent crashes if backend data is missing */ const safeStats=typeof stats
+                !=='undefined' ? stats : { totalStudents: 0, totalRevenue: 0, totalUsers: 0 }; const safeOngoing=typeof
+                ongoingCourses !=='undefined' ? ongoingCourses : []; const safeUpcoming=typeof upcomingCourses
+                !=='undefined' ? upcomingCourses : []; const safeExpired=typeof expiredCourses !=='undefined' ?
+                expiredCourses : []; const safeCourses=typeof courses !=='undefined' ? courses : []; %>
 
-        <main class="flex-grow pt-24 pb-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <main class="flex-grow pt-24 pb-12">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-                <!-- Admin Header -->
-                <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h1 class="text-3xl font-bold text-slate-800">Admin Control Center 🛡️</h1>
-                        <p class="text-slate-500 mt-1">Manage your platform and live sessions.</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <span class="px-4 py-2 rounded-lg bg-blue-100 text-blue-700 font-bold text-sm">
-                            v1.0.0
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Main Control Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-
-                    <!-- Link to Course Page -->
-                    <div class="lg:col-span-2 space-y-6">
-                        <div class="flex items-center justify-between">
-                            <h2 class="text-xl font-bold text-slate-800">Live Session Controls</h2>
-                            <span class="text-sm text-slate-500 bg-slate-200 px-3 py-1 rounded-full">
-                                <%= courses.length %> Active Courses
-                            </span>
+                        <!-- ---------------- ADMIN HEADER ---------------- -->
+                        <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h1 class="text-3xl font-bold text-slate-800">Admin Control Center 🛡️</h1>
+                                <p class="text-slate-500 mt-1">Manage your platform and live sessions.</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="px-4 py-2 rounded-lg bg-blue-100 text-blue-700 font-bold text-sm">
+                                    v1.0.0
+                                </span>
+                            </div>
                         </div>
 
-                        <div class="grid grid-cols-1 gap-4">
-                            <% courses.forEach(course=> {
-                                const session = liveSessions[course.id] || { isLive: false, startTime: null };
-                                const isLive = session.isLive;
-                                %>
+                        <!-- ---------------- CONTROL GRID ---------------- -->
+
+                        <!-- ---------------- PENDING VERIFICATIONS ---------------- -->
+                        <% const safePending=typeof pendingPurchases !=='undefined' ? pendingPurchases : []; %>
+                            <% if (safePending.length> 0) { %>
                                 <div
-                                    class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center justify-between gap-6">
-                                    <div class="flex items-center gap-4 flex-1">
-                                        <div
-                                            class="hidden sm:flex w-12 h-12 rounded-lg bg-<%= course.iconBg %> text-<%= course.iconColor %> items-center justify-center text-2xl shrink-0">
-                                            <%= course.icon %>
-                                        </div>
-                                        <div>
-                                            <h3 class="font-bold text-slate-800 text-lg">
-                                                <%= course.title %>
-                                            </h3>
-                                            <div class="flex items-center gap-3 text-sm mt-1">
-                                                <span class="text-slate-500"><i class="fa-solid fa-users mr-1"></i>
-                                                    <%= course.students %> Students
+                                    class="mb-8 bg-white rounded-2xl shadow-sm border border-orange-200 overflow-hidden">
+                                    <div
+                                        class="p-6 border-b border-orange-100 bg-orange-50 flex items-center justify-between">
+                                        <h2 class="text-lg font-bold text-orange-800 flex items-center gap-2">
+                                            <i class="fa-solid fa-circle-exclamation"></i> Pending Verifications
+                                            <span
+                                                class="bg-white text-orange-600 px-2.5 py-0.5 rounded-full text-xs box-border border border-orange-200">
+                                                <%= safePending.length %>
+                                            </span>
+                                        </h2>
+                                    </div>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left text-sm text-slate-600">
+                                            <thead
+                                                class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-xs border-b border-slate-200">
+                                                <tr>
+                                                    <th class="px-6 py-4">User</th>
+                                                    <th class="px-6 py-4">Course</th>
+                                                    <th class="px-6 py-4">Amount</th>
+                                                    <th class="px-6 py-4">Date</th>
+                                                    <th class="px-6 py-4">Proof</th>
+                                                    <th class="px-6 py-4 text-right">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-100">
+                                                <% safePending.forEach(purchase=> { %>
+                                                    <tr class="hover:bg-slate-50 transition-colors">
+                                                        <td class="px-6 py-4">
+                                                            <div class="font-bold text-slate-800">
+                                                                <%= purchase.user ? (purchase.user.name ||
+                                                                    purchase.user.username) : 'Unknown User' %>
+                                                            </div>
+                                                            <div class="text-xs text-slate-400">
+                                                                <%= purchase.user ? purchase.user.email : '' %>
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-6 py-4">
+                                                            <div class="font-medium text-slate-700">
+                                                                <%= purchase.course ? purchase.course.title
+                                                                    : 'Unknown Course' %>
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-6 py-4 font-bold text-slate-800">
+                                                            ₹<%= purchase.amount %>
+                                                        </td>
+                                                        <td class="px-6 py-4 text-slate-500">
+                                                            <%= formatDate(purchase.date) %>
+                                                        </td>
+                                                        <td class="px-6 py-4">
+                                                            <% if (purchase.screenshotUrl) { %>
+                                                                <a href="<%= purchase.screenshotUrl %>" target="_blank"
+                                                                    class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-2 py-1 rounded border border-blue-100 transition-colors">
+                                                                    <i class="fa-solid fa-image"></i> View
+                                                                </a>
+                                                                <% } else { %>
+                                                                    <span class="text-slate-400 text-xs">No Image</span>
+                                                                    <% } %>
+                                                        </td>
+                                                        <td class="px-6 py-4 text-right">
+                                                            <div class="flex items-center justify-end gap-2">
+                                                                <button data-purchase-id="<%= purchase.id %>"
+                                                                    class="approve-payment-btn p-2 rounded-lg text-green-600 hover:bg-green-50 border border-transparent hover:border-green-200 transition-all"
+                                                                    title="Approve">
+                                                                    <i class="fa-solid fa-check"></i>
+                                                                </button>
+                                                                <button data-purchase-id="<%= purchase.id %>"
+                                                                    class="reject-payment-btn p-2 rounded-lg text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all"
+                                                                    title="Reject">
+                                                                    <i class="fa-solid fa-xmark"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <% }); %>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <% } %>
+
+                                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+                                        <!-- ---------------- LIVE SESSION CONTROLS ---------------- -->
+                                        <div class="lg:col-span-2 space-y-6">
+                                            <div class="flex items-center justify-between">
+                                                <h2 class="text-xl font-bold text-slate-800">Live Session Controls</h2>
+                                                <span
+                                                    class="text-sm text-slate-500 bg-slate-200 px-3 py-1 rounded-full">
+                                                    <%= safeCourses.length %> Active Courses
                                                 </span>
-                                                <% if (isLive) { %>
-                                                    <span class="text-green-600 font-semibold flex items-center gap-1">
-                                                        <span
-                                                            class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                                        Live Now
+                                            </div>
+
+                                            <!-- ---------------- ONGOING COURSES ---------------- -->
+                                            <div class="mb-8">
+                                                <h3
+                                                    class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                                    <i class="fa-solid fa-play-circle text-green-500"></i> Ongoing &
+                                                    Active Courses
+                                                    <span
+                                                        class="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                                                        <%= safeOngoing.length %>
                                                     </span>
-                                                    <span id="timer-<%= course.id %>" class="text-slate-400 font-mono"
-                                                        data-start="<%= session.startTime %>">00:00:00</span>
+                                                </h3>
+
+                                                <% if (safeOngoing.length===0) { %>
+                                                    <div
+                                                        class="bg-white rounded-xl p-8 text-center border border-slate-200 border-dashed">
+                                                        <div
+                                                            class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                                                            <i class="fa-solid fa-box-open text-xl"></i>
+                                                        </div>
+                                                        <p class="text-slate-500 font-medium">No ongoing courses right
+                                                            now.</p>
+                                                    </div>
                                                     <% } else { %>
-                                                        <span class="text-slate-400">Offline</span>
+                                                        <div class="grid grid-cols-1 gap-4">
+                                                            <% safeOngoing.forEach(course=> {
+                                                                const session = liveSessions[course.id] || { isLive:
+                                                                false,
+                                                                startTime:
+                                                                null
+                                                                };
+                                                                const isLive = session.isLive;
+                                                                const hasLink = course.liveLink &&
+                                                                course.liveLink.trim().length >
+                                                                0;
+                                                                %>
+                                                                <div
+                                                                    class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center justify-between gap-6">
+                                                                    <div class="flex items-center gap-4 flex-1">
+                                                                        <div
+                                                                            class="hidden sm:flex w-12 h-12 rounded-lg bg-<%= course.iconBg %> text-<%= course.iconColor %> items-center justify-center text-2xl shrink-0">
+                                                                            <%= course.icon %>
+                                                                        </div>
+                                                                        <div>
+                                                                            <h3
+                                                                                class="font-bold text-slate-800 text-lg">
+                                                                                <%= course.title %>
+                                                                            </h3>
+                                                                            <div
+                                                                                class="flex items-center gap-3 text-sm mt-1">
+                                                                                <span class="text-slate-500"><i
+                                                                                        class="fa-solid fa-users mr-1"></i>
+                                                                                    <%= course.students %> Students
+                                                                                </span>
+                                                                                <% if (isLive) { %>
+                                                                                    <span
+                                                                                        class="text-green-600 font-semibold flex items-center gap-1">
+                                                                                        <span
+                                                                                            class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                                                                        Live Now
+                                                                                    </span>
+                                                                                    <span id="timer-<%= course.id %>"
+                                                                                        class="text-slate-400 font-mono live-timer"
+                                                                                        data-start="<%= session.startTime %>">00:00:00</span>
+                                                                                    <% } else { %>
+                                                                                        <span
+                                                                                            class="text-slate-400">Offline</span>
+                                                                                        <% } %>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="flex gap-2">
+
+
+                                                                        <button data-course-id="<%= course.id %>" <% if
+                                                                            (!hasLink) { %>
+                                                                            disabled title="Add a live link first" <% }
+                                                                                %>
+                                                                                class="toggle-live-btn relative px-6
+                                                                                py-2.5
+                                                                                rounded-full
+                                                                                font-bold text-sm transition-all
+                                                                                focus:outline-none
+                                                                                shrink-0
+                                                                                w-32
+                                                                                <%= isLive
+                                                                                    ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                                                                                    : (hasLink
+                                                                                    ? 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-200 shadow-lg shadow-slate-500/20'
+                                                                                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                                                                    ) %>
+                                                                                    ">
+
+                                                                                    <% if (isLive) { %>
+                                                                                        <i
+                                                                                            class="fa-solid fa-stop mr-2"></i>End
+                                                                                        Live
+                                                                                        <% } else { %>
+                                                                                            <i
+                                                                                                class="fa-solid fa-satellite-dish mr-2"></i>Go
+                                                                                            Live
+                                                                                            <% } %>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                <% }); %>
+                                                        </div>
+                                                        <% } %>
+                                            </div>
+
+                                            <!-- ---------------- UPCOMING COURSES ---------------- -->
+                                            <div>
+                                                <h3
+                                                    class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                                    <i class="fa-solid fa-calendar-alt text-blue-500"></i> Upcoming
+                                                    Courses
+                                                    <span
+                                                        class="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                                                        <%= safeUpcoming.length %>
+                                                    </span>
+                                                </h3>
+
+                                                <% if (safeUpcoming.length===0) { %>
+                                                    <div
+                                                        class="bg-white rounded-xl p-8 text-center border border-slate-200 border-dashed">
+                                                        <div
+                                                            class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                                                            <i class="fa-regular fa-calendar text-xl"></i>
+                                                        </div>
+                                                        <p class="text-slate-500 font-medium">No upcoming courses
+                                                            scheduled.</p>
+                                                    </div>
+                                                    <% } else { %>
+                                                        <div class="grid grid-cols-1 gap-4">
+                                                            <% safeUpcoming.forEach(course=> {
+                                                                let formattedDate = "TBA";
+                                                                if (course.startDate) {
+                                                                formattedDate = formatDate(course.startDate);
+                                                                }
+                                                                %>
+                                                                <div
+                                                                    class="bg-slate-50 rounded-xl p-6 border border-slate-200 transition-all flex flex-col sm:flex-row items-center justify-between gap-6 opacity-90 hover:opacity-100">
+                                                                    <div class="flex items-center gap-4 flex-1">
+                                                                        <div
+                                                                            class="hidden sm:flex w-12 h-12 rounded-lg bg-white border border-slate-100 text-slate-400 items-center justify-center text-2xl shrink-0 grayscale opacity-70">
+                                                                            <%= course.icon %>
+                                                                        </div>
+                                                                        <div>
+                                                                            <h3
+                                                                                class="font-bold text-slate-700 text-lg">
+                                                                                <%= course.title %>
+                                                                            </h3>
+                                                                            <div
+                                                                                class="flex items-center gap-3 text-sm mt-1">
+                                                                                <span
+                                                                                    class="text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded text-xs">
+                                                                                    <i
+                                                                                        class="fa-regular fa-clock mr-1"></i>Starts
+                                                                                    <%= formattedDate %>
+                                                                                </span>
+                                                                                <span class="text-slate-400 text-xs">
+                                                                                    <i
+                                                                                        class="fa-solid fa-users mr-1"></i>
+                                                                                    <%= course.students %> Enrolled
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="flex gap-2">
+
+                                                                        <button disabled
+                                                                            class="px-6 py-2.5 rounded-full font-bold text-sm bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shrink-0 w-32 flex items-center justify-center">
+                                                                            <i class="fa-solid fa-clock mr-2"></i>Wait
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                <% }); %>
+                                                        </div>
                                                         <% } %>
                                             </div>
                                         </div>
+
+                                        <!-- ---------------- QUICK STATS ---------------- -->
+                                        <div class="space-y-4">
+                                            <!-- Total Students -->
+                                            <div
+                                                class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm">
+                                                <div
+                                                    class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 text-xl">
+                                                    <i class="fa-solid fa-user-graduate"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm text-slate-500 font-medium">Total Members</p>
+                                                    <h3 class="text-2xl font-bold text-slate-800">
+                                                        <%= safeStats.totalStudents %>
+                                                    </h3>
+                                                </div>
+                                            </div>
+
+                                            <!-- Revenue -->
+                                            <div
+                                                class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm">
+                                                <div
+                                                    class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600 text-xl">
+                                                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm text-slate-500 font-medium">Total Revenue</p>
+                                                    <h3 class="text-2xl font-bold text-slate-800">₹<%=
+                                                            safeStats.totalRevenue.toLocaleString() %>
+                                                    </h3>
+                                                </div>
+                                            </div>
+
+                                            <!-- Active Now -->
+                                            <div
+                                                class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm">
+                                                <div
+                                                    class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 text-xl">
+                                                    <i class="fa-solid fa-globe"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm text-slate-500 font-medium">Total Users</p>
+                                                    <h3 class="text-2xl font-bold text-slate-800">
+                                                        <%= safeStats.totalUsers %>
+                                                    </h3>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- ---------------- QUICK ACTIONS ---------------- -->
+                                        <div class="space-y-4">
+                                            <h2 class="text-xl font-bold text-slate-800">Quick Actions</h2>
+                                            <a href="/admin/testimonials"
+                                                class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group">
+                                                <div
+                                                    class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                    <i class="fa-solid fa-comments"></i>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <h3 class="font-bold text-slate-800 line-clamp-1">Manage
+                                                        Testimonials</h3>
+                                                    <p class="text-xs text-slate-500">Approve or reject reviews</p>
+                                                </div>
+                                                <i
+                                                    class="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500 transition-colors"></i>
+                                            </a>
+
+                                            <!-- Manage Users -->
+                                            <a href="/admin/users"
+                                                class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group">
+                                                <div
+                                                    class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                                    <i class="fa-solid fa-users"></i>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <h3 class="font-bold text-slate-800">Manage Users</h3>
+                                                    <p class="text-xs text-slate-500">View all user profiles & activity
+                                                    </p>
+                                                </div>
+                                                <i
+                                                    class="fa-solid fa-chevron-right text-slate-300 group-hover:text-purple-500 transition-colors"></i>
+                                            </a>
+
+                                            <a href="/admin/courses"
+                                                class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group">
+                                                <div
+                                                    class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl group-hover:bg-orange-600 group-hover:text-white transition-all">
+                                                    <i class="fa-solid fa-book"></i>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <h3 class="font-bold text-slate-800">Course Catalog</h3>
+                                                    <p class="text-xs text-slate-500">Add or edit all courses</p>
+                                                </div>
+                                                <i
+                                                    class="fa-solid fa-chevron-right text-slate-300 group-hover:text-orange-500 transition-colors"></i>
+                                            </a>
+                                        </div>
                                     </div>
 
-                                    <button data-course-id="<%= course.id %>"
-                                        class="toggle-live-btn relative px-6 py-2.5 rounded-full font-bold text-sm transition-all focus:outline-none shrink-0 w-32 <%= isLive ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-200 shadow-lg shadow-slate-500/20' %>">
+                    </div>
+                </main>
 
-                                        <% if (isLive) { %>
-                                            <i class="fa-solid fa-stop mr-2"></i>End Live
-                                            <% } else { %>
-                                                <i class="fa-solid fa-satellite-dish mr-2"></i>Go Live
-                                                <% } %>
-                                    </button>
+                <!-- ---------------- EDIT COURSE MODAL ---------------- -->
+                <div id="editCourseModal"
+                    class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div
+                        class="bg-white rounded-2xl shadow-xl w-full max-w-lg transform transition-all scale-100 flex flex-col max-h-[85vh]">
+                        <div
+                            class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 flex-none rounded-t-2xl">
+                            <h3 class="text-lg font-bold text-slate-800">Edit Course</h3>
+                            <button onclick="closeEditModal()"
+                                class="text-slate-400 hover:text-slate-600 transition-colors">
+                                <i class="fa-solid fa-times text-xl"></i>
+                            </button>
+                        </div>
+
+                        <div class="overflow-y-auto custom-scrollbar flex-grow">
+                            <form id="editCourseForm" method="POST" class="p-6 space-y-4 pb-12">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Course Title</label>
+                                    <input type="text" name="title" id="edit-title" required
+                                        class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                                 </div>
-                                <% }); %>
-                        </div>
-                    </div>
-                    <!-- Quick Stats Column -->
-                    <div class="space-y-4">
-                        <!-- Total Students -->
-                        <div class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 text-xl">
-                                <i class="fa-solid fa-user-graduate"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm text-slate-500 font-medium">Total Students</p>
-                                <h3 class="text-2xl font-bold text-slate-800">1,248</h3>
-                            </div>
-                        </div>
 
-                        <!-- Revenue -->
-                        <div class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600 text-xl">
-                                <i class="fa-solid fa-indian-rupee-sign"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm text-slate-500 font-medium">Total Revenue</p>
-                                <h3 class="text-2xl font-bold text-slate-800">₹4.2L</h3>
-                            </div>
-                        </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Description</label>
+                                    <textarea name="description" id="edit-description" required rows="3"
+                                        class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"></textarea>
+                                </div>
 
-                        <!-- Active Now -->
-                        <div class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 text-xl">
-                                <i class="fa-solid fa-globe"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm text-slate-500 font-medium">Online Users</p>
-                                <h3 class="text-2xl font-bold text-slate-800">42</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Links -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <a href="/admin/courses"
-                        class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-all group">
-                        <div class="flex items-center gap-4">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 text-xl group-hover:scale-110 transition-transform">
-                                <i class="fa-solid fa-graduation-cap"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-slate-800">Manage Courses</h3>
-                                <p class="text-sm text-slate-500">Add, edit, or delete courses</p>
-                            </div>
-                        </div>
-                    </a>
-
-                    <a href="/admin/testimonials"
-                        class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-all group relative">
-                        <div class="flex items-center gap-4">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600 text-xl group-hover:scale-110 transition-transform">
-                                <i class="fa-solid fa-star"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-slate-800">Manage Testimonials</h3>
-                                <p class="text-sm text-slate-500">Review and approve testimonials</p>
-                            </div>
-                        </div>
-                        <span id="pending-badge"
-                            class="hidden absolute top-4 right-4 px-2 py-1 rounded-full bg-yellow-500 text-white text-xs font-bold"></span>
-                    </a>
-                </div>
-
-                <!-- Users Table Placeholder -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-slate-800">Recent Registrations</h3>
-                        <button class="text-sm text-blue-600 font-semibold hover:text-blue-700">View All</button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                                    <th class="px-8 py-4 font-semibold">User</th>
-                                    <th class="px-8 py-4 font-semibold">Email</th>
-                                    <th class="px-8 py-4 font-semibold">Phone</th>
-                                    <th class="px-8 py-4 font-semibold">Joined</th>
-                                    <th class="px-8 py-4 font-semibold">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                <!-- Mock Data Row 1 -->
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="px-8 py-4">
-                                        <div class="flex items-center gap-3">
-                                            <div
-                                                class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
-                                                JD</div>
-                                            <span class="font-medium text-slate-800">John Doe</span>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Live Class
+                                        Link</label>
+                                    <div class="relative">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fa-solid fa-link text-slate-400"></i>
                                         </div>
-                                    </td>
-                                    <td class="px-8 py-4 text-slate-600">john@example.com</td>
-                                    <td class="px-8 py-4 text-slate-600">9876543210</td>
-                                    <td class="px-8 py-4 text-slate-500 text-sm">2 hours ago</td>
-                                    <td class="px-8 py-4"><span
-                                            class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">Active</span>
-                                    </td>
-                                </tr>
-                                <!-- Mock Data Row 2 -->
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="px-8 py-4">
-                                        <div class="flex items-center gap-3">
-                                            <div
-                                                class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
-                                                AS</div>
-                                            <span class="font-medium text-slate-800">Amit Singh</span>
+                                        <input type="url" name="liveLink" id="edit-liveLink"
+                                            placeholder="https://zoom.us/j/..."
+                                            class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Start
+                                            Date</label>
+                                        <input type="date" name="startDate" id="edit-startDate"
+                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-1">End Date</label>
+                                        <input type="date" name="endDate" id="edit-endDate"
+                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Enrollment
+                                        Deadline</label>
+                                    <input type="date" name="enrollmentDeadline" id="edit-enrollmentDeadline"
+                                        class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                    <p class="text-xs text-slate-400 mt-1">Users cannot enroll after this date</p>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Price (₹)</label>
+                                        <input type="number" name="price" id="edit-price" required min="0"
+                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Original Price
+                                            (₹)</label>
+                                        <input type="number" name="originalPrice" id="edit-originalPrice" required
+                                            min="0"
+                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="relative">
+                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Icon
+                                            Emoji</label>
+                                        <input type="hidden" name="icon" id="edit-icon-input">
+
+                                        <!-- Dropdown Trigger -->
+                                        <button type="button" id="edit-icon-dropdown-trigger"
+                                            class="w-full px-4 py-3 text-left bg-white border border-slate-300 rounded-lg flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all group">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 flex items-center justify-center">
+                                                    <span id="edit-selected-icon-display"
+                                                        class="text-2xl leading-none">📚</span>
+                                                </div>
+                                                <span id="edit-selected-icon-label"
+                                                    class="text-sm font-semibold text-slate-700">Books</span>
+                                            </div>
+                                            <i
+                                                class="fa-solid fa-chevron-down text-slate-400 text-sm group-hover:text-blue-500 transition-colors"></i>
+                                        </button>
+
+                                        <!-- Dropdown Menu -->
+                                        <div id="icon-dropdown-menu-edit"
+                                            class="hidden absolute z-50 top-full mt-1 w-72 max-h-60 overflow-y-auto custom-scrollbar bg-white border border-slate-200 rounded-xl shadow-xl p-3 transform transition-all origin-top left-0 sm:left-auto">
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <% const editIcons=[ { emoji: '📚' , label: 'Books' }, { emoji: '📈' ,
+                                                    label: 'Chart Up' }, { emoji: '📉' , label: 'Chart Down' }, {
+                                                    emoji: '💰' , label: 'Money' }, { emoji: '🎓' , label: 'Graduation'
+                                                    }, { emoji: '💎' , label: 'Premium' }, { emoji: '🚀' ,
+                                                    label: 'Growth' }, { emoji: '📊' , label: 'Analysis' }, {
+                                                    emoji: '🧠' , label: 'Psychology' }, { emoji: '🎯' , label: 'Target'
+                                                    }, { emoji: '💡' , label: 'Idea' }, { emoji: '⭐' , label: 'Featured'
+                                                    } ]; %>
+                                                    <% editIcons.forEach(item=> { %>
+                                                        <button type="button"
+                                                            onclick="selectEditIcon(this, '<%= item.emoji %>', '<%= item.label %>')"
+                                                            data-icon="<%= item.emoji %>" data-label="<%= item.label %>"
+                                                            class="edit-icon-btn w-full flex items-center justify-start gap-2 px-1 py-2 rounded-lg border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition-all group/btn bg-white">
+                                                            <span
+                                                                class="text-2xl transition-transform group-hover/btn:scale-110 text-slate-400 grayscale group-hover/btn:grayscale-0">
+                                                                <%= item.emoji %>
+                                                            </span>
+                                                            <span
+                                                                class="text-sm font-medium text-slate-700 group-hover/btn:text-slate-900">
+                                                                <%= item.label %>
+                                                            </span>
+                                                        </button>
+                                                        <% }); %>
+                                            </div>
                                         </div>
-                                    </td>
-                                    <td class="px-8 py-4 text-slate-600">amit@test.com</td>
-                                    <td class="px-8 py-4 text-slate-600">9988776655</td>
-                                    <td class="px-8 py-4 text-slate-500 text-sm">5 hours ago</td>
-                                    <td class="px-8 py-4"><span
-                                            class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">Active</span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                    </div>
+                                    <div class="relative">
+                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Color
+                                            Theme</label>
+                                        <input type="hidden" name="colorTheme" id="edit-color-input">
+
+                                        <!-- Dropdown Trigger -->
+                                        <button type="button" id="edit-color-dropdown-trigger"
+                                            class="w-full px-4 py-3 text-left bg-white border border-slate-300 rounded-lg flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all group">
+                                            <div class="flex items-center gap-3">
+                                                <div id="edit-selected-color-preview"
+                                                    class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center border border-blue-100">
+                                                    <div class="w-4 h-4 rounded-full bg-current"></div>
+                                                </div>
+                                                <span id="edit-selected-color-label"
+                                                    class="text-sm font-semibold text-slate-700">Blue</span>
+                                            </div>
+                                            <i
+                                                class="fa-solid fa-chevron-down text-slate-400 text-sm group-hover:text-blue-500 transition-colors"></i>
+                                        </button>
+
+                                        <!-- Dropdown Menu -->
+                                        <div id="color-dropdown-menu-edit"
+                                            class="hidden absolute z-50 top-full mt-1 w-72 max-h-60 overflow-y-auto custom-scrollbar bg-white border border-slate-200 rounded-xl shadow-xl p-3 transform transition-all origin-top left-0 sm:left-auto">
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <% const colors=[ { value: 'blue' , label: 'Blue' , bg: 'bg-blue-50' ,
+                                                    text: 'text-blue-500' }, { value: 'indigo' , label: 'Indigo' ,
+                                                    bg: 'bg-indigo-50' , text: 'text-indigo-500' }, { value: 'purple' ,
+                                                    label: 'Purple' , bg: 'bg-purple-50' , text: 'text-purple-500' }, {
+                                                    value: 'green' , label: 'Green' , bg: 'bg-green-50' ,
+                                                    text: 'text-green-500' }, { value: 'red' , label: 'Red' ,
+                                                    bg: 'bg-red-50' , text: 'text-red-500' }, { value: 'yellow' ,
+                                                    label: 'Yellow' , bg: 'bg-yellow-50' , text: 'text-yellow-500' }, {
+                                                    value: 'orange' , label: 'Orange' , bg: 'bg-orange-50' ,
+                                                    text: 'text-orange-500' }, { value: 'teal' , label: 'Teal' ,
+                                                    bg: 'bg-teal-50' , text: 'text-teal-500' } ]; %>
+                                                    <% colors.forEach(item=> { %>
+                                                        <button type="button"
+                                                            onclick="selectEditColor(this, '<%= item.value %>', '<%= item.label %>', '<%= item.bg %>', '<%= item.text %>')"
+                                                            data-color="<%= item.value %>"
+                                                            data-label="<%= item.label %>" data-bg="<%= item.bg %>"
+                                                            data-text="<%= item.text %>"
+                                                            class="edit-color-btn w-full flex items-center justify-start gap-2 px-2 py-2 rounded-lg border border-slate-100 hover:bg-slate-50 transition-all group/btn bg-white">
+                                                            <div
+                                                                class="w-8 h-8 rounded-full <%= item.bg %> <%= item.text %> flex items-center justify-center border border-slate-100">
+                                                                <div class="w-4 h-4 rounded-full bg-current"></div>
+                                                            </div>
+                                                            <span class="text-sm font-medium text-slate-700">
+                                                                <%= item.label %>
+                                                            </span>
+                                                        </button>
+                                                        <% }); %>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="p-6 border-t border-slate-100 bg-slate-50 flex-none rounded-b-2xl">
+                            <div class="flex gap-3">
+                                <button type="button" onclick="closeEditModal()"
+                                    class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
+                                    Cancel
+                                </button>
+                                <button type="submit" form="editCourseForm"
+                                    class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all transform hover:-translate-y-0.5">
+                                    Save Changes
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-            </div>
-        </main>
-
-        <script src="/javascripts/main.js"></script>
-        <div id="admin-data" data-live-sessions='<%- JSON.stringify(locals.liveSessions || {}) %>'></div>
-        <script src="/javascripts/admin.js"></script>
+                <script src="/javascripts/main.js"></script>
+                <div id="admin-data" data-live-sessions='<%- JSON.stringify(locals.liveSessions || {}) %>'
+                    data-courses='<%- JSON.stringify(safeCourses) %>'></div>
+                <script src="/javascripts/admin.js"></script>
 </body>
 
 </html>

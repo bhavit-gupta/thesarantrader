@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - The Saran Trader</title>
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <meta name="csrf-token" content="<%= csrfToken || '' %>">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="font-sans antialiased text-slate-700 bg-slate-50 flex flex-col min-h-screen">
+
+    <!-- Navbar -->
+    <%- include('../partials/navbar') %>
+
+        <main class="pt-32 pb-20 flex-grow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Page Header -->
+                <div class="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <h1 class="text-3xl font-extrabold text-slate-900 flex items-center gap-3">
+                        <i class="fa-solid fa-lock text-green-600"></i> Secure Checkout
+                    </h1>
+                    <p class="text-sm text-slate-500">
+                        Review your order and complete the purchase securely.
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Left Column: Order & Billing -->
+                    <div class="md:col-span-2 space-y-6">
+
+                        <!-- Order Summary Card -->
+                        <div
+                            class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                            <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-4">Order Item
+                            </h2>
+                            <div class="flex gap-4 items-start">
+                                <div class="w-24 h-24 rounded-lg flex-shrink-0 flex items-center justify-center text-4xl
+                                <%= course.iconBg ? 'bg-' + course.iconBg : 'bg-blue-100' %> 
+                                <%= course.iconColor ? 'text-' + course.iconColor : 'text-blue-600' %>">
+                                    <%- course.icon || '<i class="fa-solid fa-graduation-cap"></i>' %>
+                                </div>
+                                <div class="flex-grow">
+                                    <div class="flex justify-between items-start gap-4">
+                                        <h3 class="text-xl font-bold text-slate-900 line-clamp-1">
+                                            <%= course.title %>
+                                        </h3>
+                                        <span class="font-bold text-slate-900 flex-shrink-0 text-lg">₹<%= course.price
+                                                %></span>
+                                    </div>
+                                    <p class="text-slate-500 text-sm mt-2 line-clamp-2">
+                                        <%= course.description %>
+                                    </p>
+                                    <% if (course.badge) { %>
+                                        <span
+                                            class="inline-block mt-2 px-2 py-1 text-xs font-semibold rounded-md 
+                                        bg-<%= course.badgeColor || 'blue' %>-100 text-<%= course.badgeColor || 'blue' %>-600">
+                                            <%= course.badge %>
+                                        </span>
+                                        <% } %>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Billing Information Card -->
+                        <div
+                            class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                            <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-4">Billing
+                                Information</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Name</label>
+                                    <div
+                                        class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium">
+                                        <%= user.name || user.username %>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Email</label>
+                                    <div class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium truncate w-full min-w-0 block"
+                                        title="<%= user.email %>">
+                                        <%= user.email %>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-3 flex items-center gap-1">
+                                <i class="fa-solid fa-shield-halved"></i> Your personal information is secure.
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Column: Payment Summary -->
+                    <div class="md:col-span-1">
+                        <div class="bg-white rounded-2xl p-6 shadow-lg border border-slate-200 sticky top-28">
+                            <h2 class="text-lg font-bold text-slate-900 mb-6">Payment Summary</h2>
+
+                            <div class="space-y-3 mb-6 border-b border-slate-100 pb-6">
+                                <div class="flex justify-between text-slate-500 text-sm">
+                                    <span>Original Price</span>
+                                    <span>₹<%= course.originalPrice %></span>
+                                </div>
+                                <div class="flex justify-between text-green-600 text-sm font-medium">
+                                    <span>Discount</span>
+                                    <span>
+                                        <% const discount=Math.max(0, course.originalPrice - course.price); %>
+                                            <%= discount> 0 ? '-₹' + discount : '₹0' %>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between font-bold text-slate-900 text-xl pt-2">
+                                    <span>Total</span>
+                                    <span>₹<%= course.price %></span>
+                                </div>
+                            </div>
+
+                            <button id="confirm-purchase-btn" data-course-id="<%= course.id %>"
+                                class="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5 flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-lock"></i> Confirm Purchase
+                            </button>
+
+                            <div class="mt-6 flex justify-center gap-4 text-slate-300 text-2xl">
+                                <i class="fa-brands fa-cc-visa hover:text-slate-400 transition-colors"></i>
+                                <i class="fa-brands fa-cc-mastercard hover:text-slate-400 transition-colors"></i>
+                                <i class="fa-brands fa-cc-amex hover:text-slate-400 transition-colors"></i>
+                            </div>
+
+                            <p class="text-xs text-slate-400 text-center mt-4 leading-relaxed">
+                                By confirming, you agree to our <a href="#" class="underline hover:text-slate-600">Terms
+                                    of Service</a> and <a href="#" class="underline hover:text-slate-600">Privacy
+                                    Policy</a>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Payment Modal -->
+        <div id="payment-modal"
+            class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4"
+            style="z-index:9999">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative animate-fade-in-up">
+
+                <!-- Close Button -->
+                <button type="button" id="close-modal-btn"
+                    class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+
+                <!-- Step 1: Scan & Pay -->
+                <div id="modal-step-1" class="p-8">
+                    <div class="text-center mb-6">
+                        <div
+                            class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                            <i class="fa-solid fa-qrcode"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-800">Scan to Pay</h2>
+                        <p class="text-slate-500 text-sm mt-1">Complete your payment using UPI</p>
+                    </div>
+
+                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200 mb-6 text-center">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Scan QR Code</p>
+                        <!-- QR Code Placeholder -->
+                        <img src="/images/qr-placeholder.png" alt="Payment QR Code"
+                            class="w-48 h-48 mx-auto rounded-lg shadow-sm border border-white">
+
+                        <div class="mt-4 pt-4 border-t border-slate-200">
+                            <p class="text-xs text-slate-400 mb-1">Or Pay to UPI ID</p>
+                            <div
+                                class="flex items-center justify-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-200">
+                                <span id="upi-id-text"
+                                    class="font-mono font-bold text-slate-700 select-all">example@upi</span>
+                                <button type="button" id="copy-upi-btn" class="text-blue-500 hover:text-blue-700"><i
+                                        class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-500">Amount to Pay</span>
+                            <span class="font-bold text-slate-900">₹<%= course.price %></span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-500">Beneficiary</span>
+                            <span class="font-bold text-slate-900">The Saran Trader</span>
+                        </div>
+                    </div>
+
+                    <button type="button" id="payment-done-btn"
+                        class="w-full mt-8 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all">
+                        Payment Done <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+
+                <!-- Step 2: Upload Proof -->
+                <div id="modal-step-2" class="p-8" style="display:none">
+                    <div class="text-center mb-6">
+                        <div
+                            class="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-800">Upload Screenshot</h2>
+                        <p class="text-slate-500 text-sm mt-1">Verify your payment to enroll</p>
+                    </div>
+
+                    <form id="payment-proof-form" class="space-y-4">
+                        <div
+                            class="bg-slate-50 rounded-xl p-6 border border-slate-200 border-dashed border-2 hover:border-blue-400 transition-colors cursor-pointer relative group mb-6">
+                            <input type="file" id="payment-screenshot" name="screenshot" accept="image/*"
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required>
+
+                            <div id="upload-preview" class="text-center">
+                                <i
+                                    class="fa-solid fa-cloud-arrow-up text-3xl text-slate-300 mb-3 group-hover:text-blue-500 transition-colors"></i>
+                                <p class="text-sm font-bold text-slate-600">Click to upload screenshot</p>
+                                <p class="text-xs text-slate-400 mt-1">JPG, PNG or WEBP</p>
+                            </div>
+                            <!-- Image Preview Container -->
+                            <img id="image-preview-element" class="w-full h-48 object-contain rounded-lg"
+                                style="display:none">
+                        </div>
+
+                        <button type="submit" id="submit-proof-btn"
+                            class="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-500/30 hover:bg-green-700 hover:shadow-green-500/40 transition-all">
+                            Confirm & Enroll
+                        </button>
+                    </form>
+
+                    <button type="button" id="back-to-qr-btn"
+                        class="w-full mt-3 py-2 text-slate-500 font-semibold text-sm hover:text-slate-700">
+                        Back to QR Code
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <%- include('../partials/footer') %>
+
+            <script src="/javascripts/main.js"></script>
+            <script src="/javascripts/checkout.js?v=<%= Date.now() %>"></script>
+            <script>
+                // Handle query errors
+                const urlParams = new URLSearchParams(window.location.search);
+                const error = urlParams.get('error');
+                if (error) alert('Error: ' + error);
+            </script>
+</body>
+
+</html>

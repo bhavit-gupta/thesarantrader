@@ -1,23 +1,51 @@
 // Admin Testimonials Management
+console.log('✅ admin-testimonials.js loaded');
 
-async function approveTestimonial(id) {
+/* ---------------- INITIALIZATION ---------------- */
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Testimonial event listeners initializing');
+
+    // Use event delegation for approve/reject buttons
+    document.addEventListener('click', async (e) => {
+        const approveBtn = e.target.closest('.approve-btn');
+        const rejectBtn = e.target.closest('.reject-btn');
+
+        if (approveBtn) {
+            const id = approveBtn.getAttribute('data-id');
+            await handleApprove(id);
+        } else if (rejectBtn) {
+            const id = rejectBtn.getAttribute('data-id');
+            await handleReject(id);
+        }
+    });
+});
+
+/* ---------------- API ACTIONS ---------------- */
+async function handleApprove(id) {
+    console.log('🚀 Approve Testimonial triggered for ID:', id);
     if (!confirm('Approve this testimonial? It will be displayed on the homepage.')) {
+        console.log('❌ Approval cancelled by user');
         return;
     }
 
     try {
-        const response = await fetch(`/admin/testimonials/approve/${id}`, {
+        const metaToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        console.log('🔑 Found CSRF Token in Meta:', metaToken);
+
+        const response = await fetch(`/admin/testimonials/${id}/approve`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': metaToken
+            }
         });
+
+        console.log('📡 Fetch response status:', response.status);
 
         const data = await response.json();
 
         if (data.success) {
-            // Show success message
             showNotification('Testimonial approved successfully!', 'success');
-
-            // Reload page to update lists
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
@@ -30,24 +58,26 @@ async function approveTestimonial(id) {
     }
 }
 
-async function rejectTestimonial(id) {
+async function handleReject(id) {
+    console.log('🚀 Reject clicked for:', id);
     if (!confirm('Reject this testimonial? This action cannot be undone.')) {
         return;
     }
 
     try {
-        const response = await fetch(`/admin/testimonials/reject/${id}`, {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        const response = await fetch(`/admin/testimonials/${id}/reject`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            }
         });
 
         const data = await response.json();
 
         if (data.success) {
-            // Show success message
             showNotification('Testimonial rejected', 'success');
-
-            // Reload page to update lists
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
@@ -60,12 +90,13 @@ async function rejectTestimonial(id) {
     }
 }
 
+/* ---------------- UI FEEDBACK ---------------- */
 function showNotification(message, type) {
     // Create notification element
     const notification = document.createElement('div');
     notification.className = `fixed top-24 right-4 px-6 py-4 rounded-xl shadow-lg z-50 flex items-center gap-3 animate-slide-in ${type === 'success'
-            ? 'bg-green-600 text-white'
-            : 'bg-red-600 text-white'
+        ? 'bg-green-600 text-white'
+        : 'bg-red-600 text-white'
         }`;
 
     notification.innerHTML = `

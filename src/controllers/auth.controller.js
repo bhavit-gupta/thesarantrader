@@ -1,34 +1,46 @@
-// const User = require("../models/user.model"); // Removed MongoDB dependency
-const bcrypt = require("bcryptjs"); // Ensure bcryptjs is installed
+/* -------------------------------------------------------------------------- */
+/*                                DEPENDENCIES                                */
+/* -------------------------------------------------------------------------- */
 
-// In-memory OTP store (Global variable for demo purposes)
+const prisma = require("../utils/prisma");
+const bcrypt = require("bcryptjs");
+
+/* -------------------------------------------------------------------------- */
+/*                                  OTP STORE                                 */
+/* -------------------------------------------------------------------------- */
+
+/** 
+ * In-memory store for OTPs. 
+ * NOTE: For production scalability, move this to Redis.
+ */
 const otpStore = {};
 
-// In-memory User Store (For new registrations in this session)
-const registeredUsers = [];
+/* -------------------------------------------------------------------------- */
+/*                              AUTH CONTROLLERS                              */
+/* -------------------------------------------------------------------------- */
 
-// Mock User Data for Validation (Hardcoded users with passwords)
-const mockUsers = [
-    { username: "admin", email: "admin@example.com", phone: "9876543210", password: "password123", role: "admin" },
-    { username: "testuser", email: "test@example.com", phone: "9999999999", password: "password123", role: "user" },
-    { username: "kundan_raj", email: "kundan@example.com", phone: "9876543211", password: "password123", role: "user" }
-];
-
-// ===== Check Existence API =====
+/**
+ * API to check if a username, email, or phone is already taken.
+ */
 exports.checkExistence = async (req, res) => {
     try {
         const { field, value } = req.body; // field: 'username', 'email', or 'phone'
 
-        if (!field || !value) {
+        // Whitelist allowed fields to prevent probing sensitive data
+        const allowedFields = ['username', 'email', 'phone'];
+        if (!field || !value || !allowedFields.includes(field)) {
             return res.json({ exists: false });
         }
 
-        // Check both hardcoded mock users and newly registered users
-        const existsInMock = mockUsers.some(user => user[field] === value);
-        const existsInSession = registeredUsers.some(user => user[field] === value);
-        const exists = existsInMock || existsInSession;
+        // Check against Database
+        const whereClause = {};
+        whereClause[field] = value;
 
-        if (exists) {
+        const user = await prisma.user.findUnique({
+            where: whereClause
+        });
+
+        if (user) {
             return res.json({ exists: true, message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists.` });
         }
 
@@ -39,7 +51,7 @@ exports.checkExistence = async (req, res) => {
     }
 };
 
-// ===== Send OTP =====
+/* ---------------- SEND OTP ---------------- */
 exports.sendOtp = async (req, res) => {
     try {
         const { identifier, type } = req.body; // type: 'email' or 'phone'
@@ -48,13 +60,14 @@ exports.sendOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: "Identifier is required" });
         }
 
-        // Check if Email/Phone exists in Mock DB or Session DB
+        // Check if Email/Phone exists in Database
         const field = type === 'email' ? 'email' : 'phone';
-        const existsInMock = mockUsers.some(user => user[field] === identifier);
-        const existsInSession = registeredUsers.some(user => user[field] === identifier);
-        const exists = existsInMock || existsInSession;
+        const whereClause = {};
+        whereClause[field] = identifier;
 
-        if (exists) {
+        const user = await prisma.user.findUnique({ where: whereClause });
+
+        if (user) {
             return res.status(400).json({ success: false, message: `${type === 'email' ? 'Email' : 'Phone number'} is already registered.` });
         }
 
@@ -67,8 +80,8 @@ exports.sendOtp = async (req, res) => {
             expires: Date.now() + 5 * 60 * 1000
         };
 
-        // Log OTP to console (Simulating SMS/Email)
-        console.log(`[OTP] Code for ${identifier}: ${otp}`);
+        // Log OTP to console (Simulating SMS/Email) - In production, this should be removed or handled by SMS provider
+        console.log(`[OTP] Code for ${identifier}: ****** (Check SMS/Email)`);
 
         res.json({ success: true, message: `OTP sent to ${identifier}` });
     } catch (err) {
@@ -78,7 +91,7 @@ exports.sendOtp = async (req, res) => {
 };
 
 
-// ===== Signup =====
+/* ---------------- REGISTRATION ---------------- */
 exports.registerUser = async (req, res) => {
     try {
         const { name, username, email, phone, state, city, password, otp } = req.body;
@@ -103,21 +116,42 @@ exports.registerUser = async (req, res) => {
             });
         }
 
-        // Check Mock DB & Session DB for Existing User (Double check)
-        const exists = [...mockUsers, ...registeredUsers].find(u => u.username === username || u.email === email || u.phone === phone);
-        if (exists) {
+        // Check DB for Existing User (Double check)
+        const existingUser = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { username: username },
+                    { email: email },
+                    { phone: phone }
+                ]
+            }
+        });
+
+        if (existingUser) {
             return res.render("auth/signup", {
                 error: "User already exists.",
                 formData: req.body
             });
         }
 
-        // Mock User Creation - Save to Session Memory
-        const newUser = { name, username, email, phone, state, city, password, role: "user" }; // Storing password plainly for mock demo
-        registeredUsers.push(newUser);
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        console.log("✅ [Mock DB] User Registered & Saved to Session Memory:");
-        console.log(newUser);
+        // Create User in MongoDB
+        const newUser = await prisma.user.create({
+            data: {
+                name,
+                username,
+                email,
+                phone,
+                state,
+                city,
+                password: hashedPassword, // Store hashed password
+                role: "user"
+            }
+        });
+
+        console.log(`✅ [MongoDB] User Registered: ${newUser.username}`);
 
         // Clear OTPs after successful registration
         delete otpStore[email];
@@ -133,54 +167,114 @@ exports.registerUser = async (req, res) => {
     }
 };
 
-// ===== Login =====
+/* ---------------- LOGIN ---------------- */
 exports.loginUser = async (req, res) => {
     try {
         const { loginIdentifier, password, loginType } = req.body;
 
         console.log(`[Login Attempt] Identifier: ${loginIdentifier}, Type: ${loginType}`);
 
-        // Find by specific field based on loginType (strict mode)
-        const allUsers = [...mockUsers, ...registeredUsers];
-        const user = allUsers.find(u => {
-            if (loginType === 'email') return u.email === loginIdentifier;
-            if (loginType === 'phone') return u.phone === loginIdentifier;
-            if (loginType === 'username') return u.username === loginIdentifier;
+        let user = null;
 
-            // Fallback for API calls without loginType (legacy/flexible behavior)
-            return u.email === loginIdentifier || u.username === loginIdentifier || u.phone === loginIdentifier;
-        });
-
-        if (!user) {
-            return res.render("auth/login", { error: "Invalid credentials (User not found)" });
+        if (loginType && ['email', 'phone', 'username'].includes(loginType)) {
+            const whereClause = {};
+            whereClause[loginType] = loginIdentifier;
+            user = await prisma.user.findUnique({ where: whereClause });
+        } else {
+            // Fallback: Try all fields
+            user = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { email: loginIdentifier },
+                        { phone: loginIdentifier },
+                        { username: loginIdentifier }
+                    ]
+                }
+            });
         }
 
-        // Simple string comparison for mock (Real app uses bcrypt)
-        if (user.password !== password) {
-            return res.render("auth/login", { error: "Invalid credentials (Password mismatch)" });
+        if (!user) {
+            return res.render("auth/login", { error: "Invalid credentials" });
+        }
+
+        let isMatch = false;
+
+        // Lazy Migration: Check if password expects hashing
+        // If password doesn't start with $2a$ or $2b$, it's likely plain text (legacy)
+        const isLikelyHashed = user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$'));
+
+        if (!isLikelyHashed) {
+            // Check plain text
+            if (user.password === password) {
+                isMatch = true;
+                // Migrate to hash immediately
+                const hashedPassword = await bcrypt.hash(password, 10);
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { password: hashedPassword }
+                });
+                console.log(`✅ [Migration] Password migrated to hash for user: ${user.username}`);
+            }
+        } else {
+            // Check hash
+            isMatch = await bcrypt.compare(password, user.password);
+        }
+
+        if (!isMatch) {
+            return res.render("auth/login", { error: "Invalid credentials" });
         }
 
         console.log(`✅ [Login Success] User: ${user.username}`);
         // Store user in session
-        req.session.user = {
-            name: user.name || user.username,
-            username: user.username,
-            email: user.email,
-            role: user.role || "user"
-        };
-        if (user.username === 'admin') {
-            res.redirect("/admin/dashboard");
-        } else {
-            res.redirect("/dashboard");
-        }
+        req.session.regenerate(async (err) => {
+            if (err) {
+                console.error('Session regeneration failed:', err);
+                return res.status(500).send('Login failed. Please try again.');
+            }
+
+            req.session.user = {
+                id: user.id, // Store ID for DB references
+                name: user.name || user.username,
+                username: user.username,
+                email: user.email,
+                role: user.role || "user",
+                createdAt: user.createdAt
+            };
+
+            // Single Session Enforcement: Save new session ID to DB
+            try {
+                console.log(`📡 [Login] Enforcing single session for ${user.id} (SID: ${req.sessionID})`);
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { currentSessionId: req.sessionID }
+                });
+            } catch (error) {
+                console.error("❌ Error updating session ID in DB:", error);
+            }
+
+            // Force session save before redirect to ensure cookie is set
+            req.session.save((err) => {
+                if (err) {
+                    console.error("Session save error:", err);
+                    return res.status(500).send("Login session error.");
+                }
+
+                if (user.role === 'admin') {
+                    res.redirect("/admin/dashboard");
+                } else {
+                    res.redirect("/dashboard");
+                }
+            });
+        });
     } catch (err) {
         console.error(err);
         res.render("auth/login", { error: "Login error. Please try again." });
     }
 };
 
+/* ---------------- PASSWORD MANAGEMENT ---------------- */
+
 // ===== Forgot Password (Send Reset OTP) =====
-// TODO: Integrate OTP API here
 exports.forgotPassword = async (req, res) => {
     try {
         const { identifier, type } = req.body; // type: 'email' or 'phone'
@@ -189,10 +283,12 @@ exports.forgotPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: "Identifier and type are required" });
         }
 
-        // Find user in Mock DB or Session DB
+        // Find user in DB
         const field = type === 'email' ? 'email' : 'phone';
-        const allUsers = [...mockUsers, ...registeredUsers];
-        const user = allUsers.find(u => u[field] === identifier);
+        const whereClause = {};
+        whereClause[field] = identifier;
+
+        const user = await prisma.user.findUnique({ where: whereClause });
 
         if (!user) {
             return res.status(404).json({
@@ -201,11 +297,20 @@ exports.forgotPassword = async (req, res) => {
             });
         }
 
-        // TODO: Client will provide OTP sending API
-        // Example: await sendOTPViaClientAPI(identifier, type);
-        console.log(`[TODO] Send OTP to ${identifier} via client API`);
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        res.json({ success: true, message: `OTP will be sent to ${identifier} (Client API pending)` });
+        // Store OTP with expiration (e.g., 10 minutes)
+        otpStore[identifier] = {
+            otp,
+            expires: Date.now() + 10 * 60 * 1000
+        };
+
+        // Log OTP to console (Simulating SMS/Email)
+        // TODO: Replace with actual SMS/Email API call when key is provided
+        console.log(`[OTP] Password Reset Code for ${identifier}: ******`);
+
+        res.json({ success: true, message: `OTP sent to ${identifier}` });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: "Error sending OTP" });
@@ -213,7 +318,6 @@ exports.forgotPassword = async (req, res) => {
 };
 
 // ===== Verify Reset OTP =====
-// TODO: Integrate client's OTP verification API here  
 exports.verifyResetOTP = async (req, res) => {
     try {
         const { identifier, otp } = req.body;
@@ -222,11 +326,17 @@ exports.verifyResetOTP = async (req, res) => {
             return res.status(400).json({ success: false, message: "Identifier and OTP are required" });
         }
 
-        // TODO: Client will provide OTP verification API
-        // Example: const isValid = await verifyOTPViaClientAPI(identifier, otp);
-        console.log(`[TODO] Verify OTP ${otp} for ${identifier} via client API`);
+        const storedOtp = otpStore[identifier];
 
-        res.json({ success: true, message: "OTP verification ready for client API integration" });
+        if (!storedOtp || storedOtp.otp !== otp) {
+            return res.status(400).json({ success: false, message: "Invalid OTP" });
+        }
+
+        if (Date.now() > storedOtp.expires) {
+            return res.status(400).json({ success: false, message: "OTP has expired" });
+        }
+
+        res.json({ success: true, message: "OTP verified successfully" });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: "Error verifying OTP" });
@@ -245,19 +355,42 @@ exports.resetPassword = async (req, res) => {
             });
         }
 
-        // TODO: Verify OTP via API before resetting password
-        console.log(`[TODO] Verify OTP ${otp} for ${identifier} via API before reset`);
+        // 1. Verify OTP again (CRITICAL for security)
+        const storedOtp = otpStore[identifier];
 
-        // Find user in Mock DB or Session DB
-        const allUsers = [...mockUsers, ...registeredUsers];
-        const user = allUsers.find(u => u.email === identifier || u.phone === identifier);
+        if (!storedOtp || storedOtp.otp !== otp) {
+            return res.status(400).json({ success: false, message: "Invalid OTP" });
+        }
+
+        if (Date.now() > storedOtp.expires) {
+            return res.status(400).json({ success: false, message: "OTP has expired" });
+        }
+
+        // 2. Find user
+        const user = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email: identifier },
+                    { phone: identifier }
+                ]
+            }
+        });
 
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
 
-        // Update password (plain text for mock)
-        user.password = newPassword;
+        // 3. Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // 4. Update password in DB
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { password: hashedPassword }
+        });
+
+        // 5. Clear OTP to prevent reuse
+        delete otpStore[identifier];
 
         console.log(`✅ [Password Reset] Password updated for: ${user.username}`);
 
@@ -268,9 +401,57 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
-// ===== Logout =====
+/* ---------------- LOGOUT ---------------- */
 exports.logoutUser = (req, res) => {
-    req.session.destroy(() => {
+    try {
+        if (req.session) {
+            const userId = req.session.user ? req.session.user.id : null;
+
+            req.session.destroy(err => {
+                if (err) {
+                    console.error("Error destroying session:", err);
+                    return res.status(500).send("Could not log out.");
+                }
+
+                if (userId) {
+                    // Only clear if the DB session matches the one we're destroying
+                    prisma.user.updateMany({
+                        where: { id: userId, currentSessionId: req.sessionID },
+                        data: { currentSessionId: null }
+                    }).catch(err => console.error("❌ Error clearing session ID on logout:", err));
+                }
+
+                res.clearCookie('thesarantrader.sid'); // 👈 must match session name
+                res.redirect('/');
+            });
+        } else {
+            res.redirect('/');
+        }
+    } catch (error) {
+        console.error("Error during logout:", error);
         res.redirect('/');
-    });
+    }
+};
+
+
+/* ---------------- AUTH MIDDLEWARE ---------------- */
+
+exports.isAuthenticated = (req, res, next) => {
+    if (!req.session || !req.session.user) {
+        if (req.accepts('html')) {
+            return res.redirect('/login');
+        }
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    next();
+};
+
+exports.isAdmin = (req, res, next) => {
+    if (!req.session || !req.session.user || req.session.user.role !== 'admin') {
+        if (req.accepts('html')) {
+            return res.status(403).send('Forbidden');
+        }
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+    next();
 };

@@ -7,23 +7,30 @@
     "start": "node ./src/server.js",
     "dev": "nodemon ./src/server.js",
     "build:css": "tailwindcss -i ./src/tailwind.css -o ./src/public/stylesheets/output.css",
-    "watch:css": "tailwindcss -i ./src/tailwind.css -o ./src/public/stylesheets/output.css --watch"
+    "watch:css": "tailwindcss -i ./src/tailwind.css -o ./src/public/stylesheets/output.css --watch",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "bhavit gupta",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@prisma/client": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.3.1",
     "ejs": "^4.0.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
     "express-session": "^1.19.0",
-    "mongodb": "^7.1.0",
-    "mongoose": "^9.2.1"
+    "helmet": "^8.1.0",
+    "multer": "^2.0.2"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "devDependencies": {
     "nodemon": "^3.1.11",
+    "prisma": "^6.0.0",
     "tailwindcss": "^3.4.19"
   },
   "repository": {

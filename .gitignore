@@ -41,3 +41,5 @@ dist/
 
 # Tailwind (if you want to ignore the generated css)
 # src/public/stylesheets/output.css
+
+/src/generated/prisma
