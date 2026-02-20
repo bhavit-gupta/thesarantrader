@@ -1,6 +1,9 @@
 /* ---------------- DEPENDENCIES ---------------- */
 const prisma = require('../utils/prisma');
 const { getUserPurchasedCourses } = require('../utils/helpers');
+const fs = require('fs');
+const path = require('path');
+const { compressImage } = require('../utils/upload.utils');
 
 
 
@@ -123,33 +126,35 @@ exports.sendMessage = async (req, res) => {
     }
 
     const courseId = req.params.courseId;
-    const isAdmin = req.session.user.role === 'admin';
-
-    // Access is already verified by middleware
     const { message } = req.body;
-
-    if (!message || message.trim().length === 0) {
-        return res.status(400).json({ success: false, message: 'Message cannot be empty' });
-    }
-
-    if (message.length > 500) {
-        return res.status(400).json({ success: false, message: 'Message must be less than 500 characters' });
-    }
-
     try {
+        let finalImageUrl = null;
+        if (req.file) {
+            const chatUploadDir = path.join(__dirname, '../public/uploads/chat');
+            const compressedFilename = await compressImage(req.file, chatUploadDir);
+            finalImageUrl = `/uploads/chat/${compressedFilename}`;
+        }
+
         const newMessage = await prisma.chatMessage.create({
             data: {
                 courseId,
                 userId: req.session.user.id,
                 userName: req.session.user.name,
-                message: message.trim()
+                message: message ? message.trim() : '',
+                imageUrl: finalImageUrl
             }
         });
 
-        console.log(`💬 New message in course ${courseId} by ${newMessage.userName}`);
+        console.log(`💬 New message in course ${courseId} by ${newMessage.userName} ${imageUrl ? '(with image)' : ''}`);
         res.json({ success: true, message: 'Message sent!', chatMessage: newMessage });
     } catch (error) {
         console.error("Error sending message:", error);
+        // Clean up uploaded file if DB creation fails
+        if (req.file) {
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error("Error deleting file after DB failure:", err);
+            });
+        }
         res.status(500).json({ success: false, message: "Error sending message" });
     }
 };
@@ -161,6 +166,39 @@ exports.cleanupOldMessages = async () => {
         const now = new Date();
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
+        // First, find all courses that have ended
+        const endedCourses = await prisma.course.findMany({
+            where: {
+                endDate: { lt: now }
+            },
+            select: { id: true }
+        });
+        const endedCourseIds = endedCourses.map(c => c.id);
+
+        // Find all messages that will be deleted and have images
+        const messagesWithImages = await prisma.chatMessage.findMany({
+            where: {
+                OR: [
+                    { timestamp: { lt: sevenDaysAgo } },
+                    { courseId: { in: endedCourseIds } }
+                ],
+                imageUrl: { not: null }
+            },
+            select: { imageUrl: true }
+        });
+
+        // Delete image files from disk
+        messagesWithImages.forEach(msg => {
+            if (msg.imageUrl) {
+                const filePath = path.join(__dirname, '../public', msg.imageUrl);
+                fs.unlink(filePath, (err) => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error("Error deleting old chat image during cleanup:", err);
+                    }
+                });
+            }
+        });
+
         // 1. Delete messages older than 7 days
         const deletedOld = await prisma.chatMessage.deleteMany({
             where: {
@@ -169,23 +207,15 @@ exports.cleanupOldMessages = async () => {
         });
 
         // 2. Delete messages from courses that have ended
-        // First, find all courses that have ended
-        const endedCourses = await prisma.course.findMany({
-            where: {
-                endDate: { lt: now }
-            },
-            select: { id: true }
-        });
-
-        const endedCourseIds = endedCourses.map(c => c.id);
-
+        let deletedEndedCount = 0;
         if (endedCourseIds.length > 0) {
             const deletedEnded = await prisma.chatMessage.deleteMany({
                 where: {
                     courseId: { in: endedCourseIds }
                 }
             });
-            console.log(`🧹 Chat Cleanup: Removed ${deletedOld.count} old messages and ${deletedEnded.count} messages from ${endedCourseIds.length} ended courses.`);
+            deletedEndedCount = deletedEnded.count;
+            console.log(`🧹 Chat Cleanup: Removed ${deletedOld.count} old messages and ${deletedEndedCount} messages from ${endedCourseIds.length} ended courses.`);
         } else {
             console.log(`🧹 Chat Cleanup: Removed ${deletedOld.count} old messages.`);
         }

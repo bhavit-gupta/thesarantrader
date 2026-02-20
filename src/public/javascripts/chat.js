@@ -7,18 +7,60 @@ let messageRefreshInterval;
 
 /* ---------------- INITIALIZATION ---------------- */
 // Load messages when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    loadMessages();
+loadMessages();
 
-    // Set up auto-refresh every 3 seconds
-    messageRefreshInterval = setInterval(loadMessages, 3000);
+// Set up auto-refresh every 3 seconds
+messageRefreshInterval = setInterval(loadMessages, 3000);
 
-    // Set up message form
-    const messageForm = document.getElementById('message-form');
-    if (messageForm) {
-        messageForm.addEventListener('submit', sendMessage);
+// Set up message form
+const messageForm = document.getElementById('message-form');
+if (messageForm) {
+    messageForm.addEventListener('submit', sendMessage);
+}
+
+// Set up chat image preview
+setupChatImagePreview();
+
+/* ---------------- IMAGE PREVIEW ---------------- */
+function setupChatImagePreview() {
+    const chatImageInput = document.getElementById('chat-image');
+    const previewContainer = document.getElementById('chat-image-preview-container');
+    const previewImg = document.getElementById('chat-image-preview');
+    const removeBtn = document.getElementById('remove-chat-image');
+
+    if (chatImageInput) {
+        chatImageInput.addEventListener('change', () => {
+            const file = chatImageInput.files[0];
+            if (file) {
+                if (!file.type.startsWith('image/')) {
+                    showFeedback('Only image files are allowed', 'error');
+                    chatImageInput.value = '';
+                    return;
+                }
+                if (file.size > 100 * 1024 * 1024) {
+                    showFeedback('Image must be less than 100MB', 'error');
+                    chatImageInput.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
     }
-});
+
+    if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+            chatImageInput.value = '';
+            previewContainer.classList.add('hidden');
+            previewImg.src = '#';
+        });
+    }
+}
 
 /* ---------------- MESSAGE LOADING ---------------- */
 // Load messages from server
@@ -108,10 +150,12 @@ function displayMessages(messages, append = false) {
 
 // Create message element
 function createMessageElement(msg) {
+    if (!msg) return document.createElement('div');
     const isOwnMessage = msg.userId === window.currentUserId;
+    const userName = msg.userName || 'Unknown User';
 
     const messageDiv = document.createElement('div');
-    messageDiv.id = `msg-${msg.id}`; // Add ID for duplicate checking
+    messageDiv.id = `msg-${msg.id || Math.random()}`; // Add ID for duplicate checking
     messageDiv.className = `flex ${isOwnMessage ? 'justify-end' : 'justify-start'} animate-fade-in-up`; // Add animation
 
     const gradients = [
@@ -122,22 +166,27 @@ function createMessageElement(msg) {
         'from-yellow-400 to-yellow-600',
         'from-red-400 to-red-600'
     ];
-    const gradientIndex = msg.userName.charCodeAt(0) % gradients.length;
+    const gradientIndex = userName.charCodeAt(0) % gradients.length;
     const gradient = gradients[gradientIndex];
 
     messageDiv.innerHTML = `
         <div class="max-w-md ${isOwnMessage ? 'ml-auto' : 'mr-auto'}">
             <div class="flex items-start gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}">
                 <div class="w-10 h-10 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold flex-shrink-0">
-                    ${msg.userName.charAt(0).toUpperCase()}
+                    ${userName.charAt(0).toUpperCase()}
                 </div>
                 <div class="flex-1">
                     <div class="flex items-center gap-2 mb-1 ${isOwnMessage ? 'justify-end' : ''}">
-                        <span class="text-sm font-bold text-slate-800">${escapeHtml(msg.userName)}</span>
+                        <span class="text-sm font-bold text-slate-800">${escapeHtml(userName)}</span>
                         <span class="text-xs text-slate-400">${formatTimeAgo(msg.timestamp)}</span>
                     </div>
                     <div class="px-4 py-2 rounded-lg ${isOwnMessage ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'}">
-                        <p class="text-sm whitespace-pre-wrap">${escapeHtml(msg.message)}</p>
+                        ${msg.imageUrl ? `
+                            <div class="mb-2 rounded-lg overflow-hidden border border-slate-200 bg-white">
+                                <img src="${msg.imageUrl}" alt="Uploaded image" class="max-w-full h-auto cursor-pointer" onclick="window.open('${msg.imageUrl}', '_blank')">
+                            </div>
+                        ` : ''}
+                        <p class="text-sm whitespace-pre-wrap">${escapeHtml(msg.message || '')}</p>
                     </div>
                 </div>
             </div>
@@ -151,32 +200,60 @@ function createMessageElement(msg) {
 // Send message
 async function sendMessage(e) {
     e.preventDefault();
+    console.log("📤 Sending message...");
 
     const input = document.getElementById('message-input');
-    const message = input.value.trim();
+    const imageInput = document.getElementById('chat-image');
 
-    if (!message) return;
+    if (!input) {
+        console.error("❌ Error: message-input not found");
+        return;
+    }
+
+    const message = input.value.trim();
+    const hasImage = imageInput && imageInput.files && imageInput.files[0];
+
+    if (!message && !hasImage) {
+        console.log("⚠️ Ignoring empty message/image");
+        return;
+    }
 
     try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfMeta) {
+            console.error("❌ Error: CSRF meta tag missing");
+            showFeedback('Security error: CSRF token missing', 'error');
+            return;
+        }
+        const csrfToken = csrfMeta.getAttribute('content');
+
+        const formData = new FormData();
+        formData.append('message', message);
+        if (hasImage) {
+            formData.append('image', imageInput.files[0]);
+        }
+
+        console.log("📡 Fetching to:", `/api/chat/${window.courseId}/messages`);
         const response = await fetch(`/api/chat/${window.courseId}/messages`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'csrf-token': csrfToken
             },
-            body: JSON.stringify({ message })
+            body: formData
         });
 
         const data = await response.json();
+        console.log("📥 Server response:", data);
 
         if (data.success) {
             input.value = '';
-            // We do NOT reloadMessages() here immediately because the polling will pick it up,
-            // OR we can manually append it to feel instant.
-            // Let's manually append it for instant feedback.
+            if (imageInput) imageInput.value = '';
+            const previewContainer = document.getElementById('chat-image-preview-container');
+            const previewImg = document.getElementById('chat-image-preview');
+            if (previewContainer) previewContainer.classList.add('hidden');
+            if (previewImg) previewImg.src = '#';
+
             if (data.chatMessage) {
-                // Update timestamp so we don't re-fetch it
                 lastMessageTimestamp = Math.max(lastMessageTimestamp, new Date(data.chatMessage.timestamp).getTime());
                 displayMessages([data.chatMessage], true);
             } else {
@@ -187,7 +264,7 @@ async function sendMessage(e) {
             showFeedback(data.message || 'Failed to send message', 'error');
         }
     } catch (error) {
-        console.error('Failed to send message:', error);
+        console.error('❌ Failed to send message:', error);
         showFeedback('Failed to send message', 'error');
     }
 }

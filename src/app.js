@@ -1,8 +1,11 @@
 require('dotenv').config();
+const crypto = require('crypto');
 
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
+const { PrismaSessionStore } = require('@quixo3/prisma-session-store');
+const prisma = require('./utils/prisma');
 const helmet = require('helmet');
 const app = express();
 
@@ -27,8 +30,10 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com"],
             fontSrc: ["'self'", "cdnjs.cloudflare.com", "fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "https:"],
+            frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com", "https://www.youtube-nocookie.com"],
         },
     },
+    crossOriginEmbedderPolicy: false,
 }));
 
 // Static Files Deployment
@@ -69,11 +74,23 @@ app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset cookie expiration on every request
+    store: new PrismaSessionStore(
+        prisma,
+        {
+            checkPeriod: 2 * 60 * 1000,  //ms
+            dbRecordIdIsSessionId: false,
+            // MongoDB ObjectIDs must be 24-char hex. We derive one by
+            // MD5-hashing the session ID and taking the first 24 hex chars.
+            dbRecordIdFunction: (sessionId) =>
+                crypto.createHash('md5').update(sessionId).digest('hex').substring(0, 24),
+        }
+    ),
     cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000 // 24 Hours
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days in milliseconds
     }
 }));
 

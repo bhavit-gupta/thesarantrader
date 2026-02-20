@@ -42,10 +42,31 @@
                             <textarea id="post-content" rows="4" placeholder="What's on your mind?" required
                                 class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-2"></textarea>
                             <div class="flex items-center justify-between">
-                                <span id="post-char-count" class="text-xs text-slate-400">0 / 1000</span>
+                                <div class="flex items-center gap-3">
+                                    <span id="post-char-count" class="text-xs text-slate-400">0 / 1000</span>
+                                    <label for="post-image"
+                                        class="cursor-pointer group flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors">
+                                        <div
+                                            class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-blue-50">
+                                            <i class="fa-regular fa-image text-sm"></i>
+                                        </div>
+                                        <span class="text-xs font-semibold">Add Image</span>
+                                        <input type="file" id="post-image" accept="image/*" class="hidden">
+                                    </label>
+                                </div>
                                 <button type="submit"
                                     class="px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all transform hover:-translate-y-0.5">
                                     <i class="fa-solid fa-paper-plane mr-2"></i>Post
+                                </button>
+                            </div>
+
+                            <!-- Image Preview Area -->
+                            <div id="image-preview-container" class="hidden relative mt-4">
+                                <img id="image-preview" src="#" alt="Preview"
+                                    class="max-h-48 rounded-xl border border-slate-200">
+                                <button type="button" id="remove-image"
+                                    class="absolute -top-2 -right-2 w-8 h-8 bg-white rounded-full shadow-md border border-slate-200 flex items-center justify-center text-red-500 hover:bg-red-50 transition-all">
+                                    <i class="fa-solid fa-times"></i>
                                 </button>
                             </div>
                         </form>
@@ -88,7 +109,7 @@
         <script>
             // Set current user ID for client-side use (Safe Access via locals)
             window.currentUserId = '<%= (locals.user) ? locals.user.id : "" %>';
-            window.isAdmin = <%= (locals.user && locals.user.role === "admin") ? "true" : "false" %>;
+            window.isAdmin = <%= (locals.user && locals.user.role === 'admin') ? 'true' : 'false' %>;
         </script>
         <script src="/javascripts/main.js"></script>
         <script src="/javascripts/community.js"></script>

@@ -13,6 +13,10 @@ function getLiveSessions() {
 }
 
 function getAllCourses() {
+    // admin_courses.ejs stores data in window.allCourses
+    if (window.allCourses && window.allCourses.length > 0) return window.allCourses;
+
+    // admin.ejs (main dashboard) stores data in a data attribute
     const dataDiv = document.getElementById('admin-data');
     if (!dataDiv) return [];
     try {
@@ -285,6 +289,7 @@ window.openEditModal = function (course) {
         setVal('edit-title', course.title);
         setVal('edit-description', course.description);
         setVal('edit-liveLink', course.liveLink);
+        setVal('edit-demoVideoUrl', course.demoVideoUrl);
         setVal('edit-price', course.price);
         setVal('edit-originalPrice', course.originalPrice);
 
@@ -359,6 +364,9 @@ async function approvePayment(purchaseId) {
 }
 
 async function rejectPayment(purchaseId) {
+    const reason = prompt("Enter REJECTION REASON (visible to user):", "Invalid or blurry payment proof. Please re-upload.");
+    if (reason === null) return; // Cancelled
+
     if (!confirm("Are you sure you want to REJECT this payment?")) return;
 
     try {
@@ -369,7 +377,7 @@ async function rejectPayment(purchaseId) {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfToken
             },
-            body: JSON.stringify({ purchaseId })
+            body: JSON.stringify({ purchaseId, reason })
         });
         const data = await response.json();
 

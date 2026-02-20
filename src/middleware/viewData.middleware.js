@@ -76,12 +76,20 @@ const viewDataMiddleware = async (req, res, next) => {
             purchasedCourseIds = await getUserPurchasedCourses(user.id);
             hasPurchasedCourses = purchasedCourseIds.length > 0;
 
-            // Fetch pending purchases for this user
-            const pendingPurchases = await prisma.purchase.findMany({
-                where: { userId: user.id, status: 'pending' },
-                select: { courseId: true }
-            });
+            // Fetch pending and rejected purchases for this user
+            const [pendingPurchases, rejectedPurchases] = await Promise.all([
+                prisma.purchase.findMany({
+                    where: { userId: user.id, status: 'pending' },
+                    select: { courseId: true }
+                }),
+                prisma.purchase.findMany({
+                    where: { userId: user.id, status: 'rejected' },
+                    select: { courseId: true, rejectionReason: true }
+                })
+            ]);
+
             pendingCourseIds = pendingPurchases.map(p => p.courseId);
+            res.locals.rejectedPurchases = rejectedPurchases;
         }
 
         // Set Locals

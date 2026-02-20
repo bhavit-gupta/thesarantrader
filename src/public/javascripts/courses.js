@@ -26,6 +26,16 @@ function generateStars(rating) {
     return starsHtml;
 }
 
+/**
+ * Converts a standard YouTube watch URL or youtu.be short link to an embed URL.
+ * Returns null if the input is empty/falsy or not a recognized YouTube URL.
+ */
+function toYouTubeEmbed(url) {
+    if (!url || url.trim() === '') return null;
+    const m = url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtu\.be\/)([^&?/\s]+)/);
+    return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+}
+
 /* ---------------- GLOBAL PURCHASE LOGIC ---------------- */
 /* ---------------- GRID RENDERING ---------------- */
 // Render Courses Grid (Home Page / Courses Page)
@@ -155,7 +165,7 @@ function renderEnrollmentPage() {
     container.innerHTML = `
         <div class="space-y-8">
             <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
-                ${course.demoVideo ? `<div class="aspect-video w-full rounded-xl overflow-hidden mb-6 shadow-lg"><iframe class="w-full h-full" src="${course.demoVideo}" title="Course Demo Video" frameborder="0" allowfullscreen></iframe></div>` : `<div class="aspect-video bg-${course.iconBg} w-full rounded-xl overflow-hidden flex items-center justify-center text-${course.iconColor} text-6xl mb-6">${course.icon}</div>`}
+                ${toYouTubeEmbed(course.demoVideoUrl) ? `<div class="aspect-video w-full rounded-xl overflow-hidden mb-6 shadow-lg"><iframe class="w-full h-full" src="${toYouTubeEmbed(course.demoVideoUrl)}" title="Course Demo Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>` : `<div class="aspect-video bg-${course.iconBg} w-full rounded-xl overflow-hidden flex items-center justify-center text-${course.iconColor} text-6xl mb-6">${course.icon}</div>`}
 
                 <div class="flex items-center gap-2 mb-4">
                     <span class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Course</span>

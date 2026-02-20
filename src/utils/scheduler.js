@@ -1,4 +1,5 @@
 const { cleanupOldMessages } = require('../controllers/chat.controller');
+const { cleanupOldPosts } = require('../controllers/community.controller');
 
 /**
  * Initializes the background scheduler for cleanup tasks.
@@ -25,6 +26,7 @@ const runCleanup = async () => {
     try {
         console.log('🧹 [Cleanup] Starting daily cleanup task...');
         await cleanupOldMessages();
+        await cleanupOldPosts();
         console.log('✅ [Cleanup] Daily cleanup completed successfully.');
     } catch (error) {
         console.error('❌ [Cleanup] Error running daily cleanup:', error);

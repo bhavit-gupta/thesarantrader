@@ -43,3 +43,4 @@ dist/
 # src/public/stylesheets/output.css
 
 /src/generated/prisma
+src/public/uploads/

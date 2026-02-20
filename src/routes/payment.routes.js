@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require('../utils/prisma');
 const multer = require('multer');
 const path = require('path');
+const { compressImage } = require('../utils/upload.utils');
 
 // Configure Multer for Screenshot Uploads
 const storage = multer.diskStorage({
@@ -17,7 +18,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit (effectively unrestricted)
     fileFilter: function (req, file, cb) {
         const filetypes = /jpeg|jpg|png|webp/;
         const mimetype = filetypes.test(file.mimetype);
@@ -81,6 +82,19 @@ router.post('/api/payment/submit-proof',
                 return res.status(400).json({ success: false, message: "You have already purchased this course" });
             }
 
+            // Clear any old rejected purchases for this course before creating a new one
+            await prisma.purchase.deleteMany({
+                where: {
+                    userId: req.session.user.id,
+                    courseId: courseId,
+                    status: 'rejected'
+                }
+            });
+
+            // Compress Payment Screenshot
+            const paymentUploadDir = path.join(__dirname, '../public/uploads/payments');
+            const compressedFilename = await compressImage(file, paymentUploadDir);
+
             // Create Pending Purchase
             await prisma.purchase.create({
                 data: {
@@ -88,7 +102,7 @@ router.post('/api/payment/submit-proof',
                     courseId: courseId,
                     amount: course.price,
                     paymentMethod: 'manual',
-                    screenshotUrl: '/uploads/payments/' + file.filename,
+                    screenshotUrl: '/uploads/payments/' + compressedFilename,
                     status: 'pending'
                 }
             });

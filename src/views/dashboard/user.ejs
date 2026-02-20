@@ -157,42 +157,89 @@
                 <!-- ---------------- PENDING VERIFICATION ---------------- -->
                 <% const pendingIds=typeof pendingCourseIds !=='undefined' ? pendingCourseIds : []; const
                     pendingCoursesData=courses.filter(c=> pendingIds.includes(c.id));
+                    const hasRejections = locals.rejectedPurchases && locals.rejectedPurchases.length > 0;
                     %>
-                    <% if (pendingCoursesData.length> 0) { %>
+                    <% if (pendingCoursesData.length> 0 || hasRejections) { %>
                         <div class="mb-8">
                             <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <i class="fa-solid fa-clock text-amber-500"></i> Pending Verification
+                                <i class="fa-solid fa-circle-exclamation text-amber-500"></i> Payment Status
                             </h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                <% pendingCoursesData.forEach(course=> { %>
-                                    <div
-                                        class="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden hover:shadow-md transition-all">
-                                        <div class="p-6">
-                                            <div class="flex items-center gap-4 mb-4">
-                                                <div class="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
-                                                    style="background-color:<%= course.iconBg || '#e5e7eb' %>; color:<%= course.iconColor || '#334155' %>;">
-                                                    <%= course.icon %>
+                                <% /* Pending Purchases */ %>
+                                    <% pendingCoursesData.forEach(course=> { %>
+                                        <div
+                                            class="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden hover:shadow-md transition-all">
+                                            <div class="p-6">
+                                                <div class="flex items-center gap-4 mb-4">
+                                                    <div class="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+                                                        id="pending-icon-<%= course.id %>"
+                                                        style="background-color:<%= course.iconBg || '#e5e7eb' %>; color:<%= course.iconColor || '#334155' %>;">
+                                                        <%= course.icon %>
+                                                    </div>
+                                                    <div>
+                                                        <h3 class="font-bold text-slate-800 line-clamp-1">
+                                                            <%= course.title %>
+                                                        </h3>
+                                                        <span
+                                                            class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                                            ⏳ Waiting for Verification
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 class="font-bold text-slate-800 line-clamp-1">
-                                                        <%= course.title %>
-                                                    </h3>
-                                                    <span
-                                                        class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                                                        ⏳ Waiting for Verification
-                                                    </span>
+                                                <div class="bg-amber-50 rounded-lg p-3 text-center">
+                                                    <p class="text-sm text-amber-700 font-medium">
+                                                        <i class="fa-solid fa-info-circle mr-1"></i>
+                                                        Your payment proof has been submitted. Admin will verify it
+                                                        shortly.
+                                                    </p>
                                                 </div>
-                                            </div>
-
-                                            <div class="bg-amber-50 rounded-lg p-3 text-center">
-                                                <p class="text-sm text-amber-700 font-medium">
-                                                    <i class="fa-solid fa-info-circle mr-1"></i>
-                                                    Your payment proof has been submitted. Admin will verify it shortly.
-                                                </p>
                                             </div>
                                         </div>
-                                    </div>
-                                    <% }); %>
+                                        <% }); %>
+
+                                            <% /* Rejected Purchases */ %>
+                                                <% if (locals.rejectedPurchases) { %>
+                                                    <% rejectedPurchases.forEach(rej=> {
+                                                        const course = courses.find(c => c.id === rej.courseId);
+                                                        if (course) { %>
+                                                        <div
+                                                            class="bg-white rounded-2xl shadow-sm border border-red-200 overflow-hidden hover:shadow-md transition-all">
+                                                            <div class="p-6">
+                                                                <div class="flex items-center gap-4 mb-4">
+                                                                    <div class="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+                                                                        id="rejected-icon-<%= course.id %>"
+                                                                        style="background-color:<%= course.iconBg || '#e5e7eb' %>; color:<%= course.iconColor || '#334155' %>;">
+                                                                        <%= course.icon %>
+                                                                    </div>
+                                                                    <div>
+                                                                        <h3
+                                                                            class="font-bold text-slate-800 line-clamp-1">
+                                                                            <%= course.title %>
+                                                                        </h3>
+                                                                        <span
+                                                                            class="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                                                                            ❌ Payment Rejected
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="bg-red-50 rounded-lg p-3 mb-4">
+                                                                    <p
+                                                                        class="text-xs font-bold text-red-800 uppercase mb-1">
+                                                                        Reason:</p>
+                                                                    <p class="text-sm text-red-700 italic">
+                                                                        "<%= rej.rejectionReason
+                                                                            || 'No specific reason provided.' %>"
+                                                                    </p>
+                                                                </div>
+                                                                <a href="/checkout/<%= course.id %>"
+                                                                    class="block w-full text-center py-2.5 rounded-xl bg-slate-800 text-white font-bold text-sm hover:bg-slate-900 transition-all">
+                                                                    <i class="fa-solid fa-redo mr-2"></i> Re-upload
+                                                                    Proof
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <% }}); %>
+                                                            <% } %>
                             </div>
                         </div>
                         <% } %>
@@ -214,16 +261,17 @@
                                             </h2>
                                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                                 <% myOngoing.forEach(course=> { %>
-                                                    <div
-                                                        class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all">
+                                                    <div onclick="if (!event.target.closest('a, button')) window.location.href='/courses/<%= course.id %>/view'"
+                                                        class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all cursor-pointer group/card">
                                                         <div class="p-6">
                                                             <div class="flex items-center gap-4 mb-4">
-                                                                <div class="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+                                                                <div class="w-12 h-12 rounded-lg flex items-center justify-center text-2xl group-hover/card:scale-110 transition-transform"
                                                                     style="background-color:<%= course.iconBg || '#e5e7eb' %>; color:<%= course.iconColor || '#334155' %>;">
                                                                     <%= course.icon %>
                                                                 </div>
                                                                 <div>
-                                                                    <h3 class="font-bold text-slate-800 line-clamp-1">
+                                                                    <h3
+                                                                        class="font-bold text-slate-800 line-clamp-1 group-hover/card:text-blue-600 transition-colors">
                                                                         <%= course.title %>
                                                                     </h3>
                                                                     <span
@@ -234,7 +282,8 @@
 
                                                             <% if (liveSessions[course.id] &&
                                                                 liveSessions[course.id].isLive) { %>
-                                                                <a href="<%= course.liveLink %>" target="_blank"
+                                                                <a onclick="event.stopPropagation()"
+                                                                    href="<%= course.liveLink %>" target="_blank"
                                                                     class="block w-full sm:w-fit sm:ml-auto px-6 text-center py-2 rounded-lg bg-green-600 text-white font-semibold text-sm hover:bg-green-700 transition-colors mb-2 animate-pulse">
                                                                     Join Live Session Now
                                                                 </a>
@@ -244,6 +293,12 @@
                                                                         No Live Session
                                                                     </button>
                                                                     <% } %>
+
+                                                                        <div
+                                                                            class="block w-full text-center py-2 rounded-lg bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                                                                            <i class="fa-solid fa-circle-play"></i>
+                                                                            View Lessons
+                                                                        </div>
 
 
                                                         </div>
@@ -282,17 +337,17 @@
                                                     </h2>
                                                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                                         <% myUpcoming.forEach(course=> { %>
-                                                            <div
-                                                                class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all">
+                                                            <div onclick="if (!event.target.closest('a, button')) window.location.href='/courses/<%= course.id %>/view'"
+                                                                class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all cursor-pointer group/card">
                                                                 <div class="p-6">
                                                                     <div class="flex items-center gap-4 mb-4">
-                                                                        <div class="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+                                                                        <div class="w-12 h-12 rounded-lg flex items-center justify-center text-2xl group-hover/card:scale-110 transition-transform"
                                                                             style="background-color:<%= course.iconBg || '#e5e7eb' %>; color:<%= course.iconColor || '#334155' %>;">
                                                                             <%= course.icon %>
                                                                         </div>
                                                                         <div>
                                                                             <h3
-                                                                                class="font-bold text-slate-800 line-clamp-1">
+                                                                                class="font-bold text-slate-800 line-clamp-1 group-hover/card:text-blue-600 transition-colors">
                                                                                 <%= course.title %>
                                                                             </h3>
                                                                             <span
@@ -302,13 +357,14 @@
                                                                             </span>
                                                                         </div>
                                                                     </div>
-                                                                    <div class="bg-slate-50 rounded-lg p-3 text-center">
+                                                                    <div
+                                                                        class="bg-slate-50 rounded-lg p-3 text-center group-hover/card:bg-blue-50 transition-colors">
                                                                         <p class="text-xs text-slate-500 mb-1">Course
                                                                             starts in</p>
                                                                         <% const diff=new Date(course.startDate) - new
                                                                             Date(); const days=Math.floor(diff / (1000 *
                                                                             60 * 60 * 24)); %>
-                                                                            <p class="font-mono text-slate-700 font-bold"
+                                                                            <p class="font-mono text-slate-700 font-bold group-hover/card:text-blue-700 transition-colors"
                                                                                 id="dashboard-timer-<%= course.id %>">
                                                                                 <%= days %> Days
                                                                             </p>
@@ -437,7 +493,8 @@
                                                                     </div>
                                                                     <div class="p-8">
                                                                         <div id="existing-testimonial"
-                                                                            class="hidden mb-6"></div>
+                                                                            class="hidden mb-6">
+                                                                        </div>
 
                                                                         <!-- Testimonial Form -->
                                                                         <form id="testimonial-form">

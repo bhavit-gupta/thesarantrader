@@ -24,6 +24,46 @@ if (postContent) {
     });
 }
 
+// Image Preview Logic
+const postImageInput = document.getElementById('post-image');
+const imagePreviewContainer = document.getElementById('image-preview-container');
+const imagePreview = document.getElementById('image-preview');
+const removeImageBtn = document.getElementById('remove-image');
+
+if (postImageInput) {
+    postImageInput.addEventListener('change', () => {
+        const file = postImageInput.files[0];
+        if (file) {
+            // Validate file size and type
+            if (!file.type.startsWith('image/')) {
+                showFeedback('Only image files are allowed', 'error');
+                postImageInput.value = '';
+                return;
+            }
+            if (file.size > 100 * 1024 * 1024) {
+                showFeedback('Image must be less than 100MB', 'error');
+                postImageInput.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                imagePreviewContainer.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+if (removeImageBtn) {
+    removeImageBtn.addEventListener('click', () => {
+        postImageInput.value = '';
+        imagePreviewContainer.classList.add('hidden');
+        imagePreview.src = '#';
+    });
+}
+
 // Create post form submission
 const createPostForm = document.getElementById('create-post-form');
 if (createPostForm) {
@@ -45,20 +85,31 @@ if (createPostForm) {
 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            // Use FormData for multipart/form-data support
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('content', content);
+            if (postImageInput && postImageInput.files[0]) {
+                formData.append('image', postImageInput.files[0]);
+            }
+
             const response = await fetch('/api/community/posts', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    // Content-Type is set automatically by the browser when using FormData
                     'csrf-token': csrfToken,
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ title, content })
+                body: formData
             });
             const data = await response.json();
 
             if (data.success) {
                 showFeedback('Post created successfully!', 'success');
                 createPostForm.reset();
+                if (imagePreviewContainer) imagePreviewContainer.classList.add('hidden');
+                if (imagePreview) imagePreview.src = '#';
                 if (postCharCount) postCharCount.textContent = '0 / 1000';
 
                 // Instantly prepend the new post and update timestamp
@@ -209,6 +260,12 @@ function createPostCard(post) {
 
         ${post.title ? `<h3 class="text-lg font-bold text-slate-800 mb-2">${escapeHtml(post.title)}</h3>` : ''}
         <p class="text-slate-600 leading-relaxed mb-4 whitespace-pre-wrap">${escapeHtml(post.content)}</p>
+
+        ${post.imageUrl ? `
+            <div class="mb-4 rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
+                <img src="${post.imageUrl}" alt="Post image" class="max-w-full h-auto cursor-pointer" onclick="window.open('${post.imageUrl}', '_blank')">
+            </div>
+        ` : ''}
 
         <div class="flex items-center gap-4 mb-4 pt-4 border-t border-slate-100">
             ${isLoggedIn ? `

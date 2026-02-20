@@ -176,16 +176,16 @@
                                                                 course.liveLink.trim().length >
                                                                 0;
                                                                 %>
-                                                                <div
-                                                                    class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center justify-between gap-6">
+                                                                <div onclick="if (!event.target.closest('button')) window.location.href='/admin/courses/<%= course.id %>/videos'"
+                                                                    class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center justify-between gap-6 cursor-pointer group/card">
                                                                     <div class="flex items-center gap-4 flex-1">
                                                                         <div
-                                                                            class="hidden sm:flex w-12 h-12 rounded-lg bg-<%= course.iconBg %> text-<%= course.iconColor %> items-center justify-center text-2xl shrink-0">
+                                                                            class="hidden sm:flex w-12 h-12 rounded-lg bg-<%= course.iconBg %> text-<%= course.iconColor %> items-center justify-center text-2xl shrink-0 group-hover/card:scale-110 transition-transform">
                                                                             <%= course.icon %>
                                                                         </div>
                                                                         <div>
                                                                             <h3
-                                                                                class="font-bold text-slate-800 text-lg">
+                                                                                class="font-bold text-slate-800 text-lg group-hover/card:text-blue-600 transition-colors">
                                                                                 <%= course.title %>
                                                                             </h3>
                                                                             <div
@@ -281,22 +281,22 @@
                                                                 formattedDate = formatDate(course.startDate);
                                                                 }
                                                                 %>
-                                                                <div
-                                                                    class="bg-slate-50 rounded-xl p-6 border border-slate-200 transition-all flex flex-col sm:flex-row items-center justify-between gap-6 opacity-90 hover:opacity-100">
+                                                                <div onclick="if (!event.target.closest('button')) window.location.href='/admin/courses/<%= course.id %>/videos'"
+                                                                    class="bg-slate-50 rounded-xl p-6 border border-slate-200 transition-all flex flex-col sm:flex-row items-center justify-between gap-6 opacity-90 hover:opacity-100 cursor-pointer group/card">
                                                                     <div class="flex items-center gap-4 flex-1">
                                                                         <div
-                                                                            class="hidden sm:flex w-12 h-12 rounded-lg bg-white border border-slate-100 text-slate-400 items-center justify-center text-2xl shrink-0 grayscale opacity-70">
+                                                                            class="hidden sm:flex w-12 h-12 rounded-lg bg-white border border-slate-100 text-slate-400 items-center justify-center text-2xl shrink-0 grayscale opacity-70 group-hover/card:scale-110 group-hover/card:grayscale-0 group-hover/card:opacity-100 transition-all">
                                                                             <%= course.icon %>
                                                                         </div>
                                                                         <div>
                                                                             <h3
-                                                                                class="font-bold text-slate-700 text-lg">
+                                                                                class="font-bold text-slate-700 text-lg group-hover/card:text-blue-600 transition-colors">
                                                                                 <%= course.title %>
                                                                             </h3>
                                                                             <div
                                                                                 class="flex items-center gap-3 text-sm mt-1">
                                                                                 <span
-                                                                                    class="text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded text-xs">
+                                                                                    class="text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded text-xs group-hover/card:bg-blue-100 transition-colors">
                                                                                     <i
                                                                                         class="fa-regular fa-clock mr-1"></i>Starts
                                                                                     <%= formattedDate %>

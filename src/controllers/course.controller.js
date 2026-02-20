@@ -53,7 +53,7 @@ exports.getAdminCourses = async (req, res) => {
  * Admin API: Creates a new course.
  */
 exports.addCourse = async (req, res) => {
-    const { title, description, price, originalPrice, icon, colorTheme, liveLink, startDate, endDate, enrollmentDeadline } = req.body;
+    const { title, description, price, originalPrice, icon, colorTheme, liveLink, demoVideoUrl, startDate, endDate, enrollmentDeadline } = req.body;
 
     const parsedPrice = parseInt(price);
     const parsedOriginalPrice = parseInt(originalPrice);
@@ -76,6 +76,7 @@ exports.addCourse = async (req, res) => {
                 iconColor: `${colorTheme || 'blue'}-500`,
                 badge: "New",
                 badgeColor: "green",
+                demoVideoUrl: demoVideoUrl || "",
                 liveLink: liveLink || "",
                 startDate: startDate ? new Date(startDate) : null,
                 endDate: endDate ? new Date(endDate) : null,
@@ -134,7 +135,7 @@ exports.deleteCourse = async (req, res) => {
  */
 exports.editCourse = async (req, res) => {
     const courseId = req.params.id;
-    const { title, description, price, originalPrice, icon, colorTheme, liveLink, startDate, endDate, enrollmentDeadline } = req.body;
+    const { title, description, price, originalPrice, icon, colorTheme, liveLink, demoVideoUrl, startDate, endDate, enrollmentDeadline } = req.body;
 
     const parsedPrice = parseInt(price);
     const parsedOriginalPrice = parseInt(originalPrice);
@@ -145,6 +146,7 @@ exports.editCourse = async (req, res) => {
 
     const updateData = {
         title, description, price: parsedPrice, originalPrice: parsedOriginalPrice,
+        demoVideoUrl: demoVideoUrl || "",
         liveLink: liveLink || "",
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
@@ -244,5 +246,37 @@ exports.enrollCourse = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ success: false, message: "Failed to enroll" });
+    }
+};
+
+/**
+ * Student Side: Renders the course video viewing page.
+ */
+exports.viewCourseVideos = async (req, res) => {
+    const courseId = req.params.id;
+    const userId = req.session.user.id;
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { purchasedCourseIds: true }
+        });
+
+        if (!user.purchasedCourseIds.includes(courseId)) {
+            return res.redirect('/dashboard?error=not_enrolled');
+        }
+
+        const course = await prisma.course.findUnique({ where: { id: courseId } });
+        if (!course) return res.redirect('/dashboard');
+
+        const videos = await prisma.courseVideo.findMany({
+            where: { courseId: courseId },
+            orderBy: { order: 'asc' }
+        });
+
+        res.render("dashboard/student_course_videos", { course, videos, user: req.session.user });
+    } catch (e) {
+        console.error("❌ Student Video Fetch Error:", e);
+        res.status(500).send("Error loading course content");
     }
 };

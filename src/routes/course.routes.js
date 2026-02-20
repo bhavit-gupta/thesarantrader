@@ -4,13 +4,14 @@ const router = express.Router();
 const courseController = require('../controllers/course.controller');
 
 /* ---------------- MIDDLEWARE ---------------- */
-const { isAdmin } = require('../middleware/auth.middleware');
+const { isAdmin, isAuthenticated } = require('../middleware/auth.middleware');
 
 /* ---------------- PUBLIC ROUTES ---------------- */
 // Public Routes
 router.get('/api/courses', courseController.getAllCourses);
 router.get('/api/live-status', courseController.getLiveStatus);
 router.post('/api/courses/enroll', courseController.enrollCourse);
+router.get('/courses/:id/view', isAuthenticated, courseController.viewCourseVideos);
 
 /* ---------------- ADMIN ROUTES ---------------- */
 // Admin Routes

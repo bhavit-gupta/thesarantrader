@@ -4,6 +4,9 @@
 
 const prisma = require('../utils/prisma');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const { compressImage } = require('../utils/upload.utils');
 
 /* -------------------------------------------------------------------------- */
 /*                            COMMUNITY CONTROLLERS                           */
@@ -16,31 +19,36 @@ exports.createPost = async (req, res) => {
     if (!req.session.user) return res.status(401).json({ success: false, message: 'Please log in to post' });
 
     const { title, content } = req.body;
-
-    if (!content || content.trim().length === 0) {
-        return res.status(400).json({ success: false, message: 'Post content is required' });
-    }
-
-    if (content.length > 1000) {
-        return res.status(400).json({ success: false, message: 'Post content exceeds 1000 characters' });
-    }
-
     try {
+        let finalImageUrl = null;
+        if (req.file) {
+            const communityUploadDir = path.join(__dirname, '../public/uploads/community');
+            const compressedFilename = await compressImage(req.file, communityUploadDir);
+            finalImageUrl = `/uploads/community/${compressedFilename}`;
+        }
+
         const newPost = await prisma.communityPost.create({
             data: {
                 userId: req.session.user.id,
                 userName: req.session.user.name,
                 title: title ? title.trim() : '',
-                content: content.trim(),
+                content: content ? content.trim() : '',
+                imageUrl: finalImageUrl,
                 likes: 0,
                 likedBy: []
             }
         });
 
-        console.log(`💬 [COMMUNITY] New post by ${newPost.userName}`);
+        console.log(`💬 [COMMUNITY] New post by ${newPost.userName} ${imageUrl ? '(with image)' : ''}`);
         res.json({ success: true, message: 'Post created successfully!', post: newPost });
     } catch (error) {
         console.error("❌ Post Creation Error:", error);
+        // Clean up uploaded file if DB creation fails
+        if (req.file) {
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error("Error deleting file after DB failure:", err);
+            });
+        }
         res.status(500).json({ success: false, message: "Error creating post" });
     }
 };
@@ -211,10 +219,21 @@ exports.deletePost = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Authorization Failed' });
         }
 
+        // Delete associated image file if it exists
+        if (post.imageUrl) {
+            const filePath = path.join(__dirname, '../public', post.imageUrl);
+            fs.unlink(filePath, (err) => {
+                if (err && err.code !== 'ENOENT') {
+                    console.error("Error deleting post image:", err);
+                }
+            });
+        }
+
         await prisma.communityPost.delete({ where: { id: postId } });
         console.log(`🗑️ [DELETE] Post #${postId} removed by ${currentUserId}`);
         res.json({ success: true, message: 'Post deleted successfully' });
     } catch (error) {
+        console.error("❌ Post Deletion Error:", error);
         res.status(500).json({ success: false, message: "Error deleting post" });
     }
 };
@@ -249,5 +268,47 @@ exports.deleteComment = async (req, res) => {
         res.json({ success: true, message: 'Comment deleted' });
     } catch (error) {
         res.status(500).json({ success: false, message: "Error deleting comment" });
+    }
+};
+
+/**
+ * Cleanup Logic: Delete community posts older than 15 days, 
+ * including their associated image files.
+ */
+exports.cleanupOldPosts = async () => {
+    try {
+        const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
+
+        // Find posts with images that are older than 15 days
+        const oldPostsWithImages = await prisma.communityPost.findMany({
+            where: {
+                createdAt: { lt: fifteenDaysAgo },
+                imageUrl: { not: null }
+            },
+            select: { imageUrl: true }
+        });
+
+        // Delete image files from disk
+        oldPostsWithImages.forEach(post => {
+            if (post.imageUrl) {
+                const filePath = path.join(__dirname, '../public', post.imageUrl);
+                fs.unlink(filePath, (err) => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.error("Error deleting old post image during cleanup:", err);
+                    }
+                });
+            }
+        });
+
+        // Delete posts from DB
+        const deleted = await prisma.communityPost.deleteMany({
+            where: {
+                createdAt: { lt: fifteenDaysAgo }
+            }
+        });
+
+        console.log(`🧹 Community Cleanup: Removed ${deleted.count} posts older than 15 days.`);
+    } catch (error) {
+        console.error("❌ Community Cleanup Error:", error);
     }
 };

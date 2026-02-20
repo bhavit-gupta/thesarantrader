@@ -1,6 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../utils/prisma');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Safely deletes a payment screenshot from the filesystem.
+ * @param {string} screenshotUrl - Relative URL from the DB.
+ */
+const deleteScreenshot = (screenshotUrl) => {
+    if (!screenshotUrl) return;
+    try {
+        const filePath = path.join(__dirname, '../public', screenshotUrl);
+        if (fs.existsSync(filePath)) {
+            fs.unlink(filePath, (err) => {
+                if (err) console.error(`❌ [Cleanup] Failed to delete: ${filePath}`, err);
+                else console.log(`🗑️ [Cleanup] Deleted screenshot: ${filePath}`);
+            });
+        }
+    } catch (err) {
+        console.error("❌ [Cleanup] Error during file deletion:", err);
+    }
+};
 
 // Middleware to ensure admin
 const isAdmin = (req, res, next) => {
@@ -42,6 +63,12 @@ router.post('/api/admin/approve-payment', isAdmin, async (req, res) => {
         ]);
 
         console.log(`✅ [Manual Approval] User ${purchase.userId} enrolled in ${purchase.courseId}. Student count incremented.`);
+
+        // Cleanup: Delete the screenshot after successful processing
+        if (purchase.screenshotUrl) {
+            deleteScreenshot(purchase.screenshotUrl);
+        }
+
         res.json({ success: true, message: "Payment approved and user enrolled." });
 
     } catch (error) {
@@ -53,14 +80,28 @@ router.post('/api/admin/approve-payment', isAdmin, async (req, res) => {
 // Reject Payment
 router.post('/api/admin/reject-payment', isAdmin, async (req, res) => {
     try {
-        const { purchaseId } = req.body;
+        const { purchaseId, reason } = req.body;
+        // Fetch purchase details to get the screenshot URL before status update
+        const purchase = await prisma.purchase.findUnique({ where: { id: purchaseId } });
 
-        await prisma.purchase.update({
-            where: { id: purchaseId },
-            data: { status: 'rejected' }
-        });
+        if (purchase) {
+            await prisma.purchase.update({
+                where: { id: purchaseId },
+                data: {
+                    status: 'rejected',
+                    rejectionReason: reason || 'Payment proof was not clear or invalid.'
+                }
+            });
 
-        res.json({ success: true, message: "Payment rejected." });
+            // Cleanup: Delete the screenshot upon rejection
+            if (purchase.screenshotUrl) {
+                deleteScreenshot(purchase.screenshotUrl);
+            }
+
+            res.json({ success: true, message: "Payment rejected." });
+        } else {
+            res.status(404).json({ success: false, message: "Purchase record missing" });
+        }
 
     } catch (error) {
         console.error("Reject Payment Error:", error);
@@ -172,6 +213,113 @@ router.get('/admin/users/:id', isAdmin, async (req, res) => {
     } catch (e) {
         console.error('Admin user detail error:', e);
         res.status(500).send('Error loading user detail: ' + e.message);
+    }
+});
+
+// ---------------- COURSE VIDEO MANAGEMENT ----------------
+
+// Render Video Management Page
+router.get('/admin/courses/:id/videos', isAdmin, async (req, res) => {
+    try {
+        const courseId = req.params.id;
+        const course = await prisma.course.findUnique({
+            where: { id: courseId }
+        });
+
+        if (!course) {
+            return res.status(404).render('error', { message: "Course not found" });
+        }
+
+        const videos = await prisma.courseVideo.findMany({
+            where: { courseId: courseId },
+            orderBy: { order: 'asc' }
+        });
+
+        res.render('dashboard/admin_course_videos', {
+            user: req.session.user,
+            course: course,
+            videos: videos,
+            path: '/admin/courses'
+        });
+    } catch (error) {
+        console.error("View Course Videos Error:", error);
+        res.status(500).render('error', { message: "Internal Server Error" });
+    }
+});
+
+// Add New Video
+router.post('/api/admin/courses/:id/videos', isAdmin, async (req, res) => {
+    try {
+        const courseId = req.params.id;
+        const { title, description, youtubeUrl } = req.body;
+
+        if (!title || !youtubeUrl) {
+            return res.status(400).json({ success: false, message: "Title and YouTube URL are required" });
+        }
+
+        // Simple validation for youtube link (optional, but good)
+        if (!youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be')) {
+            return res.status(400).json({ success: false, message: "Invalid YouTube URL" });
+        }
+
+        const videoCount = await prisma.courseVideo.count({ where: { courseId: courseId } });
+
+        const video = await prisma.courseVideo.create({
+            data: {
+                courseId: courseId,
+                title: title,
+                description: description || "",
+                youtubeUrl: youtubeUrl,
+                order: videoCount + 1
+            }
+        });
+
+        res.json({ success: true, message: "Video added successfully", video: video });
+    } catch (error) {
+        console.error("Add Course Video Error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+});
+
+// Update Video
+router.post('/api/admin/courses/:id/videos/:videoId/update', isAdmin, async (req, res) => {
+    try {
+        const { title, description, youtubeUrl } = req.body;
+        const { videoId } = req.params;
+
+        if (!title || !youtubeUrl) {
+            return res.status(400).json({ success: false, message: "Title and YouTube URL are required" });
+        }
+
+        await prisma.courseVideo.update({
+            where: { id: videoId },
+            data: {
+                title: title,
+                description: description || "",
+                youtubeUrl: youtubeUrl
+            }
+        });
+
+        res.json({ success: true, message: "Video updated successfully" });
+    } catch (error) {
+        console.error("Update Course Video Error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+});
+
+// Delete Video
+router.delete('/api/admin/courses/:courseId/videos/:videoId', isAdmin, async (req, res) => {
+    try {
+        const { videoId } = req.params;
+
+        await prisma.courseVideo.delete({
+            where: { id: videoId }
+        });
+
+        res.json({ success: true, message: "Video deleted successfully" });
+    } catch (error) {
+        console.error("Delete Course Video Error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 });
 
