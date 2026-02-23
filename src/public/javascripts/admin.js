@@ -26,7 +26,32 @@ function getAllCourses() {
         return [];
     }
 }
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+}
 
+function showToast(message, type = 'info') {
+    // Basic fallback if toast library isn't loaded
+    console.log(`[Toast ${type}]: ${message}`);
+
+    // Check for custom toast container
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-blue-600');
+    toast.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-xl mb-3 flex items-center gap-3 animate-fade-in-up`;
+    toast.innerHTML = `
+        <i class="fa-solid ${type === 'success' ? 'fa-check' : (type === 'error' ? 'fa-xmark' : 'fa-info')}"></i>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2', 'transition-all', 'duration-500');
+        setTimeout(() => toast.remove(), 500);
+    }, 4000);
+}
 /* ---------------- TIMER LOGIC ---------------- */
 function updateTimers() {
     const now = Date.now();
@@ -52,27 +77,158 @@ function updateTimers() {
 }
 
 /* ---------------- API ACTIONS ---------------- */
-async function toggleCourseLive(courseId) {
+/**
+ * Updates the UI status for a specific course without page reload.
+ * Handles button state, timers, and badge visibility.
+ */
+function updateLiveStatus(courseId, isLive, startTime = null) {
+    const card = document.getElementById(`course-meta-${courseId}`);
+    if (!card) return;
+
+    // 1. Update Buttons
+    const btn = card.querySelector('.toggle-live-btn');
+    if (btn) {
+        if (isLive) {
+            btn.className = 'toggle-live-btn relative px-6 py-2.5 rounded-full font-bold text-sm transition-all focus:outline-none shrink-0 w-32 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200';
+            btn.innerHTML = '<i class="fa-solid fa-stop mr-2"></i>End Live';
+        } else {
+            btn.className = 'toggle-live-btn relative px-6 py-2.5 rounded-full font-bold text-sm transition-all focus:outline-none shrink-0 w-32 bg-slate-800 text-white hover:bg-slate-900 border border-slate-200 shadow-lg shadow-slate-500/20';
+            btn.innerHTML = '<i class="fa-solid fa-satellite-dish mr-2"></i>Go Live';
+        }
+    }
+
+    // 2. Update Status Text and Timer Visibility
+    const statusContainer = card.querySelector('.flex.items-center.gap-3.text-sm.mt-1');
+    if (statusContainer) {
+        // Find existing status markers
+        const markers = statusContainer.querySelectorAll('span');
+        let usersSpan = markers[0]; // Usually the first one
+
+        // Clear and rebuild to ensure correct order/elements
+        statusContainer.innerHTML = '';
+        if (usersSpan) statusContainer.appendChild(usersSpan);
+
+        if (isLive) {
+            const liveBadge = document.createElement('span');
+            liveBadge.className = 'text-green-600 font-semibold flex items-center gap-1';
+            liveBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>Live Now';
+            statusContainer.appendChild(liveBadge);
+
+            const timerSpan = document.createElement('span');
+            timerSpan.id = `timer-${courseId}`;
+            timerSpan.className = 'text-slate-400 font-mono live-timer';
+            timerSpan.setAttribute('data-start', startTime || Date.now());
+            timerSpan.textContent = '00:00:00';
+            statusContainer.appendChild(timerSpan);
+        } else {
+            const offlineBadge = document.createElement('span');
+            offlineBadge.className = 'text-slate-400';
+            offlineBadge.textContent = 'Offline';
+            statusContainer.appendChild(offlineBadge);
+        }
+    }
+
+    // 3. Update global data tracking (if used by other scripts)
+    const dataDiv = document.getElementById('admin-data');
+    if (dataDiv) {
+        try {
+            const sessions = JSON.parse(dataDiv.getAttribute('data-live-sessions') || '{}');
+            if (isLive) {
+                sessions[courseId] = { isLive: true, startTime: startTime || Date.now() };
+            } else {
+                delete sessions[courseId];
+            }
+            dataDiv.setAttribute('data-live-sessions', JSON.stringify(sessions));
+
+            // 4. Update Global Navbar Status
+            updateNavbarLiveStatus();
+        } catch (e) {
+            console.error("Data tracking update failed", e);
+        }
+    }
+}
+
+/**
+ * Updates the global navbar live indicator based on ALL sessions
+ */
+function updateNavbarLiveStatus() {
+    const dataDiv = document.getElementById('admin-data');
+    if (!dataDiv) return;
+
     try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const sessions = JSON.parse(dataDiv.getAttribute('data-live-sessions') || '{}');
+        const isAnyLive = Object.values(sessions).some(s => s.isLive);
+
+        // Update Desktop Navbar Button
+        const desktopBtn = document.getElementById('join-live-btn');
+        if (desktopBtn) {
+            if (isAnyLive) {
+                desktopBtn.className = 'join-live-btn px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer bg-green-500 text-white shadow-lg shadow-green-500/25';
+                const dot = desktopBtn.querySelector('.live-dot');
+                if (dot) dot.className = 'live-dot w-2 h-2 rounded-full bg-white live-pulse';
+                const text = desktopBtn.querySelector('.live-text');
+                if (text) text.textContent = 'Live Now';
+            } else {
+                desktopBtn.className = 'join-live-btn px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer bg-slate-100 text-slate-400';
+                const dot = desktopBtn.querySelector('.live-dot');
+                if (dot) dot.className = 'live-dot w-2 h-2 rounded-full bg-slate-400';
+                const text = desktopBtn.querySelector('.live-text');
+                if (text) text.textContent = 'Live Offline';
+            }
+        }
+
+        // Update Mobile Navbar Button
+        const mobileBtn = document.getElementById('mobile-join-live-btn');
+        if (mobileBtn) {
+            if (isAnyLive) {
+                mobileBtn.className = 'join-live-btn block px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer text-green-600 bg-green-50';
+                mobileBtn.innerHTML = '<span class="animate-pulse">🔴</span> Live Now';
+            } else {
+                mobileBtn.className = 'join-live-btn block px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer text-slate-400 bg-slate-100';
+                mobileBtn.innerHTML = '<span>🔴</span> Live Offline';
+            }
+        }
+    } catch (e) {
+        console.error("Navbar update failed", e);
+    }
+}
+
+async function toggleCourseLive(courseId) {
+    const btn = document.querySelector(`button[data-course-id="${courseId}"]`);
+    if (!btn || btn.disabled) return;
+
+    // Capture state BEFORE changing button content to spinner
+    const isCurrentlyLive = btn.innerText.includes('End Live');
+    const targetState = !isCurrentlyLive;
+
+    btn.disabled = true;
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    try {
         const response = await fetch('/admin/toggle-live', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'X-CSRF-Token': getCsrfToken()
             },
-            body: JSON.stringify({ courseId })
+            body: JSON.stringify({ courseId, isLive: targetState })
         });
+
         const data = await response.json();
 
         if (data.success) {
-            location.reload();
+            // SUCCESS: Update UI immediately without reload
+            updateLiveStatus(courseId, data.isLive, data.startTime);
+            showToast(data.isLive ? 'Stream started!' : 'Stream ended.', 'success');
         } else {
-            alert(data.message || 'Failed to toggle live status');
+            throw new Error(data.message || 'Toggle failed');
         }
     } catch (error) {
-        console.error('Error toggling live:', error);
-        alert('Error toggling live status');
+        console.error('Live toggle error:', error);
+        showToast(error.message, 'error');
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
     }
 }
 

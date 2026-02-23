@@ -1,16 +1,88 @@
+<!-- 
+========================================
+FILE: admin_user_detail.ejs
+PURPOSE: Admin User Detail Page
+========================================
+
+DESCRIPTION:
+Comprehensive view of a single user's profile, enrollment history,
+payment records, and activity for admin review and management.
+
+SECTIONS:
+1. Profile Header - Avatar, name, role badge, contact info
+2. Quick Stats - Course count, purchase count
+3. Personal Information - Email, phone, location, join date
+4. Enrolled Courses - List of purchased courses with status
+5. Payment History - All payment attempts (completed, pending, rejected)
+6. Activity Timeline - Recent user actions
+
+EXPECTED VARIABLES:
+- csrfToken (string): CSRF protection token
+- profileUser (object): User being viewed
+  - id, name, username, email, phone, state, city, role, createdAt
+- enrolledCourses (array): Courses user has access to
+  - courseId, courseName, enrolledAt, status
+- purchases (array): Payment transaction history
+  - id, courseId, courseName, amount, status, screenshotUrl, createdAt, verifiedAt
+- recentActivity (array, optional): User activity log
+
+STATISTICS:
+- Total enrolled courses
+- Completed purchases count
+- Pending payments
+- Rejected payments
+
+PAYMENT STATUS INDICATORS:
+- completed: Green badge, verified
+- pending: Yellow badge, awaiting admin review
+- rejected: Red badge, declined payment
+
+ACCESS CONTROL:
+- Admin only
+
+JAVASCRIPT DEPENDENCIES:
+- main.js: Global utilities
+
+FEATURES:
+- User avatar with initial
+- Role badge (Admin/User)
+- Payment screenshot modal preview
+- Course enrollment timeline
+- Contact information display
+- Back navigation to user list
+-->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <title>
         <%= (profileUser && (profileUser.name || profileUser.username)) ? profileUser.name || profileUser.username
             : 'User Detail' %> — Admin
     </title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#2563eb">
+
+    <!-- Preconnect Hints -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
+    <!-- Font Awesome with SRI -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+
     <link rel="stylesheet" href="/stylesheets/output.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 
 <body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
@@ -94,7 +166,8 @@
                                     </div>
                                     <div class="bg-green-50 rounded-xl p-3 text-center">
                                         <div class="text-2xl font-bold text-green-700">
-                                            <%= (purchases || []).filter(p=> p.status === 'completed').length %>
+                                            <%= (purchases || []).filter(p=> String(p.status).toLowerCase() ===
+                                                'completed').length %>
                                         </div>
                                         <div class="text-xs text-green-500 font-medium">Purchases</div>
                                     </div>
@@ -199,16 +272,17 @@
                                                             <%= p.paymentMethod || 'unknown' %>
                                                         </td>
                                                         <td class="px-6 py-4">
-                                                            <% if (p.status==='completed' ) { %>
-                                                                <span
-                                                                    class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">Completed</span>
-                                                                <% } else if (p.status==='pending' ) { %>
+                                                            <% const pStatus=String(p.status || '' ).toLowerCase(); %>
+                                                                <% if (pStatus==='completed' ) { %>
                                                                     <span
-                                                                        class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">Pending</span>
-                                                                    <% } else { %>
+                                                                        class="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">Completed</span>
+                                                                    <% } else if (pStatus==='pending' ) { %>
                                                                         <span
-                                                                            class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">Rejected</span>
-                                                                        <% } %>
+                                                                            class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">Pending</span>
+                                                                        <% } else { %>
+                                                                            <span
+                                                                                class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">Rejected</span>
+                                                                            <% } %>
                                                         </td>
                                                         <td class="px-6 py-4 text-slate-400 text-xs">
                                                             <%= (typeof formatDate !=='undefined' ) ? formatDate(p.date)
@@ -297,16 +371,17 @@
                                                                 class="<%= star <= (t.rating || 0) ? 'fa-solid' : 'fa-regular' %> fa-star text-amber-400 text-sm"></i>
                                                             <% }); %>
                                                     </div>
-                                                    <% if (t.status==='approved' ) { %>
-                                                        <span
-                                                            class="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-semibold">Approved</span>
-                                                        <% } else if (t.status==='pending' ) { %>
+                                                    <% const tStatus=String(t.status || '' ).toLowerCase(); %>
+                                                        <% if (tStatus==='approved' ) { %>
                                                             <span
-                                                                class="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-semibold">Pending</span>
-                                                            <% } else { %>
+                                                                class="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-semibold">Approved</span>
+                                                            <% } else if (tStatus==='pending' ) { %>
                                                                 <span
-                                                                    class="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-semibold">Rejected</span>
-                                                                <% } %>
+                                                                    class="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-semibold">Pending</span>
+                                                                <% } else { %>
+                                                                    <span
+                                                                        class="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-semibold">Rejected</span>
+                                                                    <% } %>
                                                 </div>
                                                 <p class="text-slate-600 text-sm italic">"<%= t.message || '' %>"</p>
                                                 <p class="text-xs text-slate-400 mt-2">
@@ -323,7 +398,7 @@
             </div>
         </main>
 
-        <script src="/javascripts/main.js"></script>
+        <script src="/javascripts/main.js" defer></script>
 </body>
 
 </html>

@@ -1,35 +1,124 @@
+<!-- 
+========================================
+FILE: enroll.ejs
+PURPOSE: Course Enrollment Page
+========================================
+
+DESCRIPTION:
+Displays course details and enrollment confirmation. Content is loaded
+dynamically via JavaScript based on course ID from URL.
+
+FEATURES:
+- Dynamic course information loading
+- Enrollment status display
+- Payment confirmation if already purchased
+- Loading skeleton UI
+
+EXPECTED VARIABLES:
+- csrfToken (string): CSRF protection token
+
+DATA SOURCE:
+- URL parameter: /enroll/:courseId
+- API: Fetched by courses.js based on courseId
+
+UI FLOW:
+- Show loading skeleton
+- Fetch course details
+- Display enrollment form or confirmation
+
+JAVASCRIPT DEPENDENCIES:
+- main.js: Global utilities
+- courses.js: Handles course data fetching and enrollment logic
+-->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enroll - The Saran Trader</title>
-    <link rel="stylesheet" href="/stylesheets/output.css">
+    <title>Course Enrollment - The Saran Trader</title>
+    <meta name="description" content="Enroll in our F&O trading courses. Get lifetime access, expert instruction, and practical strategies.">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#2563eb">
+    
+    <!-- Preconnect Hints -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Font Awesome with SRI -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+          integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+          crossorigin="anonymous"
+          referrerpolicy="no-referrer">
+    
+    <link rel="stylesheet" href="/stylesheets/output.css">
 </head>
 
 <body class="font-sans antialiased text-slate-600 bg-white">
 
-    <!-- Navbar -->
+    <!-- Navigation Bar -->
     <%- include('../partials/navbar') %>
 
-        <!-- Content Section -->
-        <section class="pt-32 pb-20 bg-slate-50 min-h-screen">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div id="enrollment-container" class="grid lg:grid-cols-2 gap-12 items-start">
-                    <!-- Dynamic Content will be loaded here -->
-                    <div class="animate-pulse bg-white p-6 rounded-2xl h-96 w-full"></div>
-                    <div class="animate-pulse bg-white p-6 rounded-2xl h-96 w-full"></div>
+    <!-- Content Section -->
+    <section class="pt-32 pb-20 bg-slate-50 min-h-screen">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Error State -->
+            <div id="enrollment-error" class="hidden max-w-2xl mx-auto text-center py-12">
+                <i class="fa-solid fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Failed to Load Course</h3>
+                <p class="text-slate-600 mb-6">We couldn't retrieve the course details. Please check your connection and try again.</p>
+                <button onclick="location.reload()" 
+                        class="px-6 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors">
+                    <i class="fa-solid fa-rotate-right mr-2"></i>Retry
+                </button>
+            </div>
+            
+            <!-- Dynamic Enrollment Container (Populated by JavaScript) -->
+            <div id="enrollment-container" class="grid lg:grid-cols-2 gap-12 items-start" role="status" aria-busy="true" aria-label="Loading course details">
+                <!-- Loading Skeleton (Shown while fetching course data) -->
+                <div class="animate-pulse bg-white p-6 rounded-2xl min-h-96 w-full enrollment-skeleton">
+                    <div class="h-8 bg-slate-200 rounded w-3/4 mb-4"></div>
+                    <div class="h-4 bg-slate-200 rounded w-full mb-2"></div>
+                    <div class="h-4 bg-slate-200 rounded w-5/6 mb-4"></div>
+                    <div class="h-32 bg-slate-200 rounded mb-4"></div>
+                    <div class="h-10 bg-slate-200 rounded-lg w-1/2"></div>
+                </div>
+                <div class="animate-pulse bg-white p-6 rounded-2xl min-h-96 w-full enrollment-skeleton">
+                    <div class="h-8 bg-slate-200 rounded w-1/2 mb-4"></div>
+                    <div class="h-4 bg-slate-200 rounded w-full mb-2"></div>
+                    <div class="h-4 bg-slate-200 rounded w-3/4 mb-4"></div>
+                    <div class="h-24 bg-slate-200 rounded mb-4"></div>
+                    <div class="h-12 bg-slate-200 rounded-full w-full"></div>
                 </div>
             </div>
-        </section>
+            
+            <!-- NoScript Fallback -->
+            <noscript>
+                <div class="max-w-2xl mx-auto text-center py-12">
+                    <div class="bg-amber-50 rounded-2xl border border-amber-200 p-8">
+                        <h3 class="text-xl font-bold text-amber-800 mb-3">JavaScript Required</h3>
+                        <p class="text-amber-700">Course enrollment requires JavaScript. Please enable JavaScript in your browser or contact us at support@thesarantrader.com for assistance.</p>
+                    </div>
+                </div>
+            </noscript>
+        </div>
+    </section>
 
-        <!-- Footer -->
-        <%- include('../partials/footer') %>
+    <!-- Footer -->
+    <%- include('../partials/footer') %>
 
-            <script src="/javascripts/main.js"></script>
-            <script src="/javascripts/courses.js"></script>
+    <!-- JavaScript Dependencies -->
+    <script src="/javascripts/main.js" defer></script>
+    <script src="/javascripts/courses.js" defer></script>
 </body>
 
 </html>

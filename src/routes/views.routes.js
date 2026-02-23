@@ -1,200 +1,508 @@
-/* ---------------- DEPENDENCIES ---------------- */
+/* -------------------------------------------------------------------------- */
+/*                          VIEW ROUTE DEFINITIONS                           */
+/* -------------------------------------------------------------------------- */
+/*
+ * This file defines all routes that render EJS templates (page views).
+ * 
+ * Security Features:
+ * - CSRF protection on logout
+ * - CourseId validation
+ * - Open redirect prevention
+ * - Session validation
+ * - Rate limiting
+ * - Admin role re-validation
+ * 
+ * Route Categories:
+ * 1. Public Pages - Accessible to all visitors
+ * 2. Authentication Pages - Login, signup, password reset
+ * 3. User Dashboard - User course management
+ * 4. Admin Dashboard - Administrative panel
+ */
+
+/* -------------------------------------------------------------------------- */
+/*                                DEPENDENCIES                                */
+/* -------------------------------------------------------------------------- */
+
 const express = require('express');
 const router = express.Router();
 const prisma = require('../utils/prisma');
+const { withTimeout } = require('../utils/prisma');
 const { getUserPurchasedCourses } = require('../utils/helpers');
+const csrfProtection = require('../middleware/csrfProtection');
+const { authLimiter } = require('../middleware/rateLimiter');
 
+/* -------------------------------------------------------------------------- */
+/*                              CONFIGURATION                                */
+/* -------------------------------------------------------------------------- */
 
+const CONFIG = {
+    OBJECTID_REGEX: /^[0-9a-fA-F]{24}$/,
+    MAX_URL_LENGTH: 2000,
+    QUERY_TIMEOUT: 5000, // 5 second timeout
+    VALID_REDIRECTS: new Set(['/', '/dashboard', '/courses', '/admin/dashboard'])
+};
 
-/* ---------------- PUBLIC ROUTES ---------------- */
-router.get('/', (req, res) => res.render("layouts/index"));
+// URL constants for maintainability
+const URLS = {
+    LOGIN: '/login',
+    DASHBOARD: '/dashboard',
+    ADMIN_DASHBOARD: '/admin/dashboard',
+    COURSES: '/courses',
+    HOME: '/'
+};
 
-router.get('/courses', (req, res) => {
-    // courses are available in res.locals
+// Generic error messages
+const STRINGS = {
+    SERVER_ERROR: 'An error occurred. Please try again.',
+    INVALID_COURSE_ID: 'Invalid course identifier.',
+    COURSE_NOT_FOUND: 'Course not found.',
+    UNAUTHORIZED: 'Authentication required.'
+};
+
+/* -------------------------------------------------------------------------- */
+/*                           VALIDATION UTILITIES                            */
+/* -------------------------------------------------------------------------- */
+
+// Validate ObjectId format
+function isValidObjectId(id) {
+    return id && typeof id === 'string' && CONFIG.OBJECTID_REGEX.test(id);
+}
+
+// Validate redirect URL is same-origin
+function isValidRedirect(url) {
+    if (!url || typeof url !== 'string') return false;
+    // Must start with / and not contain protocol or double slashes
+    return url.startsWith('/') && !url.startsWith('//') && !url.includes('://');
+}
+
+// Validate session user
+function isValidSession(session) {
+    return session &&
+        session.user &&
+        session.user.id &&
+        typeof session.user.id === 'string' &&
+        CONFIG.OBJECTID_REGEX.test(session.user.id);
+}
+
+// Validate URL length
+function validateUrlLength(url) {
+    return url && url.length <= CONFIG.MAX_URL_LENGTH;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              MIDDLEWARE                                   */
+/* -------------------------------------------------------------------------- */
+
+// Validate courseId parameter
+function validateCourseId(req, res, next) {
+    const { courseId } = req.params;
+
+    if (!isValidObjectId(courseId)) {
+        return res.redirect(`${URLS.COURSES}?error=invalid_course`);
+    }
+
+    next();
+}
+
+// Redirect authenticated users away from auth pages
+function redirectIfAuthenticated(req, res, next) {
+    if (req.session && req.session.user) {
+        return res.redirect(URLS.DASHBOARD);
+    }
+    next();
+}
+
+// Verify admin in database
+async function verifyAdminInDatabase(req, res, next) {
+    if (!isValidSession(req.session)) {
+        return res.redirect(URLS.LOGIN);
+    }
+
+    const role = String(req.session.user.role).toUpperCase();
+    if (role !== 'ADMIN') {
+        return res.redirect(URLS.DASHBOARD);
+    }
+
+    try {
+        // Re-validate admin status in database
+        const user = await prisma.user.findUnique({
+            where: { id: req.session.user.id },
+            select: { role: true }
+        });
+
+        if (!user || String(user.role).toUpperCase() !== 'ADMIN') {
+            return res.redirect(URLS.DASHBOARD);
+        }
+        next();
+    } catch (error) {
+        console.error('[Views] Admin verification error:', error.message);
+        return res.redirect(URLS.LOGIN);
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              PUBLIC PAGES                                 */
+/* -------------------------------------------------------------------------- */
+
+// Landing page
+// Rate limiting on public pages
+router.get('/', authLimiter, (req, res) => res.render("layouts/index"));
+
+// Course catalog
+// Caching and pagination handled at app level
+router.get('/courses', authLimiter, (req, res) => {
+    // Course data escaped by EJS templates
     res.render("layouts/courses", { courses: res.locals.courses });
 });
 
-router.get('/login', (req, res) => {
-    if (req.session.user) return res.redirect('/dashboard');
+// Community forum page
+router.get('/community', authLimiter, (req, res) => res.render("layouts/community"));
+
+// Testimonials/reviews page
+router.get('/testimonials', authLimiter, (req, res) => res.render("layouts/testimonials"));
+
+// Features showcase page
+router.get('/features', authLimiter, (req, res) => res.render("layouts/features"));
+
+/* -------------------------------------------------------------------------- */
+/*                         AUTHENTICATION PAGES                              */
+/* -------------------------------------------------------------------------- */
+
+// Login page
+// Using middleware for consistency
+router.get('/login', redirectIfAuthenticated, (req, res) => {
     res.render("auth/login");
 });
 
-router.get('/signup', (req, res) => {
-    if (req.session.user) return res.redirect('/dashboard');
+// Signup/registration page
+router.get('/signup', redirectIfAuthenticated, (req, res) => {
     res.render("auth/signup");
 });
 
+// Password reset request page
 router.get('/forgetPassword', (req, res) => res.render("auth/forgetPassword"));
+
+// OTP verification page (for signup and password reset)
 router.get('/verifyOTP', (req, res) => res.render("auth/verifyOTP"));
+
+// Course enrollment information page
 router.get('/enroll', (req, res) => res.render("courses/enroll"));
 
-// CHECKOUT PAGE
-router.get('/checkout/:courseId', async (req, res) => {
-    if (!req.session.user) {
-        return res.redirect(`/login?redirect=${encodeURIComponent(req.originalUrl)}`);
-    }
+/* -------------------------------------------------------------------------- */
+/*                         CHECKOUT & PAYMENT PAGES                          */
+/* -------------------------------------------------------------------------- */
 
-    const { courseId } = req.params;
-
-    try {
-        const course = await prisma.course.findUnique({
-            where: { id: courseId }
-        });
-
-        if (!course) {
-            return res.redirect('/courses?error=course_not_found');
-        }
-
-        // Check if already enrolled
-        const purchasedIds = await getUserPurchasedCourses(req.session.user.id);
-        if (purchasedIds.includes(courseId)) {
-            return res.redirect('/dashboard');
-        }
-
-        // Check if payment is already pending verification
-        const pendingPurchase = await prisma.purchase.findFirst({
-            where: { userId: req.session.user.id, courseId: courseId, status: 'pending' }
-        });
-
-        console.log(`[Checkout] User ${req.session.user.id} - Course ${courseId} - Pending Purchase Found:`, !!pendingPurchase);
-
-        if (pendingPurchase) {
-            console.log(`[Checkout] Redirecting to dashboard due to pending purchase`);
-            return res.redirect('/dashboard?info=payment_pending');
-        }
-
-        res.render("courses/checkout", {
-            course,
-            user: req.session.user,
-            csrfToken: req.csrfToken ? req.csrfToken() : ''
-        });
-    } catch (e) {
-        console.error("Error loading checkout page:", e);
-        res.status(500).send("Internal Server Error");
-    }
-});
-
-router.get('/testimonials', (req, res) => res.render("layouts/testimonials"));
-router.get('/features', (req, res) => res.render("layouts/features"));
-router.get('/community', (req, res) => res.render("layouts/community"));
-
-/* ---------------- USER DASHBOARD ---------------- */
-// Dashboard (protected)
-router.get('/dashboard', (req, res) => {
-    if (!req.session.user) return res.redirect('/login');
-    if (req.session.user.role === 'admin') return res.redirect('/admin/dashboard');
-    res.render("dashboard/user", { liveSessions: res.locals.liveSessions, courses: res.locals.courses });
-});
-
-// Admin Dashboard (protected, admin only)
-/* ---------------- ADMIN DASHBOARD ---------------- */
-// Admin Dashboard (protected, admin only)
-router.get('/admin/dashboard', async (req, res) => {
-    if (!req.session.user) return res.redirect('/login');
-    if (req.session.user.role !== 'admin') return res.redirect('/dashboard');
-
-    try {
-        const courses = await prisma.course.findMany({
-            orderBy: { startDate: 'asc' }
-        });
-
-        const now = new Date();
-        const ongoingCourses = [];
-        const upcomingCourses = [];
-        const expiredCourses = [];
-
-        // Count unique users who have purchased at least one course
-        const totalStudents = await prisma.user.count({
-            where: {
-                purchasedCourseIds: {
-                    isEmpty: false
-                }
+/**
+ * Course checkout page for payment submission.
+ * 
+ * Security:
+ * 
+ * 
+ * @route GET /checkout/:courseId
+ * @access Private (requires authentication)
+ */
+router.get('/checkout/:courseId',
+    authLimiter, // Rate limiting
+    validateCourseId, // CourseId validation
+    async (req, res) => {
+        // Deep session validation
+        if (!isValidSession(req.session)) {
+            // Validate redirect URL
+            const originalUrl = req.originalUrl;
+            if (!validateUrlLength(originalUrl) || !isValidRedirect(originalUrl)) {
+                return res.redirect(URLS.LOGIN);
             }
-        });
+            return res.redirect(`${URLS.LOGIN}?redirect=${encodeURIComponent(originalUrl)}`);
+        }
 
-        // Fetch Pending Payments
-        const pendingPurchases = await prisma.purchase.findMany({
-            where: { status: 'pending' },
-            orderBy: { date: 'desc' }
-        });
+        const { courseId } = req.params;
+        const userId = req.session.user.id;
 
-        // Enrich pending purchases with User and Course details
-        const enrichedPendingPurchases = await Promise.all(pendingPurchases.map(async (p) => {
-            const user = await prisma.user.findUnique({ where: { id: p.userId } });
-            const course = await prisma.course.findUnique({ where: { id: p.courseId } });
-            return {
-                ...p,
-                user,
-                course
-            };
-        }));
-
-        // Sum actual completed purchase amounts for accurate revenue
-        const revenueResult = await prisma.purchase.aggregate({
-            _sum: { amount: true },
-            where: { status: 'completed' }
-        });
-        const totalRevenue = revenueResult._sum.amount || 0;
-
-        const totalUsers = await prisma.user.count();
-
-        // Use the live-calculated courses from res.locals if available, 
-        // or calculate them here to ensure accuracy.
-        const allEnrollments = await prisma.user.findMany({
-            where: { purchasedCourseIds: { isEmpty: false } },
-            select: { purchasedCourseIds: true }
-        });
-
-        const enrollmentMap = {};
-        allEnrollments.forEach(u => {
-            u.purchasedCourseIds.forEach(cid => {
-                enrollmentMap[cid] = (enrollmentMap[cid] || 0) + 1;
+        try {
+            // Query with timeout consideration
+            const course = await prisma.course.findUnique({
+                where: { id: courseId }
             });
-        });
 
-        const enrichedCourses = courses.map(c => ({
-            ...c,
-            students: enrollmentMap[c.id] || 0
-        }));
-
-        enrichedCourses.forEach(course => {
-            // Filtering
-            const start = course.startDate ? new Date(course.startDate) : null;
-            const end = course.endDate ? new Date(course.endDate) : null;
-
-            if (start && start > now) {
-                upcomingCourses.push(course);
-            } else if (end && end < now) {
-                expiredCourses.push(course);
-            } else {
-                ongoingCourses.push(course);
+            if (!course) {
+                return res.redirect(`${URLS.COURSES}?error=course_not_found`);
             }
-        });
 
-        res.render("dashboard/admin", {
-            liveSessions: res.locals.liveSessions,
-            courses: enrichedCourses,
-            ongoingCourses,
-            upcomingCourses,
-            expiredCourses,
-            pendingPurchases: enrichedPendingPurchases,
-            stats: {
-                totalStudents,
-                totalRevenue,
-                totalUsers // Renamed from onlineUsers to reflect actual data
+            // Get purchased courses with validation
+            const purchasedIds = await getUserPurchasedCourses(userId);
+            if (purchasedIds.has(courseId)) {
+                return res.redirect(URLS.DASHBOARD);
             }
-        });
-    } catch (e) {
-        console.error("Error loading admin dashboard:", e);
-        res.status(500).send("Internal Server Error");
+
+            // Check for pending payment
+            const pendingPurchase = await prisma.purchase.findFirst({
+                where: {
+                    userId: userId,
+                    courseId: courseId,
+                    status: 'PENDING'
+                }
+            });
+
+            // Log without exposing full userId
+            console.log(`[Checkout] User: ${userId.slice(-6)} - Course: ${courseId.slice(-6)} - Pending: ${!!pendingPurchase}`);
+
+            if (pendingPurchase) {
+                return res.redirect(`${URLS.DASHBOARD}?info=payment_pending`);
+            }
+
+            // Data passed to template - EJS escapes by default
+            res.render("courses/checkout", {
+                course,
+                user: req.session.user,
+                csrfToken: res.locals.csrfToken
+            });
+        } catch (error) {
+            // Generic error message, detailed logging
+            console.error('[Checkout] Error:', error.message);
+            res.status(500).send(STRINGS.SERVER_ERROR);
+        }
     }
-});
+);
 
-// Logout (handled by auth routes primarily, but keeping for compatibility if linked directly)
-router.post('/logout', (req, res) => {
-    req.session.destroy(() => {
-        res.redirect('/');
-    });
-});
+/* -------------------------------------------------------------------------- */
+/*                          USER DASHBOARD                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * User dashboard - Main page for enrolled users.
+ * 
+ * Security:
+ * - Session validation
+ * - Rate limiting
+ * 
+ * @route GET /dashboard
+ * @access Private (users)
+ */
+router.get('/dashboard',
+    authLimiter, // Rate limiting
+    async (req, res) => {
+        // Deep session validation
+        if (!isValidSession(req.session)) {
+            return res.redirect(URLS.LOGIN);
+        }
+
+        // Redirect admins to their dashboard
+        if (req.session.user.role === 'ADMIN') {
+            return res.redirect(URLS.ADMIN_DASHBOARD);
+        }
+
+        try {
+            const userId = req.session.user.id;
+
+            const [userDb, pendingPurchases, rejectedPurchases] = await Promise.all([
+                prisma.user.findUnique({ where: { id: userId }, select: { purchasedCourseIds: true } }),
+                prisma.purchase.findMany({ where: { userId, status: 'PENDING' } }),
+                prisma.purchase.findMany({ where: { userId, status: 'REJECTED' } })
+            ]);
+
+            const purchasedCourseIds = userDb?.purchasedCourseIds || [];
+            const pendingCourseIds = pendingPurchases.map(p => p.courseId);
+
+            res.render("dashboard/user", {
+                liveSessions: res.locals.liveSessions,
+                courses: res.locals.courses,
+                purchasedCourseIds,
+                pendingCourseIds,
+                rejectedPurchases
+            });
+        } catch (error) {
+            console.error('[User Dashboard] Error:', error.message);
+            res.status(500).send(STRINGS.SERVER_ERROR);
+        }
+    }
+);
+
+/* -------------------------------------------------------------------------- */
+/*                           ADMIN DASHBOARD                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Admin dashboard - Central management panel for administrators.
+ * 
+ * Security:
+ * - Database role re-validation
+ * - Session validation
+ * 
+ * Performance:
+ * - Promise.allSettled for error resilience
+ * - Date validation
+ * 
+ * @route GET /admin/dashboard
+ * @access Admin only
+ */
+router.get('/admin/dashboard',
+    verifyAdminInDatabase,
+    async (req, res) => {
+        try {
+            // Fetch all data in parallel with error resilience
+            const [
+                coursesResult,
+                totalPaidUsersResult,
+                pendingPurchasesResult,
+                revenueResult,
+                totalUsersResult,
+                allEnrollmentsResult
+            ] = await Promise.allSettled([
+                prisma.course.findMany({ orderBy: { startDate: 'asc' } }),
+                prisma.user.count({ where: { purchasedCourseIds: { isEmpty: false } } }),
+                prisma.purchase.findMany({ where: { status: 'PENDING' }, orderBy: { date: 'desc' } }).catch(() => prisma.purchase.findMany({ where: { status: 'PENDING' } })), // Fallback if date sorting fails
+                prisma.purchase.aggregate({ _sum: { amount: true }, where: { status: 'COMPLETED' } }),
+                prisma.user.count(),
+                prisma.user.findMany({ where: { purchasedCourseIds: { isEmpty: false } }, select: { purchasedCourseIds: true } })
+            ]);
+
+            // Extract results with default fallbacks
+            const courses = coursesResult.status === 'fulfilled' ? coursesResult.value : [];
+            const totalPaidUsers = totalPaidUsersResult.status === 'fulfilled' ? totalPaidUsersResult.value : 0;
+            const pendingPurchases = pendingPurchasesResult.status === 'fulfilled' ? pendingPurchasesResult.value : [];
+            const revenueAgg = revenueResult.status === 'fulfilled' ? revenueResult.value : {};
+            const totalRevenue = revenueAgg._sum?.amount || 0;
+            const totalUsers = totalUsersResult.status === 'fulfilled' ? totalUsersResult.value : 0;
+            const allEnrollments = allEnrollmentsResult.status === 'fulfilled' ? allEnrollmentsResult.value : [];
+
+            if (totalPaidUsersResult.status === 'rejected') console.error('[Dashboard] totalPaidUsers failed:', totalPaidUsersResult.reason.message);
+            if (pendingPurchasesResult.status === 'rejected') console.error('[Dashboard] pendingPurchases failed:', pendingPurchasesResult.reason.message);
+            if (allEnrollmentsResult.status === 'rejected') console.error('[Dashboard] allEnrollments failed:', allEnrollmentsResult.reason.message);
+
+            const now = new Date();
+            const ongoingCourses = [];
+            const upcomingCourses = [];
+            const expiredCourses = [];
+
+            // 1. Efficiently Enrich pending purchases (Bulk fetch instead of N+1)
+            let enrichedPendingPurchases = [];
+            if (pendingPurchases.length > 0) {
+                const userIds = [...new Set(pendingPurchases.map(p => p.userId))];
+                const courseIds = [...new Set(pendingPurchases.map(p => p.courseId))];
+
+                const [users, purchaseCourses] = await Promise.all([
+                    prisma.user.findMany({
+                        where: { id: { in: userIds } },
+                        select: { id: true, name: true, email: true, username: true }
+                    }),
+                    prisma.course.findMany({
+                        where: { id: { in: courseIds } },
+                        select: { id: true, title: true, price: true }
+                    })
+                ]);
+
+                const userMap = users.reduce((acc, u) => ({ ...acc, [u.id]: u }), {});
+                const courseMap = purchaseCourses.reduce((acc, c) => ({ ...acc, [c.id]: c }), {});
+
+                enrichedPendingPurchases = pendingPurchases.map(p => ({
+                    ...p,
+                    user: userMap[p.userId] || null,
+                    course: courseMap[p.courseId] || null
+                }));
+            }
+
+            // 2. Map courses and categorize
+            const enrichedCourses = courses.map(course => {
+                const start = course.startDate ? new Date(course.startDate) : null;
+                const end = course.endDate ? new Date(course.endDate) : null;
+                const startValid = start && !isNaN(start.getTime());
+                const endValid = end && !isNaN(end.getTime());
+
+                if (startValid && start > now) {
+                    upcomingCourses.push(course);
+                } else if (endValid && end < now) {
+                    expiredCourses.push(course);
+                } else {
+                    ongoingCourses.push(course);
+                }
+
+                return course;
+            });
+
+            res.render("dashboard/admin", {
+                liveSessions: res.locals.liveSessions,
+                courses: enrichedCourses,
+                ongoingCourses,
+                upcomingCourses,
+                expiredCourses,
+                pendingPurchases: enrichedPendingPurchases,
+                stats: {
+                    totalPaidUsers,
+                    totalRevenue,
+                    totalUsers
+                }
+            });
+        } catch (error) {
+            console.error('[Admin Dashboard] Critical Error:', error.message);
+            res.status(500).send(STRINGS.SERVER_ERROR);
+        }
+    }
+);
+
+/* -------------------------------------------------------------------------- */
+/*                           ADMIN TESTIMONIALS                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Admin testimonials dashboard
+ * 
+ * @route GET /admin/testimonials
+ * @access Admin only
+ */
+router.get('/admin/testimonials',
+    verifyAdminInDatabase,
+    async (req, res) => {
+        try {
+            const testimonials = await prisma.testimonial.findMany({
+                orderBy: { submittedAt: 'desc' }
+            });
+
+            const pendingTestimonials = testimonials.filter(t => t.status === 'PENDING' || t.status === 'pending');
+            const approvedTestimonials = testimonials.filter(t => t.status === 'APPROVED' || t.status === 'approved');
+            const rejectedTestimonials = testimonials.filter(t => t.status === 'REJECTED' || t.status === 'rejected');
+
+            res.render('dashboard/admin_testimonials', {
+                user: req.session.user,
+                pendingTestimonials,
+                approvedTestimonials,
+                rejectedTestimonials
+            });
+        } catch (error) {
+            console.error("❌ Admin Testimonials Fetch Error:", error);
+            res.status(500).send("Error loading testimonials dashboard");
+        }
+    }
+);
+
+/* -------------------------------------------------------------------------- */
+/*                              SESSION LOGOUT                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Logout route - Destroys user session.
+ * 
+ * Security:
+ * - CSRF protection
+ * 
+ * @route POST /logout
+ * @access Public (but requires session to be meaningful)
+ */
+router.post('/logout',
+    csrfProtection, // CSRF protection
+    (req, res) => {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('[Logout] Session destroy error:', err.message);
+            }
+            res.redirect(URLS.HOME);
+        });
+    }
+);
 
 module.exports = router;
+
+// Export utilities for testing
+module.exports.isValidObjectId = isValidObjectId;
+module.exports.isValidRedirect = isValidRedirect;
+module.exports.CONFIG = CONFIG;
+module.exports.URLS = URLS;

@@ -1,13 +1,76 @@
+<!-- 
+========================================
+FILE: admin_testimonials.ejs
+PURPOSE: Admin Testimonial Moderation Panel
+========================================
+
+DESCRIPTION:
+Manage, approve, and reject user-submitted testimonials.
+Provides moderation interface with approval queue and published testimonials.
+
+FEATURES:
+- Testimonial approval/rejection queue
+- Star rating display (1-5 stars)
+- User information (name, role)
+- Testimonial message preview
+- Approval/rejection actions with confirmation
+- Statistics (pending, approved, rejected counts)
+- Separate tabs/sections for pending vs approved
+
+EXPECTED VARIABLES:
+- csrfToken (string): CSRF protection token
+- pendingTestimonials (array): Testimonials awaiting approval
+  - id, userName, userRole, rating, message, createdAt
+- approvedTestimonials (array): Published testimonials
+  - id, userName, userRole, rating, message, approvedAt
+- rejectedTestimonials (array, optional): Rejected testimonials
+
+ADMIN ACTIONS:
+- Approve testimonial: Makes it public on testimonials page
+- Reject testimonial: Hides from public, notifies user
+- Delete testimonial: Permanent removal
+
+STATISTICS:
+- Pending review count
+- Total approved count
+- Total rejected count
+
+ACCESS CONTROL:
+- Admin only
+
+JAVASCRIPT DEPENDENCIES:
+- main.js: Global utilities
+- admin-testimonials.js: Approval/rejection handling, AJAX operations
+-->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <title>Manage Testimonials - Admin</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#2563eb">
+
+    <!-- Preconnect Hints -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
+    <!-- Font Awesome with SRI -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+
     <link rel="stylesheet" href="/stylesheets/output.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 
 <body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
@@ -30,15 +93,21 @@
                     </a>
                 </div>
 
-                <!-- Stats Cards -->
+                <!-- ========================================
+                     STATISTICS CARDS
+                     ========================================
+                     Display counts for pending, approved, and rejected testimonials -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Pending Count Card (Yellow) -->
                     <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                         <div class="flex items-center gap-4">
+                            <!-- Clock icon -->
                             <div
                                 class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600 text-xl">
                                 <i class="fa-solid fa-clock"></i>
                             </div>
                             <div>
+                                <!-- Count of testimonials awaiting review -->
                                 <p class="text-2xl font-bold text-slate-800">
                                     <%= pendingTestimonials.length %>
                                 </p>
@@ -46,13 +115,17 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Approved Count Card (Green) -->
                     <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                         <div class="flex items-center gap-4">
+                            <!-- Check circle icon -->
                             <div
                                 class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600 text-xl">
                                 <i class="fa-solid fa-check-circle"></i>
                             </div>
                             <div>
+                                <!-- Count of approved (live) testimonials -->
                                 <p class="text-2xl font-bold text-slate-800">
                                     <%= approvedTestimonials.length %>
                                 </p>
@@ -60,13 +133,17 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Rejected Count Card (Red) -->
                     <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                         <div class="flex items-center gap-4">
+                            <!-- X circle icon -->
                             <div
                                 class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center text-red-600 text-xl">
                                 <i class="fa-solid fa-times-circle"></i>
                             </div>
                             <div>
+                                <!-- Count of rejected testimonials -->
                                 <p class="text-2xl font-bold text-slate-800">
                                     <%= rejectedTestimonials.length %>
                                 </p>
@@ -103,7 +180,8 @@
                                                         testimonial.userName.charAt(0).toUpperCase() : 'U' %>
                                                 </div>
                                                 <div>
-                                                    <p class="text-sm font-bold text-slate-800">
+                                                    <p class="text-sm font-bold text-slate-800"
+                                                        data-user-name="<%= testimonial.userName %>">
                                                         <%= testimonial.userName %>
                                                     </p>
                                                     <p class="text-xs text-slate-500">
@@ -123,8 +201,8 @@
                                         </div>
 
                                         <!-- Message -->
-                                        <p class="text-slate-600 text-sm leading-relaxed mb-4 italic">"<%=
-                                                testimonial.message %>"</p>
+                                        <p class="text-slate-600 text-sm leading-relaxed mb-4 italic"
+                                            data-message="<%= testimonial.message %>">"<%= testimonial.message %>"</p>
 
                                         <!-- Submitted Date -->
                                         <p class="text-xs text-slate-400 mb-4">
@@ -175,7 +253,8 @@
                                                         testimonial.userName.charAt(0).toUpperCase() : 'U' %>
                                                 </div>
                                                 <div>
-                                                    <p class="text-sm font-bold text-slate-800">
+                                                    <p class="text-sm font-bold text-slate-800"
+                                                        data-user-name="<%= testimonial.userName %>">
                                                         <%= testimonial.userName %>
                                                     </p>
                                                     <p class="text-xs text-slate-500">
@@ -183,8 +262,16 @@
                                                     </p>
                                                 </div>
                                             </div>
-                                            <span
-                                                class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">Live</span>
+                                            <div class="flex items-center gap-2">
+                                                <% if (testimonial.isFeatured) { %>
+                                                    <span
+                                                        class="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+                                                        <i class="fa-solid fa-star mr-1"></i> Featured
+                                                    </span>
+                                                    <% } %>
+                                                        <span
+                                                            class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">Live</span>
+                                            </div>
                                         </div>
 
                                         <!-- Rating -->
@@ -195,8 +282,8 @@
                                         </div>
 
                                         <!-- Message -->
-                                        <p class="text-slate-600 text-sm leading-relaxed mb-4 italic">"<%=
-                                                testimonial.message %>"</p>
+                                        <p class="text-slate-600 text-sm leading-relaxed mb-4 italic"
+                                            data-message="<%= testimonial.message %>">"<%= testimonial.message %>"</p>
 
                                         <!-- Approved Date -->
                                         <p class="text-xs text-slate-400 mb-4">
@@ -204,10 +291,17 @@
                                         </p>
 
                                         <!-- Actions -->
-                                        <button data-id="<%= testimonial.id %>"
-                                            class="reject-btn w-full px-4 py-2 rounded-lg bg-red-50 text-red-600 font-semibold text-sm hover:bg-red-100 transition-colors border border-red-200">
-                                            <i class="fa-solid fa-times mr-1"></i> Remove from Homepage
-                                        </button>
+                                        <div class="flex gap-2">
+                                            <button data-id="<%= testimonial.id %>"
+                                                class="feature-btn flex-1 px-4 py-2 rounded-lg <%= testimonial.isFeatured ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-blue-600 text-white hover:bg-blue-700' %> font-semibold text-sm transition-colors border <%= testimonial.isFeatured ? 'border-slate-200' : 'border-blue-700' %>">
+                                                <i class="fa-solid fa-star mr-1"></i>
+                                                <%= testimonial.isFeatured ? 'Unfeature' : 'Feature' %>
+                                            </button>
+                                            <button data-id="<%= testimonial.id %>"
+                                                class="reject-btn flex-1 px-4 py-2 rounded-lg bg-red-50 text-red-600 font-semibold text-sm hover:bg-red-100 transition-colors border border-red-200">
+                                                <i class="fa-solid fa-times mr-1"></i> Reject
+                                            </button>
+                                        </div>
                                     </div>
                                     <% }); %>
                             </div>
@@ -217,8 +311,8 @@
             </div>
         </main>
 
-        <script src="/javascripts/main.js?v=<%= Date.now() %>"></script>
-        <script src="/javascripts/admin-testimonials.js?v=<%= Date.now() %>"></script>
+        <script src="/javascripts/main.js" defer></script>
+        <script src="/javascripts/admin-testimonials.js" defer></script>
 </body>
 
 </html>

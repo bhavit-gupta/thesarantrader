@@ -17,14 +17,19 @@
   "dependencies": {
     "@prisma/client": "^6.0.0",
     "@quixo3/prisma-session-store": "^3.1.19",
+    "archiver": "^7.0.1",
     "bcryptjs": "^3.0.3",
+    "compression": "^1.8.0",
+    "diskusage": "^1.2.0",
     "dotenv": "^17.3.1",
     "ejs": "^4.0.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "express-session": "^1.19.0",
+    "googleapis": "^144.0.0",
     "helmet": "^8.1.0",
     "multer": "^2.0.2",
+    "proper-lockfile": "^4.1.2",
     "sharp": "^0.34.5"
   },
   "prisma": {

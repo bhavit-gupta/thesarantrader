@@ -1,93 +1,178 @@
-<!-- ---------------- NAVBAR ---------------- -->
+<!-- ========================================================================== -->
+<!--                           NAVIGATION BAR PARTIAL                           -->
+<!-- ========================================================================== -->
+<!--
+    Purpose: Global navigation component included in all pages
+    
+    Features:
+    - Fixed top navigation with blur effect
+    - Responsive mobile menu (hamburger)
+    - Dynamic authentication state (logged in vs guest)
+    - Live session indicator (green when any course is live)
+    - Admin panel quick access
+    - User avatar with first initial
+    - Chat link (only for course owners or admins)
+    
+    Expected Variables (from viewData middleware):
+    - user: Object | null - Current logged-in user
+      - user.name: string - Display name
+      - user.username: string - Username (admin detection)
+      - user.role: 'admin' | 'user' - User role
+    - hasPurchasedCourses: boolean - Has user bought any course
+    - liveSessions: Object - Map of courseId → {isLive: boolean}
+    - csrfToken: string - CSRF token for logout form
+    - purchasedCourseIds: string[] - Array of owned course IDs
+    - pendingCourseIds: string[] - Array of pending purchase IDs
+    
+    Layout Behavior:
+    - Desktop: Horizontal menu with all links visible
+    - Mobile: Hamburger menu with slide-down panel
+    - Live button: Dynamically shows green (live) or gray (offline)
+    
+    JavaScript Integration:
+    - auth-init.js: Parses embedded JSON data for client-side auth state
+    - Mobile menu toggle via #mobile-menu-btn
+    - Live status polling (updates button color dynamically)
+-->
+
+<!-- Skip to main content link for keyboard/screen reader users (18.21) -->
+<a href="#main-content"
+    class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg focus:outline-none">
+    Skip to main content
+</a>
+
+<!-- Main Navigation Container -->
 <nav class="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-20 items-center">
-            <div class="flex-shrink-0">
-                <a href="/" class="flex items-center justify-between gap-2 cursor-pointer">
-                    <div
-                        class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
-                        T
-                    </div>
-                    <span class="text-2xl font-bold text-slate-800 tracking-tight">The Saran Trader</span>
-                </a>
-            </div>
-            <!-- ---------------- DESKTOP MENU ---------------- -->
-            <div class="hidden md:flex space-x-8 items-center">
-                <a href="/" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Home</a>
-                <a href="/features"
-                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Features</a>
-                <a href="/courses"
-                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Courses</a>
-                <a href="/community"
-                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Community</a>
-                <% if ((typeof hasPurchasedCourses !=='undefined' && hasPurchasedCourses) || (typeof user !=='undefined'
-                    && user && user.role==='admin' )) { %>
-                    <a href="/chat"
-                        class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Chat</a>
-                    <% } %>
-                        <a href="/testimonials"
-                            class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Testimonials</a>
-            </div>
-            <!-- ---------------- CTA BUTTON ---------------- -->
-            <div class="hidden md:flex items-center gap-3">
-                <% if (typeof user !=='undefined' && user) { %>
-                    <% if (user.username==='admin' ) { %>
-                        <a href="/admin/dashboard"
-                            class="px-5 py-2.5 rounded-full bg-slate-800 text-white text-sm font-bold hover:bg-slate-900 transition-all flex items-center gap-2">
-                            <i class="fa-solid fa-shield-halved"></i> Admin Panel
-                        </a>
-                        <% } else { %>
-                            <!-- Join Live Button (Active if ANY course is live) -->
-                            <% let isAnyCourseLive=false; if (typeof liveSessions !=='undefined' ) {
-                                isAnyCourseLive=Object.values(liveSessions).some(s=> s.isLive);
-                                } else if (typeof isLive !== 'undefined') {
-                                isAnyCourseLive = isLive; // Fallback for old simple boolean if needed
-                                }
-                                %>
+            <% let isAnyCourseLive=false; if (typeof liveSessions !=='undefined' && liveSessions) { const
+                safePurchases=typeof purchasedCourseIds !=='undefined' && purchasedCourseIds ?
+                (Array.isArray(purchasedCourseIds) ? purchasedCourseIds : Array.from(purchasedCourseIds)) : [];
+                isAnyCourseLive=Object.keys(liveSessions).some(courseId=>
+                liveSessions[courseId]?.isLive === true && safePurchases.includes(courseId)
+                );
+                } else if (typeof isLive !== 'undefined') {
+                isAnyCourseLive = Boolean(isLive);
+                }
+                %>
+                <!-- Logo and Brand -->
+                <div class="flex-shrink-0">
+                    <a href="/" class="flex items-center justify-between gap-2 cursor-pointer">
+                        <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20"
+                            role="img" aria-label="The Saran Trader Logo">
+                            T
+                        </div>
+                        <span class="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 tracking-tight">The Saran
+                            Trader</span>
+                    </a>
+                </div>
 
-                                <div id="join-live-btn" class="join-live-btn px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2 cursor-default
-                                <%= isAnyCourseLive 
-                                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/25' 
-                                    : 'bg-slate-100 text-slate-400' %>">
+                <!-- ========== DESKTOP NAVIGATION MENU ========== -->
+                <!-- Visible on md (768px) and larger screens -->
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="/"
+                        class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">Home</a>
+                    <a href="/features"
+                        class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">Features</a>
+                    <a href="/courses"
+                        class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">Courses</a>
+                    <a href="/community"
+                        class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">Community</a>
 
-                                    <span
-                                        class="live-dot w-2 h-2 rounded-full <%= isAnyCourseLive ? 'bg-white live-pulse' : 'bg-slate-400' %>"></span>
-                                    <span class="live-text">
-                                        <%= isAnyCourseLive ? 'Live Now' : 'Live Offline' %>
-                                    </span>
-                                </div>
-                                <% } %>
-                                    <!-- User Avatar + Dropdown -->
-                                    <a href="<%= user.username === 'admin' ? '/admin/dashboard' : '/dashboard' %>"
-                                        class="w-10 h-10 rounded-full <%= user.username === 'admin' ? 'bg-slate-800 text-white' : 'bg-blue-100 text-blue-600' %> font-bold flex items-center justify-center text-sm hover:opacity-80 transition-opacity"
-                                        title="Dashboard">
-                                        <%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %>
-                                    </a>
-                                    <!-- ---------------- LOGOUT BUTTON (DESKTOP) ---------------- -->
-                                    <button type="submit" form="logout-form"
-                                        class="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer">
-                                        Logout
-                                    </button>
+                    <!-- Chat Link - Only shown if user owns courses or is admin -->
+                    <% if ((typeof hasPurchasedCourses !=='undefined' && hasPurchasedCourses) || (typeof user
+                        !=='undefined' && user && user.role==='ADMIN' )) { %>
+                        <a href="/chat"
+                            class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">Chat</a>
+                        <% } %>
+
+                            <a href="/testimonials"
+                                class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">Testimonials</a>
+                </div>
+
+                <!-- ========== DESKTOP CTA SECTION ========== -->
+                <!-- Authentication-aware buttons and indicators -->
+                <div class="hidden md:flex items-center gap-3">
+                    <!-- User is logged in -->
+                    <% if (typeof user !=='undefined' && user) { %>
+
+                        <!-- Admin User: Show direct admin panel link + Live Status -->
+                        <% if (user?.role==='ADMIN' ) { %>
+                            <a href="/admin/dashboard"
+                                class="px-5 py-2.5 rounded-full bg-slate-800 text-white text-sm font-bold hover:bg-slate-900 transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-shield-halved"></i> Admin Panel
+                            </a>
+                            <% } %>
+
+                                <% if (typeof hasPurchasedCourses !=='undefined' && hasPurchasedCourses) { %>
+                                    <!-- 
+                                Live Button Logic:
+                                - Green + pulsing: At least one course is currently live
+                                - Gray + static: No courses currently live
+                                - Updated dynamically via JavaScript polling
+                            -->
+                                    <div id="join-live-btn" class="join-live-btn px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer
+                                 <%= isAnyCourseLive 
+                                     ? 'bg-green-500 text-white shadow-lg shadow-green-500/25' 
+                                     : 'bg-slate-100 text-slate-400' %>">
+
+                                        <span
+                                            class="live-dot w-2 h-2 rounded-full <%= isAnyCourseLive ? 'bg-white live-pulse' : 'bg-slate-400' %>"></span>
+                                        <span class="live-text">
+                                            <%= isAnyCourseLive ? 'Live Now' : 'Live Offline' %>
+                                        </span>
+                                    </div>
                                     <% } else { %>
-                                        <a href="/login"
-                                            class="px-6 py-2.5 rounded-full bg-blue-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/20 hover:bg-blue-700 hover:shadow-blue-500/30 transition-all transform hover:-translate-y-0.5">
-                                            Get Started
+                                        <a href="/courses"
+                                            class="px-6 py-2.5 rounded-full bg-blue-600 text-white text-sm font-semibold transition-all hover:bg-blue-700 hover:shadow-lg shadow-blue-500/25 transform hover:-translate-y-0.5">
+                                            Enroll Now
                                         </a>
                                         <% } %>
-            </div>
-            <!-- ---------------- MOBILE MENU BUTTON ---------------- -->
-            <div class="md:hidden flex items-center">
-                <button id="mobile-menu-btn" class="text-slate-600 hover:text-blue-600 focus:outline-none">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
-            </div>
+
+                                            <!-- User Avatar: Shows first letter of name, links to dashboard -->
+                                            <a href="<%= user?.role === 'ADMIN' ? '/admin/dashboard' : '/dashboard' %>"
+                                                class="w-10 h-10 rounded-full <%= user?.role === 'ADMIN' ? 'bg-slate-800 text-white' : 'bg-blue-100 text-blue-600' %> font-bold flex items-center justify-center text-sm hover:opacity-80 transition-opacity"
+                                                title="Dashboard">
+                                                <% const safeName=(typeof user?.name==='string' && user.name.length> 0)
+                                                    ? user.name
+                                                    : 'U';
+                                                    const safeInitial = safeName.charAt(0).toUpperCase();
+                                                    %>
+                                                    <%= safeInitial %>
+                                            </a>
+
+                                            <!-- Logout Button: Submits hidden form below -->
+                                            <button type="submit" form="logout-form"
+                                                class="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer">
+                                                Logout
+                                            </button>
+
+                                            <!-- Guest User: Show Get Started CTA -->
+                                            <% } else { %>
+                                                <a href="/login"
+                                                    class="px-6 py-2.5 rounded-full bg-blue-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/20 hover:bg-blue-700 hover:shadow-blue-500/30 transition-all transform hover:-translate-y-0.5">
+                                                    Get Started
+                                                </a>
+                                                <% } %>
+                </div>
+
+                <!-- ========== MOBILE MENU TOGGLE BUTTON ========== -->
+                <!-- Hamburger icon - shown only on mobile devices -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false"
+                        aria-controls="mobile-menu"
+                        class="text-slate-600 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
         </div>
     </div>
 
-    <!-- ---------------- MOBILE MENU ---------------- -->
+    <!-- ========== MOBILE SLIDE-DOWN MENU ========== -->
+    <!-- Hidden by default, toggled via JavaScript on hamburger click -->
     <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 bg-white">
         <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <a href="/"
@@ -98,59 +183,193 @@
                 class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Courses</a>
             <a href="/community"
                 class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Community</a>
+
+            <!-- Chat link (conditional: only for course owners or admins) -->
             <% if ((typeof hasPurchasedCourses !=='undefined' && hasPurchasedCourses) || (typeof user !=='undefined' &&
-                user && user.role==='admin' )) { %>
+                user && (user.role==='ADMIN' || user.role==='admin' ))) { %>
                 <a href="/chat"
                     class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Chat</a>
                 <% } %>
+
                     <a href="/testimonials"
                         class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Testimonials</a>
+
+                    <!-- Mobile: User-specific links -->
                     <% if (typeof user !=='undefined' && user) { %>
-                        <!-- Dynamic Mobile Live Check -->
-                        <% let isAnyCourseLiveMobile=false; if (typeof liveSessions !=='undefined' ) {
-                            isAnyCourseLiveMobile=Object.values(liveSessions).some(s=> s.isLive);
-                            } else if (typeof isLive !== 'undefined') {
-                            isAnyCourseLiveMobile = isLive;
-                            }
-                            %>
-                            <div id="mobile-join-live-btn"
-                                class="join-live-btn block px-3 py-2 rounded-md text-base font-medium transition-colors cursor-default
-                            <%= isAnyCourseLiveMobile ? 'text-green-600 bg-green-50' : 'text-slate-400 bg-slate-100' %>">
-                                <span class="<%= isAnyCourseLiveMobile ? 'animate-pulse' : '' %>">🔴</span>
-                                <%= isAnyCourseLiveMobile ? 'Live Now' : 'Live Offline' %>
+
+                        <!-- Mobile Live Session Indicator / Enroll Now Button -->
+                        <% if (typeof hasPurchasedCourses !=='undefined' && hasPurchasedCourses) { %>
+                            <div id="mobile-join-live-btn" class="join-live-btn block px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer
+                            <%= isAnyCourseLive ? 'text-green-600 bg-green-50' : 'text-slate-400 bg-slate-100' %>">
+                                <span class=" <%=isAnyCourseLive ? 'animate-pulse' : '' %>">🔴</span>
+                                <%= isAnyCourseLive ? 'Live Now' : 'Live Offline' %>
                             </div>
-                            <a href="<%= user.role === 'admin' ? '/admin/dashboard' : '/dashboard' %>"
-                                class="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-blue-50">📊
-                                <%= user.role==='admin' ? 'Admin Dashboard' : 'Dashboard' %>
-                            </a>
-                            <button type="submit" form="logout-form"
-                                class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-red-50 bg-transparent border-none cursor-pointer">
-                                🚪 Logout
-                            </button>
                             <% } else { %>
-                                <a href="/login"
-                                    class="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700">Get
-                                    Started</a>
+                                <a href="/courses"
+                                    class="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-blue-50">
+                                    ⭐ Enroll Now
+                                </a>
                                 <% } %>
+
+                                    <!-- Dashboard Link -->
+                                    <a href="<%= user.role === 'ADMIN' ? '/admin/dashboard' : '/dashboard' %>"
+                                        class="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-blue-50">📊
+                                        <%= (user.role==='ADMIN' || user.role==='admin' ) ? 'Admin Dashboard'
+                                            : 'Dashboard' %>
+                                    </a>
+
+                                    <!-- Mobile Logout Button -->
+                                    <button type="submit" form="logout-form"
+                                        class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-red-50 bg-transparent border-none cursor-pointer">
+                                        🚪 Logout
+                                    </button>
+
+                                    <!-- Guest: Get Started Button -->
+                                    <% } else { %>
+                                        <a href="/login"
+                                            class="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700">Get
+                                            Started</a>
+                                        <% } %>
         </div>
     </div>
     </div>
 
-    <!-- ---------------- LOGOUT FORM ---------------- -->
+    <!-- ========== HIDDEN LOGOUT FORM ========== -->
+    <!-- 
+        Form Strategy: Hidden form referenced by logout buttons via form="logout-form"
+        Allows semantic POST request for logout while keeping buttons outside form
+        CSRF token included for security
+    -->
     <form id="logout-form" action="/auth/logout" method="POST" style="display: none;">
-        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+        <% if (!csrfToken) { throw new Error('CSRF token missing in navbar'); } %>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     </form>
 
-    <!-- AUTH DATA EMBED (JSON-IN-HTML Strategy) -->
+    <!-- ========== SERVER-SIDE DATA EMBEDDING ========== -->
+    <!-- 
+        Strategy: Embed server-rendered data as JSON in HTML for client-side JavaScript
+        
+        Benefits:
+        - No separate API call needed for auth state
+        - Immediate access to user data on page load
+        - Type-safe parsing with JSON.parse()
+        
+        Consumed by: /javascripts/auth-init.js
+        
+        Data Available:
+        - user: Current user object (null if guest)
+        - purchasedCourseIds: Array of owned course IDs
+        - pendingCourseIds: Array of courses awaiting payment approval
+    -->
+
+
+    <% function safeJson(obj) { return JSON.stringify(obj) .replace(/</g, '\\u003c' ) .replace( />/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+    }
+    %>
+
     <script id="server-side-auth-user" type="application/json">
-        <%- JSON.stringify(locals.user || null) %>
+        <%- safeJson(locals.user || null) %>
     </script>
     <script id="server-side-purchased-courses" type="application/json">
-        <%- JSON.stringify(locals.purchasedCourseIds || []) %>
+        <%- safeJson(locals.purchasedCourseIds || []) %>
     </script>
     <script id="server-side-pending-courses" type="application/json">
-        <%- JSON.stringify(locals.pendingCourseIds || []) %>
+        <%- safeJson(locals.pendingCourseIds || []) %>
     </script>
 
+    <!-- Client-side auth initialization script -->
     <script src="/javascripts/auth-init.js"></script>
+
+    <!-- FOUC prevention: Set auth state immediately (18.10) -->
+    <script>
+        (function () {
+            try {
+                const authScript = document.getElementById('server-side-auth-user');
+                if (authScript) {
+                    const user = JSON.parse(authScript.textContent);
+                    if (user) {
+                        document.documentElement.setAttribute('data-authenticated', 'true');
+                    }
+                }
+            } catch (e) {
+                console.error('Auth state initialization failed:', e);
+            }
+        })();
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const desktopBtn = document.getElementById('join-live-btn');
+            const mobileBtn = document.getElementById('mobile-join-live-btn');
+
+            async function handleLiveClick() {
+                try {
+                    const res = await fetch('/api/live-status', {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const data = await res.json();
+
+                    // liveSessions is a map of courseId -> { isLive, startTime }
+                    if (data.liveSessions) {
+                        const liveCourseIds = Object.keys(data.liveSessions).filter(id => data.liveSessions[id].isLive);
+                        if (liveCourseIds.length > 0) {
+                            // Navigate to the first available live course
+                            window.location.href = `/courses/${liveCourseIds[0]}/view`;
+                        } else {
+                            window.location.href = '/courses?info=no_live';
+                        }
+                    }
+                } catch (err) {
+                    console.error('Live navigation failed', err);
+                    window.location.href = '/courses';
+                }
+            }
+
+            if (desktopBtn) {
+                desktopBtn.addEventListener('click', handleLiveClick);
+            }
+
+            if (mobileBtn) {
+                mobileBtn.addEventListener('click', handleLiveClick);
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const menu = document.getElementById('mobile-menu');
+            const btn = document.getElementById('mobile-menu-btn');
+
+            // Toggle mobile menu (18.12 keyboard support)
+            function toggleMenu() {
+                const isHidden = menu.classList.toggle('hidden');
+                btn?.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+            }
+
+            btn?.addEventListener('click', toggleMenu);
+            btn?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleMenu();
+                }
+            });
+
+            // Close menu on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
+                    menu.classList.add('hidden');
+                    btn?.setAttribute('aria-expanded', 'false');
+                    btn?.focus();
+                }
+            });
+
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    menu.classList.add('hidden');
+                    btn?.setAttribute('aria-expanded', 'false');
+                });
+            });
+        });
+    </script>
 </nav>

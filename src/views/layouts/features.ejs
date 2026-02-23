@@ -1,14 +1,122 @@
+<!-- 
+========================================
+FILE: features.ejs
+PURPOSE: Platform Features Showcase Page
+========================================
+
+DESCRIPTION:
+Marketing page highlighting all platform features, benefits, and value
+propositions. Designed to convert visitors into registrations/purchases.
+
+PAGE SECTIONS:
+1. Hero Section - Headline with gradient text and CTA
+2. Features Grid - 6 feature cards with icons and descriptions
+3. How It Works - 3-step process visualization
+4. CTA Section - Final conversion prompt with CTAs
+
+FEATURES HIGHLIGHTED:
+- Live Trading Sessions (real-time market analysis)
+- Expert-Led Courses (structured learning)
+- Course Chat Rooms (private per course)
+- Community Forum (open discussions)
+- Lifetime Access (buy once, learn forever)
+- Affordable Pricing (50%+ discounts)
+
+EXPECTED VARIABLES:
+- user (object, optional): Current authenticated user
+  - username (string): Used to determine dashboard redirect
+
+STYLING:
+- Custom CSS animations (hover effects, pulse, float)
+- Gradient backgrounds and text effects
+- Responsive grid layouts
+- Interactive feature cards with transforms
+
+CTAs:
+- Explore Courses (all users)
+- Go to Dashboard (authenticated)
+- Login/Sign Up (guests)
+
+DESIGN FEATURES:
+- Animated decorative blobs in hero
+- Feature cards with hover lift effects
+- Icon placeholders with emoji
+- Step connectors with gradient lines
+- Gradient CTA section
+
+JAVASCRIPT DEPENDENCIES:
+- main.js: Global utilities and interactions
+-->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Features - The Saran Trader</title>
+
+    <!-- SEO Optimized Title -->
+    <title>Live Trading Sessions & F&O Courses - Platform Features | The Saran Trader</title>
+
+    <!-- Meta Description -->
     <meta name="description"
-        content="Discover the features that make The Saran Trader the #1 F&O learning platform — live sessions, expert courses, community, and more.">
+        content="Learn F&O trading with live sessions, expert courses, private chat rooms, and lifetime access. Join 5000+ users today.">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://thesarantrader.com/features">
+
+    <!-- Robots -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://thesarantrader.com/features">
+    <meta property="og:title" content="Trading Platform Features - The Saran Trader">
+    <meta property="og:description"
+        content="Live sessions, expert-led F&O courses, community chat, and lifetime access — everything you need to master trading.">
+    <meta property="og:image" content="https://thesarantrader.com/images/features-og.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#2563eb">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+
+    <!-- Performance -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
+    <!-- Styles -->
     <link rel="stylesheet" href="/stylesheets/output.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Font Awesome with SRI -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "The Saran Trader Platform",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "INR",
+        "price": "0"
+      },
+      "featureList": [
+        "Live Trading Sessions",
+        "Expert-Led F&O Courses",
+        "Private Course Chat Rooms",
+        "Community Forum",
+        "Lifetime Access",
+        "Affordable Pricing"
+      ]
+    }
+    </script>
     <style>
         .feature-card {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -76,10 +184,9 @@
                         <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500">Master
                             Trading</span>
                     </h1>
-                    <p class="text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto mb-8">
-                        From live sessions to community support, our platform is packed with tools and resources
-                        designed to turn you into a confident, profitable trader.
-                    </p>
+                    <p class="mb-5">From live sessions to community support, our platform is packed with tools and
+                        resources
+                        designed to turn you into a confident, profitable user.</p>
                     <!-- CTA Button -->
                     <a href="/courses"
                         class="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-lg shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all">
@@ -255,8 +362,7 @@
                 <div
                     class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-12 lg:p-16 shadow-2xl shadow-blue-500/20">
                     <h2 class="text-3xl lg:text-4xl font-bold text-white mb-4">Ready to Start Your Trading Journey?</h2>
-                    <p class="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
-                        Join thousands of successful traders and transform your financial future with expert guidance.
+                    <p class="text-white mb-5">Join thousands of successful users and transform your financial future with expert guidance.
                     </p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center">
                         <a href="/courses"
@@ -264,16 +370,19 @@
                             Explore Courses
                         </a>
                         <% if (typeof user !=='undefined' && user) { %>
-                            <a href="<%= user.username === 'admin' ? '/admin/dashboard' : '/dashboard' %>"
-                                class="px-8 py-4 rounded-full bg-white/10 backdrop-blur-sm text-white font-semibold text-center border border-white/20 hover:bg-white/20 transition-all">
-                                Go to Dashboard
-                            </a>
-                            <% } else { %>
-                                <a href="/login"
-                                    class="px-8 py-4 rounded-full bg-white/10 backdrop-blur-sm text-white font-semibold text-center border border-white/20 hover:bg-white/20 transition-all">
-                                    Login / Sign Up
+                            <% const dashboardUrl=(user && user.role==='ADMIN' ) ? '/admin/dashboard' : '/dashboard' ;
+                                %>
+
+                                <a href="<%= dashboardUrl %>"
+                                    class="px-8 py-4 rounded-full bg-white text-blue-700 font-semibold text-center shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
+                                    Go to Dashboard
                                 </a>
-                                <% } %>
+                                <% } else { %>
+                                    <a href="/login"
+                                        class="px-8 py-4 rounded-full bg-white/10 backdrop-blur-sm text-white font-semibold text-center border border-white/20 hover:bg-white/20 transition-all">
+                                        Login / Sign Up
+                                    </a>
+                                    <% } %>
                     </div>
                 </div>
             </div>
@@ -281,7 +390,7 @@
 
         <%- include('../partials/footer') %>
 
-            <script src="/javascripts/main.js"></script>
+            <script src="/javascripts/main.js" defer></script>
 </body>
 
 </html>

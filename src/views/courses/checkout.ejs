@@ -1,23 +1,99 @@
+<!-- 
+========================================
+FILE: checkout.ejs
+PURPOSE: Course Purchase Checkout Page
+========================================
+
+DESCRIPTION:
+Secure checkout page for course purchases. Displays order summary,
+billing information, payment instructions, and handles payment proof upload.
+
+FEATURES:
+- Order summary with course details (icon, title, description, price)
+- Billing information (name, email from user session)
+- Price breakdown (original price, discount, total)
+- Two-step payment modal:
+  1. Scan QR code / Copy UPI ID
+  2. Upload payment screenshot
+- Payment proof submission to admin
+- CSRF protection
+
+EXPECTED VARIABLES:
+- csrfToken (string): CSRF protection token
+- course (object): Course being purchased
+  - id (string): Course ID
+  - title (string): Course name
+  - description (string): Course description
+  - price (number): Discounted price
+  - originalPrice (number): Original price
+  - icon (string): HTML emoji/icon
+  - iconBg (string): Background color class (e.g., 'blue-100')
+  - iconColor (string): Text color class (e.g., 'blue-600')
+  - badge (string, optional): Badge text (e.g., 'Bestseller')
+  - badgeColor (string, optional): Badge color (e.g., 'blue')
+- user (object): Current authenticated user
+  - name (string): User's full name
+  - email (string): User's email address
+
+PAYMENT FLOW:
+1. User clicks "Confirm Purchase"
+2. Modal opens with QR code and UPI ID
+3. User makes payment via UPI
+4. User clicks "Payment Done"
+5. Modal shows screenshot upload form
+6. User uploads payment proof
+7. Submission sent to admin for approval
+
+SECURITY:
+- CSRF token validation
+- Authentication required (user must be logged in)
+- Server-side payment verification
+
+JAVASCRIPT DEPENDENCIES:
+- main.js: Global utilities
+- checkout.js: Modal handling, file upload, form submission, UPI copy
+-->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkout - The Saran Trader</title>
+    <title>Secure Checkout - The Saran Trader</title>
+    <meta name="description"
+        content="Complete your course purchase securely. Review your order and submit payment proof.">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#2563eb">
+
+    <!-- Preconnect Hints -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
+    <!-- Font Awesome with SRI -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+
     <link rel="stylesheet" href="/stylesheets/output.css">
-    <meta name="csrf-token" content="<%= csrfToken || '' %>">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body class="font-sans antialiased text-slate-700 bg-slate-50 flex flex-col min-h-screen">
 
-    <!-- Navbar -->
+    <!-- Navigation Bar -->
     <%- include('../partials/navbar') %>
 
         <main class="pt-32 pb-20 flex-grow">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
                 <!-- Page Header -->
                 <div class="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <h1 class="text-3xl font-extrabold text-slate-900 flex items-center gap-3">
@@ -29,7 +105,8 @@
                 </div>
 
                 <div class="grid md:grid-cols-3 gap-8">
-                    <!-- Left Column: Order & Billing -->
+
+                    <!-- Left Column: Order & Billing Information -->
                     <div class="md:col-span-2 space-y-6">
 
                         <!-- Order Summary Card -->
@@ -38,11 +115,15 @@
                             <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-4">Order Item
                             </h2>
                             <div class="flex gap-4 items-start">
+
+                                <!-- Course Icon -->
                                 <div class="w-24 h-24 rounded-lg flex-shrink-0 flex items-center justify-center text-4xl
-                                <%= course.iconBg ? 'bg-' + course.iconBg : 'bg-blue-100' %> 
-                                <%= course.iconColor ? 'text-' + course.iconColor : 'text-blue-600' %>">
+                            <%= course.iconBg ? 'bg-' + course.iconBg : 'bg-blue-100' %> 
+                            <%= course.iconColor ? 'text-' + course.iconColor : 'text-blue-600' %>">
                                     <%- course.icon || '<i class="fa-solid fa-graduation-cap"></i>' %>
                                 </div>
+
+                                <!-- Course Details -->
                                 <div class="flex-grow">
                                     <div class="flex justify-between items-start gap-4">
                                         <h3 class="text-xl font-bold text-slate-900 line-clamp-1">
@@ -57,7 +138,7 @@
                                     <% if (course.badge) { %>
                                         <span
                                             class="inline-block mt-2 px-2 py-1 text-xs font-semibold rounded-md 
-                                        bg-<%= course.badgeColor || 'blue' %>-100 text-<%= course.badgeColor || 'blue' %>-600">
+                                    bg-<%= course.badgeColor || 'blue' %>-100 text-<%= course.badgeColor || 'blue' %>-600">
                                             <%= course.badge %>
                                         </span>
                                         <% } %>
@@ -242,13 +323,18 @@
         <!-- Footer -->
         <%- include('../partials/footer') %>
 
-            <script src="/javascripts/main.js"></script>
-            <script src="/javascripts/checkout.js?v=<%= Date.now() %>"></script>
+            <script src="/javascripts/main.js" defer></script>
+            <script src="/javascripts/checkout.js" defer></script>
             <script>
-                // Handle query errors
-                const urlParams = new URLSearchParams(window.location.search);
-                const error = urlParams.get('error');
-                if (error) alert('Error: ' + error);
+                // Handle query errors safely
+                document.addEventListener('DOMContentLoaded', function () {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const error = urlParams.get('error');
+                    if (error) {
+                        const safeError = error.replace(/[<>"'&]/g, '');
+                        alert('Error: ' + safeError);
+                    }
+                });
             </script>
 </body>
 

@@ -2,6 +2,7 @@
 node_modules/
 pnpm-lock.yaml
 yarn.lock
+package-lock.json
 
 # Environment variables
 .env
@@ -40,7 +41,11 @@ build/
 dist/
 
 # Tailwind (if you want to ignore the generated css)
-# src/public/stylesheets/output.css
+src/public/stylesheets/output.css
+
+# Prisma generated artifacts
+node_modules/.prisma/
+prisma/.env
 
 /src/generated/prisma
 src/public/uploads/

@@ -1,78 +1,178 @@
+<!-- 
+========================================
+FILE: verifyOTP.ejs
+PURPOSE: OTP Verification & Password Reset Page
+========================================
+
+DESCRIPTION:
+Two-step password reset flow:
+1. Verify 4-digit OTP sent to user's registered phone/email
+2. Set new password after successful verification
+
+USE CASES:
+- Forgot password flow (from forgetPassword.ejs)
+- Account verification after signup
+
+FEATURES:
+- 4-digit OTP input with auto-focus navigation
+- Real-time error display for incorrect OTP
+- Two-step UI transition (OTP → Password)
+- Success confirmation message
+- Resend OTP functionality
+- CSRF protection
+
+EXPECTED VARIABLES:
+- csrfToken (string): CSRF protection token
+- userId (string): User ID for password reset (passed from forgot password flow)
+
+FORM SUBMISSIONS:
+1. OTP Verification: Client-side check (auth.js verifyOTP())
+2. Password Reset: POST /auth/reset-password
+
+UI FLOW:
+- Section 1: OTP input (visible by default)
+- Section 2: New password form (hidden until OTP verified)
+
+JAVASCRIPT DEPENDENCIES:
+- auth.js: OTP verification logic, field navigation, resend OTP, form submission
+-->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <title>Verify OTP - The Saran Trader</title>
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#2563eb">
+    
+    <!-- Preconnect Hints -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Font Awesome with SRI -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+          integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+          crossorigin="anonymous"
+          referrerpolicy="no-referrer">
+    
     <link rel="stylesheet" href="/stylesheets/output.css">
 </head>
 
-<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col"> <%-
-        include('../partials/navbar') %>
-        <div class="flex-grow flex items-center justify-center p-4 pt-24">
-            <div
-                class="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-blue-500/10 border border-slate-100 overflow-hidden">
-                <!-- Header -->
-                <div class="p-8 text-center bg-white border-b border-slate-50">
-                    <!-- <a href="/" class="inline-flex items-center justify-center gap-2 mb-6"> <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20"> T </div> <span class="text-2xl font-bold text-slate-800 tracking-tight">The Saran Trader</span> </a> -->
-                    <h1 class="text-2xl font-bold text-slate-800">Verify OTP</h1>
-                    <p class="text-slate-500 mt-2">Enter the verification code sent to your mobile number</p>
-                </div> <!-- Container -->
-                <div class="p-8 pt-6">
-                    <div class="space-y-5"> <!-- Step 1: OTP Input -->
-                        <div id="otp-section"> <label for="otp"
-                                class="block text-sm font-medium text-slate-700 mb-1">One Time Password</label>
-                            <div class="flex gap-2 justify-center mb-4"> <input type="text" maxlength="1"
-                                    class="otp-input w-12 h-12 text-center text-xl font-bold rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                    required> <input type="text" maxlength="1"
-                                    class="otp-input w-12 h-12 text-center text-xl font-bold rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                    required> <input type="text" maxlength="1"
-                                    class="otp-input w-12 h-12 text-center text-xl font-bold rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                    required> <input type="text" maxlength="1"
-                                    class="otp-input w-12 h-12 text-center text-xl font-bold rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                    required> </div>
-                            <div id="otp-error" class="hidden text-red-500 text-sm text-center mb-4 transition-all">
-                                Incorrect OTP. Please try again. </div> <button type="button" id="verify-btn"
-                                onclick="verifyOTP()"
-                                class="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5">
-                                Verify OTP </button>
-                        </div> <!-- Step 2: New Password (Hidden by default) -->
-                        <div id="password-section" class="hidden space-y-5">
-                            <form action="/auth/reset-password" method="POST" id="reset-form"> <input type="hidden"
-                                    name="userId" value="<%= locals.userId %>">
-                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                <input type="hidden" name="_csrf"
-                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                <div
-                                    class="p-4 bg-green-50 text-green-700 rounded-xl text-center text-sm font-semibold border border-green-100 mb-4">
-                                    ✓ OTP Verified Successfully </div>
-                                <div> <label for="password" class="block text-sm font-medium text-slate-700 mb-1">New
-                                        Password</label> <input type="password" id="password" name="password"
-                                        class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                        placeholder="Enter new password" required> </div>
-                                <div> <label for="confirm-password"
-                                        class="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
-                                    <input type="password" id="confirm-password" name="confirmPassword"
-                                        class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                        placeholder="Confirm new password" required>
-                                </div> <button type="submit"
-                                    class="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5">
-                                    Reset Password </button>
-                            </form>
-                        </div> <!-- Close outer form which was merely a container previously -->
-                        <!-- Note: The structure in original file had one form wrapping both sections. We need to separate them or ensure fields are handled correctly. The simplified plan is to have the OTP check be client side (no form submit) and the password reset be the actual form submit. -->
-                        <div class="mt-8 pt-6 border-t border-slate-50 text-center">
-                            <p class="text-slate-600 text-sm"> Didn't receive code? <button type="button"
-                                    onclick="resendOTP()"
-                                    class="text-blue-600 font-bold hover:text-blue-700 focus:outline-none">Resend</button>
-                            </p>
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
+    
+    <%- include('../partials/navbar') %>
+    
+    <div class="flex-grow flex items-center justify-center p-4 pt-24">
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-blue-500/10 border border-slate-100 overflow-hidden">
+            
+            <!-- Page Header -->
+            <div class="p-8 text-center bg-white border-b border-slate-50">
+                <h1 class="text-2xl font-bold text-slate-800">Verify OTP</h1>
+                <p class="text-slate-500 mt-2">Enter the verification code sent to your mobile number</p>
+            </div>
+            
+            <!-- Form Content Area -->
+            <div class="p-8 pt-6">
+                <div class="space-y-5">
+                    
+                    <!-- ===== STEP 1: OTP INPUT SECTION ===== -->
+                    <div id="otp-section">
+                        <label for="otp" class="block text-sm font-medium text-slate-700 mb-1">One Time Password</label>
+                        
+                        <!-- 4-Digit OTP Input Grid -->
+                        <!-- Auto-focus navigates to next field on input -->
+                        <div class="flex gap-2 justify-center mb-4">                            <input type="text" maxlength="1"
+                                class="otp-input w-12 h-12 text-center text-xl font-bold rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                required>
+                            <input type="text" maxlength="1"
+                                class="otp-input w-12 h-12 text-center text-xl font-bold rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                required>
+                            <input type="text" maxlength="1"
+                                class="otp-input w-12 h-12 text-center text-xl font-bold rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                required>
+                            <input type="text" maxlength="1"
+                                class="otp-input w-12 h-12 text-center text-xl font-bold rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                required>
                         </div>
+                        
+                        <!-- Error Message Display (Incorrect OTP) -->
+                        <div id="otp-error" class="hidden text-red-500 text-sm text-center mb-4 transition-all">
+                            Incorrect OTP. Please try again.
+                        </div>
+                        
+                        <!-- Verify Button -->
+                        <button type="button" id="verify-btn" onclick="verifyOTP()"
+                            class="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5">
+                            Verify OTP
+                        </button>
+                    </div>
+                    
+                    <!-- ===== STEP 2: NEW PASSWORD SECTION (Hidden by default) ===== -->
+                    <div id="password-section" class="hidden space-y-5">
+                        <form action="/auth/reset-password" method="POST" id="reset-form">
+                            
+                            <!-- Hidden Fields: User ID & CSRF Token -->
+                            <input type="hidden" name="userId" value="<%= locals.userId %>">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                            
+                            <!-- Success Message -->
+                            <div class="p-4 bg-green-50 text-green-700 rounded-xl text-center text-sm font-semibold border border-green-100 mb-4">
+                                ✓ OTP Verified Successfully
+                            </div>
+                            
+                            <!-- New Password Field -->
+                            <div>
+                                <label for="password" class="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                                <input type="password" id="password" name="password"
+                                    class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                    placeholder="Enter new password" required>
+                            </div>
+                            
+                            <!-- Confirm Password Field -->
+                            <div>
+                                <label for="confirm-password" class="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+                                <input type="password" id="confirm-password" name="confirmPassword"
+                                    class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                    placeholder="Confirm new password" required>
+                            </div>
+                            
+                            <!-- Submit Button -->
+                            <button type="submit"
+                                class="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5">
+                                Reset Password
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Resend OTP Link -->
+                    <div class="mt-8 pt-6 border-t border-slate-50 text-center">
+                        <p class="text-slate-600 text-sm">
+                            Didn't receive code?
+                            <button type="button" onclick="resendOTP()"
+                                class="text-blue-600 font-bold hover:text-blue-700 focus:outline-none">Resend</button>
+                        </p>
                     </div>
                 </div>
-            </div> <!-- Simple Script for OTP Input Focus -->
-            <script src="/javascripts/auth.js"></script>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========== JAVASCRIPT DEPENDENCIES ========== -->
+    <!-- 
+        - auth.js: OTP verification, field navigation, resend OTP, password reset
+    -->
+    <script src="/javascripts/auth.js" defer></script>
 </body>
 
 </html>

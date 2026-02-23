@@ -1,13 +1,77 @@
+<!-- 
+========================================
+FILE: admin_users.ejs
+PURPOSE: Admin User Directory
+========================================
+
+DESCRIPT ION:
+Displays all registered users in a table with detailed information.
+Allows admin to view user details and navigate to individual user pages.
+
+FEATURES:
+- User directory table with sortable columns
+- User count display
+- Clickable rows to view user details
+- User role indicators (admin/user)
+- Registration date display
+- Contact information (email, phone)
+- Location data (state, city)
+- Empty state for no users
+
+EXPECTED VARIABLES:
+- csrfToken (string): CSRF protection token
+- users (array): All registered users
+  - id, name, username, email, phone, state, city, role, createdAt
+
+TABLE COLUMNS:
+- Name
+- Username
+- Email
+- Phone
+- Location (State, City)
+- Role
+- Joined Date
+
+ACTIONS:
+- Click row: Navigate to user detail page (/admin/user/:id)
+- Back button: Return to admin dashboard
+
+ACCESS CONTROL:
+- Admin only
+
+JAVASCRIPT DEPENDENCIES:
+- main.js: Global utilities
+-->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <title>All Users - Admin</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#2563eb">
+    
+    <!-- Preconnect Hints -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Font Awesome with SRI -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+          integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+          crossorigin="anonymous"
+          referrerpolicy="no-referrer">
+    
     <link rel="stylesheet" href="/stylesheets/output.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 
 <body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
@@ -17,52 +81,78 @@
         <main class="flex-grow pt-24 pb-12">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-                <!-- Header -->
+                <!-- ========================================
+                     PAGE HEADER SECTION
+                     ======================================== -->
+                <!-- Title, back button, and user count -->
                 <div class="mb-8 flex items-center justify-between">
                     <div>
                         <div class="flex items-center gap-3 mb-1">
+                            <!-- Back link to admin dashboard -->
                             <a href="/admin/dashboard" class="text-slate-400 hover:text-slate-600 transition-colors">
                                 <i class="fa-solid fa-arrow-left"></i>
                             </a>
+                            
+                            <!-- Page title -->
                             <h1 class="text-3xl font-bold text-slate-800">All Users</h1>
                         </div>
+                        
+                        <!-- User count with grammatically correct pluralization -->
                         <p class="text-slate-500 ml-8">
                             <%= (users || []).length %> registered user<%= (users || []).length !==1 ? 's' : '' %>
                         </p>
                     </div>
+                    
+                    <!-- Total count badge -->
                     <div class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold text-sm">
                         <i class="fa-solid fa-users mr-2"></i>
                         <%= (users || []).length %> Total
                     </div>
                 </div>
 
-                <!-- Users Table -->
+                <!-- ========================================
+                     USERS TABLE SECTION
+                     ========================================
+                     Displays all registered users in a searchable table -->
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <!-- Table header with title -->
                     <div class="p-6 border-b border-slate-100 bg-slate-50">
                         <h2 class="font-bold text-slate-800 flex items-center gap-2">
                             <i class="fa-solid fa-users text-blue-600"></i> User Directory
                         </h2>
                     </div>
 
+                    <!-- Check if there are any users -->
                     <% if (!users || users.length===0) { %>
+                        <!-- Empty state: No users registered yet -->
                         <div class="p-16 text-center">
                             <div class="text-6xl mb-4">👥</div>
                             <h3 class="text-xl font-bold text-slate-800 mb-2">No users yet</h3>
                             <p class="text-slate-500">Users will appear here once they register.</p>
                         </div>
                         <% } else { %>
-                            <!-- Search Bar -->
+                            <!-- ========================================
+                                 SEARCH BAR
+                                 ======================================== -->
+                            <!-- Real-time search filter for users -->
                             <div class="p-4 border-b border-slate-100">
                                 <div class="relative">
+                                    <!-- Search icon -->
                                     <i
                                         class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                                    
+                                    <!-- Search input field (filtered by JavaScript below) -->
                                     <input type="text" id="user-search" placeholder="Search by name, email or phone..."
                                         class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                                 </div>
                             </div>
 
+                            <!-- ========================================
+                                 USERS DATA TABLE
+                                 ======================================== -->
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-sm" id="users-table">
+                                    <!-- Table header with column titles -->
                                     <thead
                                         class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
                                         <tr>
@@ -76,22 +166,32 @@
                                             <th class="px-6 py-4 text-right">Actions</th>
                                         </tr>
                                     </thead>
+                                    
+                                    <!-- Table body with user rows -->
                                     <tbody class="divide-y divide-slate-100" id="users-tbody">
+                                        <!-- Loop through each user -->
                                         <% users.forEach((user, index)=> { %>
+                                            <!-- User row with data attributes for search functionality -->
                                             <tr class="hover:bg-slate-50 transition-colors user-row"
                                                 data-name="<%= (user.name || user.username || '').toLowerCase() %>"
                                                 data-email="<%= (user.email || '').toLowerCase() %>"
                                                 data-phone="<%= user.phone || '' %>">
+                                                
+                                                <!-- Row number (1-indexed) -->
                                                 <td class="px-6 py-4 text-slate-400 font-mono text-xs">
                                                     <%= index + 1 %>
                                                 </td>
+                                                
+                                                <!-- User name and avatar -->
                                                 <td class="px-6 py-4">
                                                     <div class="flex items-center gap-3">
+                                                        <!-- Avatar with first letter of name -->
                                                         <div
                                                             class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
                                                             <%= (user.name || user.username || 'U' )[0].toUpperCase() %>
                                                         </div>
                                                         <div>
+                                                            <!-- User's full name (clickable link to detail page) -->
                                                             <% if (user.id) { %>
                                                                 <a href="/admin/users/<%= user.id %>"
                                                                     class="font-semibold text-slate-800 hover:text-blue-600 transition-colors">
@@ -102,38 +202,54 @@
                                                                         <%= user.name || user.username %>
                                                                     </span>
                                                                     <% } %>
+                                                                        <!-- Username with @ prefix -->
                                                                         <p class="text-xs text-slate-400">@<%=
                                                                                 user.username || 'unknown' %>
                                                                         </p>
                                                         </div>
                                                     </div>
                                                 </td>
+                                                
+                                                <!-- Email address -->
                                                 <td class="px-6 py-4 text-slate-600">
                                                     <%= user.email || 'N/A' %>
                                                 </td>
+                                                
+                                                <!-- Phone number -->
                                                 <td class="px-6 py-4 text-slate-600">
                                                     <%= user.phone || 'N/A' %>
                                                 </td>
+                                                
+                                                <!-- Role badge (admin or user) -->
                                                 <td class="px-6 py-4">
                                                     <% if (user.role==='admin' ) { %>
+                                                        <!-- Admin role badge (purple) -->
                                                         <span
                                                             class="px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold">Admin</span>
                                                         <% } else { %>
+                                                            <!-- Regular user badge (gray) -->
                                                             <span
                                                                 class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">User</span>
                                                             <% } %>
                                                 </td>
+                                                
+                                                <!-- Registration date -->
                                                 <td class="px-6 py-4 text-slate-500 text-xs">
                                                     <%= (typeof formatDate !=='undefined' ) ? formatDate(user.createdAt)
                                                         : new Date(user.createdAt).toLocaleDateString() %>
                                                 </td>
+                                                
+                                                <!-- Number of enrolled courses -->
                                                 <td class="px-6 py-4">
                                                     <span
                                                         class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
                                                         <%= (user.purchasedCourseIds || []).length %> enrolled
                                                     </span>
                                                 </td>
+                                                
+                                                <!-- Action buttons -->
                                                 <td class="px-6 py-4 text-right">
+                                                    <!-- View user detail button (if user has ID) -->
                                                     <% if (user.id) { %>
                                                         <a href="/admin/users/<%= user.id %>"
                                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors">
@@ -151,21 +267,34 @@
             </div>
         </main>
 
-        <script src="/javascripts/main.js"></script>
+        <script src="/javascripts/main.js" defer></script>
         <script>
-            // Live search
-            const searchInput = document.getElementById('user-search');
-            if (searchInput) {
-                searchInput.addEventListener('input', function () {
-                    const q = this.value.toLowerCase().trim();
-                    document.querySelectorAll('.user-row').forEach(row => {
-                        const name = row.dataset.name || '';
-                        const email = row.dataset.email || '';
-                        const phone = row.dataset.phone || '';
-                        row.style.display = (!q || name.includes(q) || email.includes(q) || phone.includes(q)) ? '' : 'none';
+            /* ========================================
+               LIVE SEARCH FUNCTIONALITY
+               ========================================
+               Filters user table rows in real-time as user types */
+            document.addEventListener('DOMContentLoaded', function() {
+                const searchInput = document.getElementById('user-search');
+                if (searchInput) {
+                    // Listen for input changes in search field
+                    searchInput.addEventListener('input', function () {
+                        // Get search query (lowercase, trimmed)
+                        const q = this.value.toLowerCase().trim();
+                        
+                        // Loop through all user rows
+                        document.querySelectorAll('.user-row').forEach(row => {
+                            // Get searchable data attributes from row
+                            const name = row.dataset.name || '';
+                            const email = row.dataset.email || '';
+                            const phone = row.dataset.phone || '';
+                            
+                            // Show row if query matches name, email, or phone
+                            // Hide row if no match found
+                            row.style.display = (!q || name.includes(q) || email.includes(q) || phone.includes(q)) ? '' : 'none';
+                        });
                     });
-                });
-            }
+                }
+            });
         </script>
 </body>
 

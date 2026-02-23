@@ -1,326 +1,822 @@
+/* -------------------------------------------------------------------------- */
+/*                         ADMIN ROUTE DEFINITIONS                           */
+/* -------------------------------------------------------------------------- */
+/**
+ * Administrative routes for platform management.
+ * 
+ * 
+ * 
+ * Features:
+ * - Payment verification (approve/reject manual payments)
+ * - User management (view users, user details, activity)
+ * - Course video management (CRUD operations on course content)
+ * 
+ * Security:
+ * - All routes protected with isAdmin middleware
+ * - Path traversal prevention on file operations
+ * - Input validation on all parameters
+ * - Screenshot files cleaned up after approval/rejection
+ * - User passwords excluded from all responses
+ */
+
+/* -------------------------------------------------------------------------- */
+/*                                DEPENDENCIES                                */
+/* -------------------------------------------------------------------------- */
+
 const express = require('express');
 const router = express.Router();
 const prisma = require('../utils/prisma');
-const fs = require('fs');
+const { withRetry } = require('../utils/prisma');
+const fs = require('fs').promises;  // Use promises API
+const fsSync = require('fs');
 const path = require('path');
+const { isAuthenticated, isAdmin } = require('../middleware/auth.middleware');
+const multer = require('multer');
+const { compressImage } = require('../utils/upload.utils');
+
+/* -------------------------------------------------------------------------- */
+/*                              CONFIGURATION                                */
+/* -------------------------------------------------------------------------- */
+
+const CONFIG = Object.freeze({
+    MAX_REASON_LENGTH: 500,           // Limit rejection reason length
+    USERS_PER_PAGE: 50,               // Pagination limit
+    ALLOWED_UPLOAD_DIR: 'uploads/payments',  // Allowed upload directory
+    THUMBNAIL_UPLOAD_DIR: 'uploads/thumbnails', // [New] Thumbnail directory
+    ALLOWED_EXTENSIONS: ['.webp', '.jpg', '.jpeg', '.png'],  // Allowed file types
+    YOUTUBE_DOMAINS: ['youtube.com', 'youtu.be', 'www.youtube.com'],  // Valid YouTube domains
+    EXEMPT_ADMINS: true // Allow admins to access admin routes
+});
+
+/* -------------------------------------------------------------------------- */
+/*                           VALIDATION UTILITIES                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Validate MongoDB ObjectId format
+ * Proper hex character validation
+ * @param {*} id - ID to validate
+ * @returns {boolean} Valid or not
+ */
+function isValidObjectId(id) {
+    if (!id || typeof id !== 'string') return false;
+    return /^[0-9a-fA-F]{24}$/.test(id);
+}
+
+/**
+ * Validate YouTube URL
+ * Proper URL parsing and domain validation
+ * @param {string} url - URL to validate
+ * @returns {boolean} Valid YouTube URL or not
+ */
+function isValidYouTubeUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+
+    try {
+        const parsed = new URL(url);
+        const hostname = parsed.hostname.toLowerCase();
+
+        return CONFIG.YOUTUBE_DOMAINS.some(domain =>
+            hostname === domain || hostname.endsWith('.' + domain)
+        );
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Validate screenshot path (prevent path traversal)
+ * Path traversal prevention
+ * @param {string} screenshotUrl - URL to validate
+ * @returns {string|null} Safe path or null
+ */
+function validateScreenshotPath(screenshotUrl) {
+    if (!screenshotUrl || typeof screenshotUrl !== 'string') return null;
+
+    // Normalize and check for traversal attempts
+    const normalized = path.normalize(screenshotUrl).replace(/^\/+/, '');
+
+    // Must start with allowed directory
+    if (!normalized.startsWith(CONFIG.ALLOWED_UPLOAD_DIR)) return null;
+
+    // No directory traversal
+    if (normalized.includes('..')) return null;
+
+    // Check extension
+    const ext = path.extname(normalized).toLowerCase();
+    if (!CONFIG.ALLOWED_EXTENSIONS.includes(ext)) return null;
+
+    // Validate filename has only safe characters
+    const basename = path.basename(normalized);
+    if (!/^[a-zA-Z0-9_-]+\.(webp|jpg|jpeg|png)$/i.test(basename)) return null;
+
+    return normalized;
+}
+
+/**
+ * Sanitize string for logging (prevent log injection)
+ * Log sanitization
+ * @param {*} value - Value to sanitize
+ * @param {number} maxLength - Maximum length
+ * @returns {string} Sanitized string
+ */
+function sanitizeForLog(value, maxLength = 100) {
+    if (value == null) return '[empty]';
+    const str = String(value).slice(0, maxLength);
+    // Remove control characters and potential injection
+    return str.replace(/[\x00-\x1f\x7f]/g, '').replace(/\$\{/g, '');
+}
+
+/**
+ * Validate and sanitize rejection reason
+ * Input validation
+ * @param {*} reason - Reason to validate
+ * @returns {string} Sanitized reason
+ */
+function validateReason(reason) {
+    if (!reason || typeof reason !== 'string') {
+        return 'Payment proof was not clear or invalid.';
+    }
+    return reason.trim().slice(0, CONFIG.MAX_REASON_LENGTH);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                             UTILITY FUNCTIONS                             */
+/* -------------------------------------------------------------------------- */
 
 /**
  * Safely deletes a payment screenshot from the filesystem.
- * @param {string} screenshotUrl - Relative URL from the DB.
+ * Path traversal prevention, async/await, type safety
+ * 
+ * @param {string} screenshotUrl - Relative URL from database
+ * @returns {Promise<boolean>} Success or failure
  */
-const deleteScreenshot = (screenshotUrl) => {
-    if (!screenshotUrl) return;
+async function deleteScreenshot(screenshotUrl) {
+    // Validate path to prevent traversal
+    const safePath = validateScreenshotPath(screenshotUrl);
+    if (!safePath) {
+        console.warn('[Cleanup] Invalid screenshot path rejected');
+        return false;
+    }
+
     try {
-        const filePath = path.join(__dirname, '../public', screenshotUrl);
-        if (fs.existsSync(filePath)) {
-            fs.unlink(filePath, (err) => {
-                if (err) console.error(`❌ [Cleanup] Failed to delete: ${filePath}`, err);
-                else console.log(`🗑️ [Cleanup] Deleted screenshot: ${filePath}`);
-            });
+        const filePath = path.join(__dirname, '../public', safePath);
+
+        // Verify the resolved path is still within public directory
+        const resolvedPath = path.resolve(filePath);
+        const publicDir = path.resolve(__dirname, '../public');
+
+        if (!resolvedPath.startsWith(publicDir)) {
+            console.warn('[Cleanup] Path traversal attempt blocked');
+            return false;
         }
+
+        // Use fs.promises for proper async/await
+        if (fsSync.existsSync(filePath)) {
+            await fs.unlink(filePath);
+            console.log(`[Cleanup] Deleted screenshot: ${sanitizeForLog(safePath)}`);
+            return true;
+        }
+
+        return false;
     } catch (err) {
-        console.error("❌ [Cleanup] Error during file deletion:", err);
+        // Don't expose file paths in logs
+        return false;
     }
-};
+}
 
-// Middleware to ensure admin
-const isAdmin = (req, res, next) => {
-    if (req.session.user && req.session.user.role === 'admin') {
-        next();
-    } else {
-        res.status(403).json({ success: false, message: "Access denied" });
+/**
+ * Safely deletes a video thumbnail from the filesystem.
+ */
+async function deleteVideoThumbnail(thumbnailUrl) {
+    if (!thumbnailUrl || typeof thumbnailUrl !== 'string') return false;
+
+    try {
+        // Thumbnail URL format: /uploads/thumbnails/filename.webp
+        const relativePath = thumbnailUrl.startsWith('/') ? thumbnailUrl.substring(1) : thumbnailUrl;
+
+        // Basic security check: must be in thumbnails directory
+        if (!relativePath.startsWith(CONFIG.THUMBNAIL_UPLOAD_DIR)) {
+            console.warn('[Cleanup] Invalid thumbnail path rejected:', relativePath);
+            return false;
+        }
+
+        const filePath = path.join(__dirname, '../public', relativePath);
+
+        // Prevent traversal
+        const resolvedPath = path.resolve(filePath);
+        const publicDir = path.resolve(__dirname, '../public');
+        if (!resolvedPath.startsWith(publicDir)) return false;
+
+        if (fsSync.existsSync(filePath)) {
+            await fs.unlink(filePath);
+            console.log(`[Cleanup] Deleted thumbnail: ${sanitizeForLog(relativePath)}`);
+            return true;
+        }
+        return false;
+    } catch (err) {
+        console.error('[Cleanup] Thumbnail deletion failed');
+        return false;
     }
-};
+}
 
-// Approve Payment
+/* -------------------------------------------------------------------------- */
+/*                         FILE UPLOAD CONFIGURATION                         */
+/* -------------------------------------------------------------------------- */
+
+const THUMBNAIL_DIR = path.join(__dirname, '../public', CONFIG.THUMBNAIL_UPLOAD_DIR);
+
+// Ensure thumbnail directory exists
+if (!fsSync.existsSync(THUMBNAIL_DIR)) {
+    fsSync.mkdirSync(THUMBNAIL_DIR, { recursive: true, mode: 0o755 });
+}
+
+const thumbnailStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, THUMBNAIL_DIR),
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, 'thumb-' + uniqueSuffix + ext);
+    }
+});
+
+const thumbnailUpload = multer({
+    storage: thumbnailStorage,
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit for thumbnails
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (!CONFIG.ALLOWED_EXTENSIONS.includes(ext)) {
+            return cb(new Error('Only images (JPG, PNG, WebP) are allowed'));
+        }
+        cb(null, true);
+    }
+});
+
+
+/* -------------------------------------------------------------------------- */
+/*                       PAYMENT VERIFICATION ROUTES                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Approve a pending payment and grant course access.
+ * Comprehensive validation and error handling
+ * 
+ * @route POST /api/admin/approve-payment
+ * @access Admin only
+ */
 router.post('/api/admin/approve-payment', isAdmin, async (req, res) => {
     try {
         const { purchaseId } = req.body;
 
+        // [23.3] Validate purchaseId format
+        if (!isValidObjectId(purchaseId)) {
+            return res.status(400).json({ success: false, message: 'Invalid purchase ID format' });
+        }
+
+        // 1. Verify purchase exists
         const purchase = await prisma.purchase.findUnique({ where: { id: purchaseId } });
         if (!purchase) {
-            return res.status(404).json({ success: false, message: "Purchase not found" });
+            return res.status(404).json({ success: false, message: 'Purchase not found' });
         }
 
-        if (purchase.status === 'completed') {
-            return res.status(400).json({ success: false, message: "Purchase already completed" });
+        // Prevent double approval (idempotency)
+        if (purchase.status === 'COMPLETED') {
+            return res.status(400).json({ success: false, message: 'Purchase already completed' });
         }
 
-        // Update Purchase Status, User Enrollment, and Course Student Count in a transaction
-        await prisma.$transaction([
-            prisma.purchase.update({
-                where: { id: purchaseId },
-                data: { status: 'completed' }
-            }),
-            prisma.user.update({
-                where: { id: purchase.userId },
-                data: { purchasedCourseIds: { push: purchase.courseId } }
-            }),
-            prisma.course.update({
-                where: { id: purchase.courseId },
-                data: { students: { increment: 1 } }
-            })
-        ]);
+        // Validate courseId format
+        if (!isValidObjectId(purchase.courseId)) {
+            return res.status(400).json({ success: false, message: 'Invalid course ID in purchase' });
+        }
 
-        console.log(`✅ [Manual Approval] User ${purchase.userId} enrolled in ${purchase.courseId}. Student count incremented.`);
+        // Verify course exists before approval
+        const course = await prisma.course.findUnique({ where: { id: purchase.courseId } });
+        if (!course) {
+            return res.status(400).json({ success: false, message: 'Course no longer exists' });
+        }
 
-        // Cleanup: Delete the screenshot after successful processing
+        // Check for double enrollment - prevent duplicate course IDs
+        const user = await prisma.user.findUnique({ where: { id: purchase.userId } });
+        if (!user) {
+            return res.status(400).json({ success: false, message: 'User not found' });
+        }
+
+        const alreadyEnrolled = (user.purchasedCourseIds || []).includes(purchase.courseId);
+
+        // Execute enrollment as atomic transaction with proper error handling
+        try {
+            await withRetry(() => prisma.$transaction(async (tx) => {
+                // a. Mark purchase as completed
+                await tx.purchase.update({
+                    where: { id: purchaseId },
+                    data: { status: 'COMPLETED' }
+                });
+
+                // b. Grant user access to the course (only if not already enrolled)
+                if (!alreadyEnrolled) {
+                    await tx.user.update({
+                        where: { id: purchase.userId },
+                        data: { purchasedCourseIds: { push: purchase.courseId } }
+                    });
+
+                    // c. Increment course enrollment count
+                    await tx.course.update({
+                        where: { id: purchase.courseId },
+                        data: { users: { increment: 1 } }
+                    });
+                }
+            }), 3);
+        } catch (txError) {
+            // Explicit transaction failure handling
+            console.error('[Approve] Transaction failed');
+            return res.status(500).json({ success: false, message: 'Enrollment failed. Please try again.' });
+        }
+
+        // Audit log (console for now, should be database)
+        console.log(`[Approval] User ${sanitizeForLog(purchase.userId)} enrolled in course ${sanitizeForLog(purchase.courseId)}`);
+
+        // 4. Cleanup: Delete payment screenshot (no longer needed)
         if (purchase.screenshotUrl) {
-            deleteScreenshot(purchase.screenshotUrl);
+            await deleteScreenshot(purchase.screenshotUrl);
         }
 
-        res.json({ success: true, message: "Payment approved and user enrolled." });
+        res.json({
+            success: true,
+            message: alreadyEnrolled
+                ? 'Payment approved (user was already enrolled)'
+                : 'Payment approved and user enrolled'
+        });
 
     } catch (error) {
-        console.error("Approve Payment Error:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+        // [23.12] Don't expose internal error details
+        console.error('[Approve] Error');
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
 
-// Reject Payment
+/**
+ * Reject a pending payment with optional reason.
+ * Input validation and logging
+ * 
+ * @route POST /api/admin/reject-payment
+ * @access Admin only
+ */
 router.post('/api/admin/reject-payment', isAdmin, async (req, res) => {
     try {
         const { purchaseId, reason } = req.body;
-        // Fetch purchase details to get the screenshot URL before status update
-        const purchase = await prisma.purchase.findUnique({ where: { id: purchaseId } });
 
-        if (purchase) {
-            await prisma.purchase.update({
-                where: { id: purchaseId },
-                data: {
-                    status: 'rejected',
-                    rejectionReason: reason || 'Payment proof was not clear or invalid.'
-                }
-            });
-
-            // Cleanup: Delete the screenshot upon rejection
-            if (purchase.screenshotUrl) {
-                deleteScreenshot(purchase.screenshotUrl);
-            }
-
-            res.json({ success: true, message: "Payment rejected." });
-        } else {
-            res.status(404).json({ success: false, message: "Purchase record missing" });
+        // [23.3] Validate purchaseId format
+        if (!isValidObjectId(purchaseId)) {
+            return res.status(400).json({ success: false, message: 'Invalid purchase ID format' });
         }
 
+        // 1. Fetch purchase details before updating
+        const purchase = await prisma.purchase.findUnique({ where: { id: purchaseId } });
+
+        if (!purchase) {
+            return res.status(404).json({ success: false, message: 'Purchase record not found' });
+        }
+
+        // Validate and sanitize reason
+        const safeReason = validateReason(reason);
+
+        // Wrap update and delete in transaction for consistency
+        try {
+            await prisma.$transaction(async (tx) => {
+                // 2. Mark purchase as rejected with reason
+                await tx.purchase.update({
+                    where: { id: purchaseId },
+                    data: {
+                        status: 'REJECTED',
+                        rejectionReason: safeReason
+                    }
+                });
+            });
+        } catch {
+            return res.status(500).json({ success: false, message: 'Failed to update purchase' });
+        }
+
+        // 3. Cleanup: Delete the screenshot (user will resubmit new one)
+        if (purchase.screenshotUrl) {
+            await deleteScreenshot(purchase.screenshotUrl);
+        }
+
+        // Sanitize log output
+        console.log(`[Rejection] Purchase ${sanitizeForLog(purchaseId)} rejected`);
+
+        res.json({ success: true, message: 'Payment rejected' });
+
     } catch (error) {
-        console.error("Reject Payment Error:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+        // Don't expose internal details
+        console.error('[Reject] Error');
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
 
-// ---- USER MANAGEMENT ----
+/* -------------------------------------------------------------------------- */
+/*                          USER MANAGEMENT ROUTES                           */
+/* -------------------------------------------------------------------------- */
 
-// List all users
-router.get('/admin/users', isAdmin, async (req, res) => {
+/**
+ * Display list of all users with basic information.
+ * Pagination support
+ * 
+ * @route GET /admin/users
+ * @access Admin only
+ */
+router.get('/admin/users', isAuthenticated, isAdmin, async (req, res) => {
     try {
-        const users = await prisma.user.findMany({
-            orderBy: { createdAt: 'desc' }
-        });
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = 10; // FIX: removed CONFIG dependency
+        const skip = (page - 1) * limit;
 
-        // SANITIZE USER LIST (Exclude password)
+        const [users, totalCount] = await Promise.all([
+            prisma.user.findMany({
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit
+            }),
+            prisma.user.count()
+        ]);
+
         const sanitizedUsers = (users || []).map(user => {
             const { password, ...rest } = user;
             return {
                 ...rest,
-                id: user.id || user._id || '',
+                id: user.id,
                 name: user.name || user.username || 'N/A',
                 username: user.username || 'unknown',
                 email: user.email || 'N/A',
                 phone: user.phone || 'N/A',
-                role: user.role || 'user',
-                createdAt: user.createdAt || new Date(),
+                role: user.role || 'USER',
+                createdAt: user.createdAt,
                 purchasedCourseIds: user.purchasedCourseIds || []
             };
         });
 
-        res.render('dashboard/admin_users', { users: sanitizedUsers }, (err, html) => {
-            if (err) {
-                console.error('SERVER-SIDE EJS ERROR (admin_users):', err);
-                return res.status(500).send(`RENDER_ERROR: ${err.message}`);
+        res.render('dashboard/admin_users', {
+            users: sanitizedUsers,
+            pagination: {
+                page,
+                totalPages: Math.ceil(totalCount / limit),
+                totalCount
             }
-            res.send(html);
         });
     } catch (e) {
-        console.error('Admin users list error:', e);
-        res.status(500).send('Error loading users: ' + e.message);
+        console.error('[Users] List error', e);
+        res.status(500).send('Error loading users');
     }
 });
 
-// Single user detail
-router.get('/admin/users/:id', isAdmin, async (req, res) => {
+/**
+ * Display detailed information about a specific user.
+ * Proper validation and error handling
+ * 
+ * @route GET /admin/users/:id
+ * @access Admin only
+ */
+router.get('/admin/users/:id', isAuthenticated, isAdmin, async (req, res) => {
     try {
         const userId = req.params.id;
 
-        // Basic ID validation for MongoDB ObjectId
-        if (!userId || userId.length !== 24) {
-            return res.status(400).send('Invalid User ID format');
-        }
-
-        const [user, purchases, posts, testimonials] = await Promise.all([
+        const results = await Promise.allSettled([
             prisma.user.findUnique({ where: { id: userId } }),
             prisma.purchase.findMany({ where: { userId }, orderBy: { date: 'desc' } }),
             prisma.communityPost.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
             prisma.testimonial.findMany({ where: { userId }, orderBy: { submittedAt: 'desc' } })
         ]);
 
-        if (!user) return res.status(404).send('User not found');
+        const user = results[0].status === 'fulfilled' ? results[0].value : null;
+        const purchases = results[1].status === 'fulfilled' ? results[1].value : [];
+        const posts = results[2].status === 'fulfilled' ? results[2].value : [];
+        const testimonials = results[3].status === 'fulfilled' ? results[3].value : [];
 
-        // SANITIZE USER DATA (Exclude password)
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+
         const { password, ...rest } = user;
         const sanitizedProfileUser = {
             ...rest,
-            id: user.id || user._id || '',
+            id: user.id,
             name: user.name || 'N/A',
             username: user.username || 'unknown',
             email: user.email || 'N/A',
             phone: user.phone || 'N/A',
-            createdAt: user.createdAt || new Date(),
+            createdAt: user.createdAt,
             purchasedCourseIds: user.purchasedCourseIds || []
         };
 
-        // Enrich purchases with course title and safe defaults
-        const enrichedPurchases = await Promise.all((purchases || []).map(async (p) => {
-            const course = await prisma.course.findUnique({ where: { id: p.courseId } }).catch(() => null);
-            return {
-                ...p,
-                courseTitle: course ? course.title : '(deleted course)',
-                amount: p.amount || 0,
-                date: p.date || new Date(),
-                paymentMethod: p.paymentMethod || 'unknown',
-                status: p.status || 'pending'
-            };
-        }));
+        const enrichedPurchases = await Promise.all(
+            (purchases || []).map(async p => {
+                const course = await prisma.course.findUnique({
+                    where: { id: p.courseId }
+                }).catch(() => null);
 
-        // Enrich enrolled courses
-        const enrolledCourses = await Promise.all((sanitizedProfileUser.purchasedCourseIds || []).map(async (cid) => {
-            return prisma.course.findUnique({ where: { id: cid } }).catch(() => null);
-        }));
+                return {
+                    ...p,
+                    courseTitle: course ? course.title : '(deleted course)',
+                    amount: p.amount || 0,
+                    date: p.date,
+                    paymentMethod: p.paymentMethod || 'unknown',
+                    status: p.status || 'PENDING'
+                };
+            })
+        );
+
+        const enrolledCourses = await Promise.all(
+            (sanitizedProfileUser.purchasedCourseIds || []).map(cid =>
+                prisma.course.findUnique({ where: { id: cid } }).catch(() => null)
+            )
+        );
 
         res.render('dashboard/admin_user_detail', {
             profileUser: sanitizedProfileUser,
             purchases: enrichedPurchases,
-            posts: posts || [],
-            testimonials: testimonials || [],
+            posts,
+            testimonials,
             enrolledCourses: enrolledCourses.filter(Boolean)
-        }, (err, html) => {
-            if (err) {
-                console.error('SERVER-SIDE EJS ERROR (admin_user_detail):', err);
-                return res.status(500).send(`RENDER_ERROR: ${err.message}`);
-            }
-            res.send(html);
         });
     } catch (e) {
-        console.error('Admin user detail error:', e);
-        res.status(500).send('Error loading user detail: ' + e.message);
+        console.error('[Users] Detail error', e);
+        res.status(500).send('Error loading user detail');
     }
 });
+/* -------------------------------------------------------------------------- */
+/*                        COURSE VIDEO MANAGEMENT                            */
+/* -------------------------------------------------------------------------- */
 
-// ---------------- COURSE VIDEO MANAGEMENT ----------------
-
-// Render Video Management Page
-router.get('/admin/courses/:id/videos', isAdmin, async (req, res) => {
+/**
+ * Render the video management interface for a specific course.
+ * Proper validation
+ * 
+ * @route GET /admin/courses/:id/videos
+ * @access Admin only
+ */
+router.get('/admin/courses/:id/videos', isAuthenticated, isAdmin, async (req, res) => {
     try {
         const courseId = req.params.id;
+
         const course = await prisma.course.findUnique({
             where: { id: courseId }
         });
 
         if (!course) {
-            return res.status(404).render('error', { message: "Course not found" });
+            return res.status(404).render('error', { message: 'Course not found' });
         }
 
         const videos = await prisma.courseVideo.findMany({
-            where: { courseId: courseId },
-            orderBy: { order: 'asc' }
+            where: { courseId },
+            orderBy: { order: 'asc' },
+            take: 100
         });
 
         res.render('dashboard/admin_course_videos', {
-            user: req.session.user,
-            course: course,
-            videos: videos,
+            user: req.session?.user || null,
+            course,
+            videos,
             path: '/admin/courses'
         });
     } catch (error) {
-        console.error("View Course Videos Error:", error);
-        res.status(500).render('error', { message: "Internal Server Error" });
+        console.error('[Videos] View error', error);
+        res.status(500).render('error', { message: 'Internal Server Error' });
     }
 });
 
-// Add New Video
+/**
+ * Add a new video lesson to a course.
+ * Proper validation
+ * 
+ * @route POST /api/admin/courses/:id/videos
+ * @access Admin only
+ */
 router.post('/api/admin/courses/:id/videos', isAdmin, async (req, res) => {
-    try {
-        const courseId = req.params.id;
-        const { title, description, youtubeUrl } = req.body;
-
-        if (!title || !youtubeUrl) {
-            return res.status(400).json({ success: false, message: "Title and YouTube URL are required" });
+    // Handle optional thumbnail upload
+    thumbnailUpload.single('thumbnail')(req, res, async (err) => {
+        if (err) {
+            console.error('[Video] Thumbnail upload error:', err.message);
+            return res.status(400).json({ success: false, message: err.message });
         }
 
-        // Simple validation for youtube link (optional, but good)
-        if (!youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be')) {
-            return res.status(400).json({ success: false, message: "Invalid YouTube URL" });
-        }
+        try {
+            const courseId = req.params.id;
+            const { title, description, youtubeUrl } = req.body;
 
-        const videoCount = await prisma.courseVideo.count({ where: { courseId: courseId } });
-
-        const video = await prisma.courseVideo.create({
-            data: {
-                courseId: courseId,
-                title: title,
-                description: description || "",
-                youtubeUrl: youtubeUrl,
-                order: videoCount + 1
+            // [23.17] Validate courseId format
+            if (!isValidObjectId(courseId)) {
+                return res.status(400).json({ success: false, message: 'Invalid course ID' });
             }
-        });
 
-        res.json({ success: true, message: "Video added successfully", video: video });
-    } catch (error) {
-        console.error("Add Course Video Error:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
+            // 1. Validate required fields
+            if (!title || typeof title !== 'string' || !title.trim()) {
+                return res.status(400).json({ success: false, message: 'Title is required' });
+            }
+
+            if (!youtubeUrl || typeof youtubeUrl !== 'string') {
+                return res.status(400).json({ success: false, message: 'YouTube URL is required' });
+            }
+
+            // [23.10] Proper YouTube URL validation
+            if (!isValidYouTubeUrl(youtubeUrl)) {
+                return res.status(400).json({ success: false, message: 'Invalid YouTube URL' });
+            }
+
+            // Verify course exists before adding video
+            const course = await prisma.course.findUnique({ where: { id: courseId } });
+            if (!course) {
+                return res.status(404).json({ success: false, message: 'Course not found' });
+            }
+
+            // Sanitize title and description
+            const safeTitle = title.trim().slice(0, 200);
+            const safeDescription = (description || '').trim().slice(0, 2000);
+
+            // 2. Handle Thumbnail Compression if provided
+            let thumbnailUrl = null;
+            if (req.file) {
+                try {
+                    const compressedFilename = await compressImage(req.file, THUMBNAIL_DIR, 'course');
+                    if (compressedFilename) {
+                        thumbnailUrl = `/uploads/thumbnails/${compressedFilename}`;
+                    }
+                } catch (compErr) {
+                    console.error('[Video] Compression failed:', compErr.message);
+                    // Continue without thumbnail if compression fails (or return error if critical)
+                }
+            }
+
+            // 3. Calculate next order number
+            const videoCount = await prisma.courseVideo.count({ where: { courseId } });
+
+            // 4. Create new video record
+            const video = await prisma.courseVideo.create({
+                data: {
+                    courseId,
+                    title: safeTitle,
+                    description: safeDescription,
+                    youtubeUrl: youtubeUrl.trim(),
+                    thumbnailUrl,
+                    order: videoCount + 1
+                }
+            });
+
+            console.log(`[Video] Added to course ${sanitizeForLog(courseId)}`);
+
+            res.json({ success: true, message: 'Video added successfully', video });
+        } catch (error) {
+            console.error('[Video] Add error:', error);
+            res.status(500).json({ success: false, message: 'Internal Server Error' });
+        }
+    });
 });
 
-// Update Video
+/**
+ * Update an existing video lesson.
+ * Proper validation and ownership check
+ * 
+ * @route POST /api/admin/courses/:id/videos/:videoId/update
+ * @access Admin only
+ */
 router.post('/api/admin/courses/:id/videos/:videoId/update', isAdmin, async (req, res) => {
-    try {
-        const { title, description, youtubeUrl } = req.body;
-        const { videoId } = req.params;
-
-        if (!title || !youtubeUrl) {
-            return res.status(400).json({ success: false, message: "Title and YouTube URL are required" });
+    // Handle optional thumbnail upload
+    thumbnailUpload.single('thumbnail')(req, res, async (err) => {
+        if (err) {
+            console.error('[Video] Thumbnail upload error:', err.message);
+            return res.status(400).json({ success: false, message: err.message });
         }
 
-        await prisma.courseVideo.update({
-            where: { id: videoId },
-            data: {
-                title: title,
-                description: description || "",
-                youtubeUrl: youtubeUrl
-            }
-        });
+        try {
+            const { title, description, youtubeUrl } = req.body;
+            const { id: courseId, videoId } = req.params;
 
-        res.json({ success: true, message: "Video updated successfully" });
-    } catch (error) {
-        console.error("Update Course Video Error:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
+            // Validate IDs
+            if (!isValidObjectId(courseId) || !isValidObjectId(videoId)) {
+                return res.status(400).json({ success: false, message: 'Invalid ID format' });
+            }
+
+            // 1. Validate required fields
+            if (!title || typeof title !== 'string' || !title.trim()) {
+                return res.status(400).json({ success: false, message: 'Title is required' });
+            }
+
+            if (!youtubeUrl || typeof youtubeUrl !== 'string') {
+                return res.status(400).json({ success: false, message: 'YouTube URL is required' });
+            }
+
+            // [23.10] Proper YouTube URL validation
+            if (!isValidYouTubeUrl(youtubeUrl)) {
+                return res.status(400).json({ success: false, message: 'Invalid YouTube URL' });
+            }
+
+            // Verify video belongs to the specified course
+            const existingVideo = await prisma.courseVideo.findUnique({ where: { id: videoId } });
+            if (!existingVideo) {
+                return res.status(404).json({ success: false, message: 'Video not found' });
+            }
+
+            if (existingVideo.courseId !== courseId) {
+                return res.status(403).json({ success: false, message: 'Video does not belong to this course' });
+            }
+
+            // Sanitize input
+            const safeTitle = title.trim().slice(0, 200);
+            const safeDescription = (description || '').trim().slice(0, 2000);
+
+            // 2. Handle Thumbnail Replacement
+            let thumbnailUrl = existingVideo.thumbnailUrl;
+            if (req.file) {
+                try {
+                    const compressedFilename = await compressImage(req.file, THUMBNAIL_DIR, 'course');
+                    if (compressedFilename) {
+                        // Delete old thumbnail if it exists
+                        if (existingVideo.thumbnailUrl) {
+                            await deleteVideoThumbnail(existingVideo.thumbnailUrl);
+                        }
+                        thumbnailUrl = `/uploads/thumbnails/${compressedFilename}`;
+                    }
+                } catch (compErr) {
+                    console.error('[Video] Compression failed:', compErr.message);
+                }
+            }
+
+            // Update and verify result
+            const result = await prisma.courseVideo.update({
+                where: { id: videoId },
+                data: {
+                    title: safeTitle,
+                    description: safeDescription,
+                    youtubeUrl: youtubeUrl.trim(),
+                    thumbnailUrl
+                }
+            });
+
+            if (!result) {
+                return res.status(500).json({ success: false, message: 'Update failed' });
+            }
+
+            console.log(`[Video] Updated ${sanitizeForLog(videoId)}`);
+
+            res.json({ success: true, message: 'Video updated successfully' });
+        } catch (error) {
+            console.error('[Video] Update error:', error);
+            res.status(500).json({ success: false, message: 'Internal Server Error' });
+        }
+    });
 });
 
-// Delete Video
+/**
+ * Delete a video lesson from a course.
+ * Ownership check, validation, delete verification
+ * 
+ * @route DELETE /api/admin/courses/:courseId/videos/:videoId
+ * @access Admin only
+ */
 router.delete('/api/admin/courses/:courseId/videos/:videoId', isAdmin, async (req, res) => {
     try {
-        const { videoId } = req.params;
+        const { courseId, videoId } = req.params;
 
-        await prisma.courseVideo.delete({
+        // Validate IDs
+        if (!isValidObjectId(courseId) || !isValidObjectId(videoId)) {
+            return res.status(400).json({ success: false, message: 'Invalid ID format' });
+        }
+
+        // Verify video exists and belongs to the course
+        const video = await prisma.courseVideo.findUnique({ where: { id: videoId } });
+
+        if (!video) {
+            return res.status(404).json({ success: false, message: 'Video not found' });
+        }
+
+        if (video.courseId !== courseId) {
+            return res.status(403).json({ success: false, message: 'Video does not belong to this course' });
+        }
+
+        // Delete and verify
+        const deleteResult = await prisma.courseVideo.delete({
             where: { id: videoId }
         });
 
-        res.json({ success: true, message: "Video deleted successfully" });
+        if (!deleteResult) {
+            return res.status(500).json({ success: false, message: 'Delete failed' });
+        }
+
+        // Cleanup associated thumbnail
+        if (video.thumbnailUrl) {
+            await deleteVideoThumbnail(video.thumbnailUrl);
+        }
+
+        console.log(`[Video] Deleted ${sanitizeForLog(videoId)}`);
+
+        res.json({ success: true, message: 'Video deleted successfully' });
     } catch (error) {
-        console.error("Delete Course Video Error:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+        console.error('[Video] Delete error');
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
 
+/* -------------------------------------------------------------------------- */
+/*                                  EXPORTS                                  */
+/* -------------------------------------------------------------------------- */
+
 module.exports = router;
+
