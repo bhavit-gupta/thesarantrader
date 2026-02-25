@@ -277,6 +277,9 @@
     <script id="server-side-pending-courses" type="application/json">
         <%- safeJson(locals.pendingCourseIds || []) %>
     </script>
+    <script id="server-side-env" type="application/json">
+        <%- safeJson({ isDevelopment: locals.isDevelopment || false }) %>
+    </script>
 
     <!-- Client-side auth initialization script -->
     <script src="/javascripts/auth-init.js"></script>

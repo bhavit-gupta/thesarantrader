@@ -7,7 +7,7 @@ function getLiveSessions() {
     try {
         return JSON.parse(dataDiv.getAttribute('data-live-sessions'));
     } catch (e) {
-        console.error("Failed to parse live sessions data", e);
+        window.Logger.error("Failed to parse live sessions data", e);
         return {};
     }
 }
@@ -22,7 +22,7 @@ function getAllCourses() {
     try {
         return JSON.parse(dataDiv.getAttribute('data-courses')) || [];
     } catch (e) {
-        console.error("Failed to parse courses data", e);
+        window.Logger.error("Failed to parse courses data", e);
         return [];
     }
 }
@@ -32,7 +32,7 @@ function getCsrfToken() {
 
 function showToast(message, type = 'info') {
     // Basic fallback if toast library isn't loaded
-    console.log(`[Toast ${type}]: ${message}`);
+    window.Logger.debug(`[Toast ${type}]: ${message}`);
 
     // Check for custom toast container
     const container = document.getElementById('toast-container');
@@ -143,7 +143,7 @@ function updateLiveStatus(courseId, isLive, startTime = null) {
             // 4. Update Global Navbar Status
             updateNavbarLiveStatus();
         } catch (e) {
-            console.error("Data tracking update failed", e);
+            window.Logger.error("Data tracking update failed", e);
         }
     }
 }
@@ -189,7 +189,7 @@ function updateNavbarLiveStatus() {
             }
         }
     } catch (e) {
-        console.error("Navbar update failed", e);
+        window.Logger.error("Navbar update failed", e);
     }
 }
 
@@ -225,7 +225,7 @@ async function toggleCourseLive(courseId) {
             throw new Error(data.message || 'Toggle failed');
         }
     } catch (error) {
-        console.error('Live toggle error:', error);
+        window.Logger.error('Live toggle error:', error);
         showToast(error.message, 'error');
         btn.innerHTML = originalContent;
         btn.disabled = false;
@@ -275,7 +275,7 @@ function setupEventListeners() {
             if (courseData) {
                 openEditModal(courseData);
             } else {
-                console.error("Course data not found for ID:", courseId);
+                window.Logger.error("Course data not found for ID:", courseId);
                 alert("Error: Course data not found. Please refresh the page.");
             }
             return;
@@ -481,7 +481,7 @@ window.openEditModal = function (course) {
         modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden'); // Prevent scroll
     } catch (e) {
-        console.error("Error opening edit modal:", e);
+        window.Logger.error("Error opening edit modal:", e);
     }
 }
 
@@ -514,7 +514,7 @@ async function approvePayment(purchaseId) {
             alert(data.message || "Failed to approve payment");
         }
     } catch (e) {
-        console.error(e);
+        window.Logger.error(e);
         alert("Error approving payment");
     }
 }
@@ -544,7 +544,7 @@ async function rejectPayment(purchaseId) {
             alert(data.message || "Failed to reject payment");
         }
     } catch (e) {
-        console.error(e);
+        window.Logger.error(e);
         alert("Error rejecting payment");
     }
 }

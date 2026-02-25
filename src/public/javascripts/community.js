@@ -210,7 +210,7 @@ if (createPostForm) {
                 showFeedback(data.message || 'Failed to create post.', 'error');
             }
         } catch (error) {
-            console.error('Community post error:', error);
+            window.Logger.error('Community post error:', error);
             showFeedback('Failed to create post. Please refresh and try again.', 'error');
         }
     });
@@ -293,7 +293,7 @@ async function pollNewPosts() {
         }
     } catch (error) {
         // Silent fail for polling — don't interrupt the user
-        console.warn('[Community Poll] Failed to fetch new posts:', error);
+        window.Logger.warn('[Community Poll] Failed to fetch new posts:', error);
     }
 }
 
@@ -484,7 +484,7 @@ async function toggleLike(postId) {
             }
         }
     } catch (error) {
-        console.error('Failed to toggle like:', error);
+        window.Logger.error('Failed to toggle like:', error);
     }
 }
 
@@ -524,7 +524,7 @@ async function addComment(event, postId) {
             loadPosts();
         }
     } catch (error) {
-        console.error('Failed to add comment:', error);
+        window.Logger.error('Failed to add comment:', error);
     }
 }
 
@@ -559,7 +559,7 @@ async function deletePost(postId) {
             showFeedback(data.message || 'Failed to delete post', 'error');
         }
     } catch (error) {
-        console.error('Failed to delete post:', error);
+        window.Logger.error('Failed to delete post:', error);
         showFeedback('Failed to delete post. Please try again.', 'error');
     }
 }
@@ -590,7 +590,7 @@ async function deleteComment(postId, commentId) {
             showFeedback(data.message || 'Failed to delete comment', 'error');
         }
     } catch (error) {
-        console.error('Failed to delete comment:', error);
+        window.Logger.error('Failed to delete comment:', error);
         showFeedback('Failed to delete comment. Please try again.', 'error');
     }
 }

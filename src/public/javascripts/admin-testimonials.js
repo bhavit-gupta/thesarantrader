@@ -60,21 +60,15 @@ const ENDPOINTS = {
    UTILITY FUNCTIONS
    ============================================================================ */
 
-// [11.10] Conditional logger (only logs in development)
-const DEBUG = window.location.hostname === 'localhost' ||
-    window.location.search.includes('debug=true');
 
-const logger = {
-    log: (...args) => DEBUG && console.log('[Admin]', ...args),
-    error: (...args) => console.error('[Admin]', ...args),
-    warn: (...args) => DEBUG && console.warn('[Admin]', ...args)
-};
+
+// [Removed local logger definition]
 
 // [11.17] Centralized CSRF token retrieval with validation
 function getCsrfToken() {
     const token = document.querySelector('meta[name="csrf-token"]')?.content;
     if (!token || token.trim() === '') {
-        logger.error('CSRF token missing from page');
+        window.Logger.error('CSRF token missing from page');
         return null;
     }
     return token.trim();
@@ -416,7 +410,7 @@ async function apiRequest(url, options, retries = CONFIG.MAX_RETRIES) {
         // [11.13] Network error differentiation
         if (error.name === 'AbortError') {
             if (retries > 0) {
-                logger.log(`Request timeout, retrying... (${retries} left)`);
+                window.Logger.log(`Request timeout, retrying... (${retries} left)`);
                 await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY_MS));
                 return apiRequest(url, options, retries - 1);
             }
@@ -433,12 +427,12 @@ async function apiRequest(url, options, retries = CONFIG.MAX_RETRIES) {
 
         // [11.16] Retry on server errors
         if (retries > 0 && error.message?.includes('Server error')) {
-            logger.log(`Server error, retrying... (${retries} left)`);
+            window.Logger.log(`Server error, retrying... (${retries} left)`);
             await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY_MS));
             return apiRequest(url, options, retries - 1);
         }
 
-        logger.error('API request failed:', error);
+        window.Logger.error('API request failed:', error);
         return { success: false, error: 'An unexpected error occurred.' };
     }
 }
@@ -558,7 +552,7 @@ async function handleApprove(id) {
     });
 
     if (!result.confirmed) {
-        logger.log('Approval cancelled by user');
+        window.Logger.log('Approval cancelled by user');
         return;
     }
 
@@ -597,7 +591,7 @@ async function handleApprove(id) {
         }
 
     } catch (error) {
-        logger.error('Error approving testimonial:', error);
+        window.Logger.error('Error approving testimonial:', error);
         setProcessingState(validId, 'approve', false);
         showNotification('Failed to approve testimonial. Please try again.', 'error');
     }
@@ -630,7 +624,7 @@ async function handleReject(id) {
     });
 
     if (!result.confirmed) {
-        logger.log('Rejection cancelled by user');
+        window.Logger.log('Rejection cancelled by user');
         return;
     }
 
@@ -673,7 +667,7 @@ async function handleReject(id) {
         }
 
     } catch (error) {
-        logger.error('Error rejecting testimonial:', error);
+        window.Logger.error('Error rejecting testimonial:', error);
         setProcessingState(validId, 'reject', false);
         showNotification('Failed to reject testimonial. Please try again.', 'error');
     }
@@ -719,7 +713,7 @@ async function handleFeatureToggle(id) {
             showNotification(data.message || 'Failed to toggle featured status', 'error');
         }
     } catch (error) {
-        logger.error('Error toggling featured status:', error);
+        window.Logger.error('Error toggling featured status:', error);
         setProcessingState(validId, 'feature', false);
         showNotification('Failed to toggle featured status. Please try again.', 'error');
     }
@@ -742,7 +736,7 @@ function trackAction(action, resourceId) {
         });
     }
 
-    logger.log(`Action tracked: ${action} for ${resourceId}`);
+    window.Logger.log(`Action tracked: ${action} for ${resourceId}`);
 }
 
 /* ============================================================================
@@ -752,7 +746,7 @@ function trackAction(action, resourceId) {
 // [11.24] Wrap in error boundary
 (function initAdminTestimonials() {
     try {
-        logger.log('admin-testimonials.js loaded');
+        window.Logger.log('admin-testimonials.js loaded');
 
         // [11.29] Browser compatibility check
         const requiredFeatures = {
@@ -766,14 +760,14 @@ function trackAction(action, resourceId) {
             .map(([name]) => name);
 
         if (unsupported.length > 0) {
-            logger.error('Unsupported browser features:', unsupported);
+            window.Logger.error('Unsupported browser features:', unsupported);
             alert(`Your browser doesn't support required features. Please upgrade your browser.`);
             return;
         }
 
         // Wait for DOM
         document.addEventListener('DOMContentLoaded', () => {
-            logger.log('Testimonial event listeners initializing');
+            window.Logger.log('Testimonial event listeners initializing');
 
             // [11.5] Restore scroll position if saved
             const scrollPos = sessionStorage.getItem('adminScrollPosition');

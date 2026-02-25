@@ -91,16 +91,7 @@
         cachedElements: {}       // [22.16] Cache DOM elements
     };
 
-    // =========================================================================
-    // LOGGER
-    // =========================================================================
-    const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Dashboard:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Dashboard:Info]', ...args),
-        warn: (...args) => console.warn('[Dashboard:Warn]', ...args),
-        // [22.7, 22.30] Only log safe messages, not sensitive data
-        error: (msg) => console.error('[Dashboard:Error]', msg)
-    };
+    // [Removed local Logger definition]
 
     // =========================================================================
     // VALIDATION UTILITIES
@@ -552,7 +543,7 @@
             });
 
             if (data.success) {
-                Logger.debug('Testimonial submitted successfully');
+                window.Logger.debug('Testimonial submitted successfully');
                 showFeedback(data.message || STRINGS.SUBMIT_SUCCESS, 'success');
 
                 // Reset all UI elements
@@ -565,7 +556,7 @@
             }
 
         } catch (error) {
-            Logger.error('[Submit Error]', error);
+            window.Logger.error('[Submit Error]', error);
             // Show the actual error message from the server if it's user-friendly
             const displayMsg = (error.message && !error.message.startsWith('HTTP')) ? error.message : STRINGS.ERROR_SUBMIT;
             showFeedback(displayMsg, 'error');
@@ -619,7 +610,7 @@
             // Check element exists
             const existingDiv = document.getElementById(CONFIG.SELECTORS.EXISTING_DIV);
             if (!existingDiv) {
-                Logger.warn('Existing testimonials container not found');
+                window.Logger.warn('Existing testimonials container not found');
                 return;
             }
 
@@ -643,7 +634,7 @@
             existingDiv.classList.remove(CONFIG.CLASSES.HIDDEN);
 
         } catch (error) {
-            Logger.error(error.message || 'Failed to load testimonials');
+            window.Logger.error(error.message || 'Failed to load testimonials');
         }
     }
 
@@ -799,7 +790,7 @@
             }
 
         } catch (error) {
-            Logger.error(error.message || 'Delete failed');
+            window.Logger.error(error.message || 'Delete failed');
             showFeedback(STRINGS.ERROR_DELETE, 'error');
         }
     }
@@ -838,7 +829,7 @@
      * Initialize all dashboard functionality
      */
     function initialize() {
-        Logger.debug('Initializing user-dashboard.js');
+        window.Logger.debug('Initializing user-dashboard.js');
 
         startUserTimers();
         initTestimonialForm();
@@ -847,7 +838,7 @@
         // Cleanup on page unload
         window.addEventListener('beforeunload', cleanup);
 
-        Logger.debug('user-dashboard.js initialization complete');
+        window.Logger.debug('user-dashboard.js initialization complete');
     }
 
     // Run on DOMContentLoaded

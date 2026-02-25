@@ -75,7 +75,7 @@ function validateCourseId(id) {
 }
 
 if (!validateCourseId(trimmedCourseId)) {
-    console.error(`❌ [CHAT] Invalid courseId detected!
+    window.Logger.error(`❌ [CHAT] Invalid courseId detected!
       Original: "${rawCourseId}"
       Trimmed: "${trimmedCourseId}"
       Type: ${typeof rawCourseId}`);
@@ -208,7 +208,7 @@ async function loadMessages() {
             // No new messages since last poll - do nothing
         }
     } catch (error) {
-        console.error('Failed to load messages:', error);
+        window.Logger.error('Failed to load messages:', error);
     }
 }
 
@@ -341,13 +341,13 @@ function createMessageElement(msg) {
  */
 async function sendMessage(e) {
     e.preventDefault();
-    console.log("📤 Sending message...");
+    window.Logger.debug("📤 Sending message...");
 
     const input = document.getElementById('message-input');
     const imageInput = document.getElementById('chat-image');
 
     if (!input) {
-        console.error("❌ Error: message-input not found");
+        window.Logger.error("❌ Error: message-input not found");
         return;
     }
 
@@ -355,14 +355,14 @@ async function sendMessage(e) {
     const hasImage = imageInput && imageInput.files && imageInput.files[0];
 
     if (!message && !hasImage) {
-        console.log("⚠️ Ignoring empty message/image");
+        window.Logger.debug("⚠️ Ignoring empty message/image");
         return;
     }
 
     try {
         const csrfMeta = document.querySelector('meta[name="csrf-token"]');
         if (!csrfMeta) {
-            console.error("❌ Error: CSRF meta tag missing");
+            window.Logger.error("❌ Error: CSRF meta tag missing");
             showFeedback('Security error: CSRF token missing', 'error');
             return;
         }
@@ -374,7 +374,7 @@ async function sendMessage(e) {
             formData.append('image', imageInput.files[0]);
         }
 
-        console.log("📡 Fetching to:", `/api/chat/${window.courseId}/messages`);
+        window.Logger.debug("📡 Fetching to:", `/api/chat/${window.courseId}/messages`);
         const response = await fetch(`/api/chat/${window.courseId}/messages`, {
             method: 'POST',
             headers: {
@@ -385,7 +385,7 @@ async function sendMessage(e) {
         });
 
         const data = await response.json();
-        console.log("📥 Server response:", data);
+        window.Logger.debug("📥 Server response:", data);
 
         if (data.success) {
             input.value = '';
@@ -406,7 +406,7 @@ async function sendMessage(e) {
             showFeedback(data.message || 'Failed to send message', 'error');
         }
     } catch (error) {
-        console.error('❌ Failed to send message:', error);
+        window.Logger.error('❌ Failed to send message:', error);
         showFeedback('Failed to send message', 'error');
     }
 }

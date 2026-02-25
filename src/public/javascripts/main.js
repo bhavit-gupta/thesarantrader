@@ -64,12 +64,16 @@
     // =========================================================================
     // LOGGER
     // =========================================================================
+    // Use environment-based logging [Fix: console methods]
     const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Main:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Main:Info]', ...args),
+        debug: (...args) => window.__IS_DEVELOPMENT__ && console.log('[Main:Debug]', ...args),
+        info: (...args) => window.__IS_DEVELOPMENT__ && console.info('[Main:Info]', ...args),
         warn: (...args) => console.warn('[Main:Warn]', ...args),
         error: (...args) => console.error('[Main:Error]', ...args)
     };
+
+    // Expose globally as required
+    window.Logger = Logger;
 
     // =========================================================================
     // DATE FORMATTING

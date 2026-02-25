@@ -12,7 +12,7 @@
  * ============================================================================
  */
 
-(function() {
+(function () {
     'use strict';
 
     // =========================================================================
@@ -74,15 +74,7 @@
         debounceTimers: new Map()
     };
 
-    // =========================================================================
-    // LOGGER (conditional debug logging)
-    // =========================================================================
-    const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Auth:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Auth:Info]', ...args),
-        warn: (...args) => console.warn('[Auth:Warn]', ...args),
-        error: (...args) => console.error('[Auth:Error]', ...args)
-    };
+    // [Removed local Logger definition]
 
     // =========================================================================
     // VALIDATION UTILITIES
@@ -201,13 +193,13 @@
     function getCSRFToken() {
         const meta = document.querySelector('meta[name="csrf-token"]');
         if (!meta) {
-            Logger.error('CSRF meta tag not found');
+            window.Logger.error('CSRF meta tag not found');
             return null;
         }
 
         const token = meta.getAttribute('content');
         if (!token || token.trim() === '') {
-            Logger.error('CSRF token is empty');
+            window.Logger.error('CSRF token is empty');
             return null;
         }
 
@@ -452,7 +444,7 @@
         const btnPhone = document.getElementById('btn-phone');
 
         if (!label || !input) {
-            Logger.warn('Login label or input not found');
+            window.Logger.warn('Login label or input not found');
             return;
         }
 
@@ -504,7 +496,7 @@
                 input.pattern = '[0-9]{10,15}';
                 input.maxLength = 15;
                 input.setAttribute('autocomplete', 'tel');
-                input.oninput = function() {
+                input.oninput = function () {
                     this.value = this.value.replace(/[^0-9+]/g, '');
                 };
                 if (btnPhone) {
@@ -514,7 +506,7 @@
                 break;
         }
 
-        Logger.debug('Login method set to:', method);
+        window.Logger.debug('Login method set to:', method);
     }
 
     // =========================================================================
@@ -531,7 +523,7 @@
         const icon = button?.querySelector('i');
 
         if (!input || !icon) {
-            Logger.warn('Password toggle elements not found');
+            window.Logger.warn('Password toggle elements not found');
             return;
         }
 
@@ -574,7 +566,7 @@
                 setInputError(input, false);
             }
         } catch (error) {
-            Logger.error('Existence check failed:', error);
+            window.Logger.error('Existence check failed:', error);
             // Don't show error to user for validation checks
         }
     }
@@ -615,7 +607,7 @@
                 showNotification(data.message || 'Failed to send OTP', 'error');
             }
         } catch (error) {
-            Logger.error('Send OTP error:', error);
+            window.Logger.error('Send OTP error:', error);
             showNotification(error.message || STRINGS.ERROR_GENERIC, 'error');
         } finally {
             setButtonLoading(sendBtn, false, '', STRINGS.GET_OTP);
@@ -655,7 +647,7 @@
                 showNotification(data.message || 'Failed to send OTP', 'error');
             }
         } catch (error) {
-            Logger.error('Send Mobile OTP error:', error);
+            window.Logger.error('Send Mobile OTP error:', error);
             showNotification(error.message || STRINGS.ERROR_GENERIC, 'error');
         } finally {
             setButtonLoading(btn, false, '', STRINGS.GET_OTP);
@@ -757,7 +749,7 @@
             input.className += ' font-mono';
             input.pattern = '[0-9]{10,15}';
             input.maxLength = 15;
-            input.addEventListener('input', function() {
+            input.addEventListener('input', function () {
                 this.value = this.value.replace(/[^0-9+]/g, '');
             });
         }
@@ -810,7 +802,7 @@
             link.appendChild(switchLink);
         }
 
-        Logger.debug('Switched to email reset method');
+        window.Logger.debug('Switched to email reset method');
     }
 
     /**
@@ -851,7 +843,7 @@
             link.appendChild(switchLink);
         }
 
-        Logger.debug('Switched to phone reset method');
+        window.Logger.debug('Switched to phone reset method');
     }
 
     /**
@@ -904,7 +896,7 @@
                 showNotification(data.message || 'Error sending OTP', 'error');
             }
         } catch (error) {
-            Logger.error('Send reset OTP error:', error);
+            window.Logger.error('Send reset OTP error:', error);
             showNotification(error.message || STRINGS.ERROR_GENERIC, 'error');
         } finally {
             setButtonLoading(sendBtn, false);
@@ -947,7 +939,7 @@
                 }
             }
         } catch (error) {
-            Logger.error('Verify reset OTP error:', error);
+            window.Logger.error('Verify reset OTP error:', error);
             showNotification(error.message || STRINGS.ERROR_GENERIC, 'error');
         } finally {
             setButtonLoading(verifyBtn, false);
@@ -1014,7 +1006,7 @@
                 showNotification(data.message || 'Error resetting password', 'error');
             }
         } catch (error) {
-            Logger.error('Submit password reset error:', error);
+            window.Logger.error('Submit password reset error:', error);
             showNotification(error.message || STRINGS.ERROR_GENERIC, 'error');
         } finally {
             setButtonLoading(submitBtn, false);
@@ -1065,7 +1057,7 @@
      * Initialize auth functionality
      */
     function initialize() {
-        Logger.debug('Initializing auth.js');
+        window.Logger.debug('Initializing auth.js');
 
         // Login Method Toggle
         const btnUsername = document.getElementById('btn-username');
@@ -1080,7 +1072,7 @@
         document.querySelectorAll('.toggle-password-btn').forEach(btn => {
             btn.setAttribute('aria-label', 'Show password');
             btn.setAttribute('role', 'button');
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const inputId = this.getAttribute('data-target');
                 togglePassword(inputId, this);
             });
@@ -1217,7 +1209,7 @@
             });
         }
 
-        Logger.debug('Auth.js initialization complete');
+        window.Logger.debug('Auth.js initialization complete');
     }
 
     // Run initialization when DOM is ready

@@ -52,22 +52,27 @@
 
         // Parse and store user object globally (null if element missing)
         window.__AUTH_USER__ = userEl ? JSON.parse(userEl.textContent) : null;
-        
+
         // Parse and store purchased course IDs globally (empty array if element missing)
         window.__PURCHASED_COURSES__ = coursesEl ? JSON.parse(coursesEl.textContent) : [];
-        
+
         // Parse and store pending course IDs globally (empty array if element missing)
         window.__PENDING_COURSES__ = pendingEl ? JSON.parse(pendingEl.textContent) : [];
 
+        // [New] Parse and store environment flag globally
+        const envEl = document.getElementById('server-side-env');
+        const envData = envEl ? JSON.parse(envEl.textContent) : { isDevelopment: false };
+        window.__IS_DEVELOPMENT__ = envData.isDevelopment;
+
         // Log successful initialization with user status
-        console.log('🛡️ Auth State Loaded:', {
+        window.Logger.log('🛡️ Auth State Loaded:', {
             loggedIn: !!window.__AUTH_USER__,
             username: window.__AUTH_USER__ ? window.__AUTH_USER__.username : 'guest'
         });
     } catch (e) {
         // Log parsing error if JSON is malformed
-        console.error('❌ Auth State Error:', e);
-        
+        window.Logger.error('❌ Auth State Error:', e);
+
         // Set safe default values if parsing fails
         window.__AUTH_USER__ = null;
         window.__PURCHASED_COURSES__ = [];
@@ -83,33 +88,33 @@
 window.logoutUser = function (e) {
     // Prevent default link navigation
     e.preventDefault();
-    console.log("Attempting logout...");
-    
+    window.Logger.log("Attempting logout...");
+
     // Try to submit existing logout form
     const form = document.getElementById('logout-form');
     if (form) {
         form.submit();
     } else {
         // Fallback: create and submit logout form dynamically if not found
-        console.error("Logout form not found!");
-        
+        window.Logger.error("Logout form not found!");
+
         // Create new form element
         const newForm = document.createElement('form');
         newForm.method = 'POST';
         newForm.action = '/auth/logout';
-        
+
         // Create hidden CSRF token input
         const csrfInput = document.createElement('input');
         csrfInput.type = 'hidden';
         csrfInput.name = '_csrf';
-        
+
         // Get CSRF token from meta tag and set as input value
         const metaToken = document.querySelector('meta[name="csrf-token"]');
         csrfInput.value = metaToken ? metaToken.content : '';
-        
+
         // Add CSRF token input to form
         newForm.appendChild(csrfInput);
-        
+
         // Add form to page and submit it
         document.body.appendChild(newForm);
         newForm.submit();

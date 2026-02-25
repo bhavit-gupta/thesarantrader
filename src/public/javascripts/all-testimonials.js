@@ -56,19 +56,13 @@
         SCROLL_RESTORE_KEY: 'testimonials-scroll-position'
     };
 
-    // [13.26] Conditional logging
-    const DEBUG = window.location.hostname === 'localhost' ||
-        window.location.search.includes('debug=true');
 
-    const Logger = {
-        log: (...args) => DEBUG && console.log('[Testimonials]', ...args),
-        warn: (...args) => DEBUG && console.warn('[Testimonials]', ...args),
-        error: (...args) => console.error('[Testimonials]', ...args)
-    };
+
+    // [Removed local Logger definition]
 
     // [13.29] Analytics tracking hook
     function trackEvent(action, data = {}) {
-        Logger.log('Analytics:', action, data);
+        window.Logger.log('Analytics:', action, data);
         if (window.gtag) {
             window.gtag('event', action, {
                 event_category: 'Testimonials',
@@ -431,12 +425,12 @@
 
         // [13.8] Validate critical elements exist
         if (!grid) {
-            Logger.error('Required element #all-testimonials-grid not found');
+            window.Logger.error('Required element #all-testimonials-grid not found');
             return;
         }
 
         if (state.isLoading) {
-            Logger.warn('Load already in progress');
+            window.Logger.warn('Load already in progress');
             return;
         }
 
@@ -476,7 +470,7 @@
             if (contentLength) {
                 const sizeMB = parseInt(contentLength, 10) / (1024 * 1024);
                 if (sizeMB > CONFIG.MAX_RESPONSE_SIZE_MB) {
-                    Logger.warn(`Large response: ${sizeMB.toFixed(2)}MB`);
+                    window.Logger.warn(`Large response: ${sizeMB.toFixed(2)}MB`);
                 }
             }
 
@@ -560,7 +554,7 @@
                 errorMessage = STRINGS.serverError;
             }
 
-            Logger.error('Load failed:', error.message);
+            window.Logger.error('Load failed:', error.message);
 
             if (errorState) {
                 const errorMsgEl = errorState.querySelector('p');

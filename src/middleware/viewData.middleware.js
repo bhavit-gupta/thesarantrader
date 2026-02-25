@@ -581,6 +581,7 @@ const viewDataMiddleware = async (req, res, next) => {
         // ========== STEP 4: POPULATE RES.LOCALS ==========
         res.locals.user = user;
         res.locals.path = req.path;
+        res.locals.isDevelopment = process.env.NODE_ENV !== 'production';
         res.locals.courses = courses;
         res.locals.ongoingCourses = categorized.ongoing;
         res.locals.upcomingCourses = categorized.upcoming;

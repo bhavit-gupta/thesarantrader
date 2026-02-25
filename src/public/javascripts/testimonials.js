@@ -75,16 +75,7 @@
         abortController: null
     };
 
-    // =========================================================================
-    // LOGGER
-    // =========================================================================
-    const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Testimonials:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Testimonials:Info]', ...args),
-        warn: (...args) => console.warn('[Testimonials:Warn]', ...args),
-        // [21.7] Only log safe message, not full error object
-        error: (msg) => console.error('[Testimonials:Error]', msg)
-    };
+    // [Removed local Logger definition]
 
     // =========================================================================
     // VALIDATION UTILITIES
@@ -425,7 +416,7 @@
         }
 
         grid.appendChild(fragment);
-        Logger.debug('Rendered testimonials:', fragment.childNodes.length);
+        window.Logger.debug('Rendered testimonials:', fragment.childNodes.length);
     }
 
     // =========================================================================
@@ -443,7 +434,7 @@
         // [21.30] Check cache first
         const cached = getCachedTestimonials();
         if (cached && cached.length > 0) {
-            Logger.debug('Using cached testimonials');
+            window.Logger.debug('Using cached testimonials');
             renderTestimonials(grid, cached);
             return;
         }
@@ -466,7 +457,7 @@
 
         } catch (error) {
             // [21.7] Only log safe message
-            Logger.error(error.message || 'API request failed');
+            window.Logger.error(error.message || 'API request failed');
             showErrorState(grid, error.message);
         } finally {
             state.isLoading = false;
@@ -482,7 +473,7 @@
      * [21.26] Wrapped in DOMContentLoaded
      */
     function initialize() {
-        Logger.debug('Initializing testimonials.js');
+        window.Logger.debug('Initializing testimonials.js');
 
         if (document.getElementById(CONFIG.SELECTORS.GRID)) {
             loadTestimonials();

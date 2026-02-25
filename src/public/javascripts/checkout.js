@@ -11,7 +11,7 @@
  * ============================================================================
  */
 
-(function() {
+(function () {
     'use strict';
 
     // =========================================================================
@@ -66,15 +66,7 @@
         previousOverflow: ''
     };
 
-    // =========================================================================
-    // LOGGER (conditional debug logging)
-    // =========================================================================
-    const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Checkout:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Checkout:Info]', ...args),
-        warn: (...args) => console.warn('[Checkout:Warn]', ...args),
-        error: (...args) => console.error('[Checkout:Error]', ...args)
-    };
+    // [Removed local Logger definition]
 
     // =========================================================================
     // VALIDATION UTILITIES
@@ -150,13 +142,13 @@
     function getCSRFToken() {
         const meta = document.querySelector('meta[name="csrf-token"]');
         if (!meta) {
-            Logger.error('CSRF meta tag not found');
+            window.Logger.error('CSRF meta tag not found');
             return null;
         }
 
         const token = meta.getAttribute('content');
         if (!token || token.trim() === '') {
-            Logger.error('CSRF token is empty');
+            window.Logger.error('CSRF token is empty');
             return null;
         }
 
@@ -273,7 +265,7 @@
 
         button.disabled = true;
         button.innerHTML = `<i class="fa-solid fa-check-circle mr-2"></i>${escapeHtml(text)}`;
-        
+
         // Safe class replacement [17.11]
         button.classList.remove('bg-green-600', 'hover:bg-green-700');
         button.classList.add('bg-blue-600');
@@ -362,7 +354,7 @@
 
         // Store previous overflow state [17.9]
         state.previousOverflow = document.body.style.overflow;
-        
+
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         document.body.style.overflow = 'hidden';
@@ -376,8 +368,8 @@
 
         // Add escape key listener
         modal.addEventListener('keydown', handleModalKeydown);
-        
-        Logger.debug('Payment modal opened');
+
+        window.Logger.debug('Payment modal opened');
     }
 
     /**
@@ -389,7 +381,7 @@
 
         modal.classList.add('hidden');
         modal.classList.remove('flex');
-        
+
         // Restore previous overflow state [17.9]
         document.body.style.overflow = state.previousOverflow || '';
         state.modalOpen = false;
@@ -409,7 +401,7 @@
             state.abortController = null;
         }
 
-        Logger.debug('Payment modal closed');
+        window.Logger.debug('Payment modal closed');
     }
 
     /**
@@ -430,7 +422,7 @@
         const s2 = document.getElementById('modal-step-2');
         if (s1) s1.style.display = '';
         if (s2) s2.style.display = 'none';
-        Logger.debug('Showing step 1');
+        window.Logger.debug('Showing step 1');
     }
 
     /**
@@ -441,7 +433,7 @@
         const s2 = document.getElementById('modal-step-2');
         if (s1) s1.style.display = 'none';
         if (s2) s2.style.display = '';
-        Logger.debug('Showing step 2');
+        window.Logger.debug('Showing step 2');
     }
 
     // =========================================================================
@@ -474,7 +466,7 @@
         const imageElement = document.getElementById('image-preview-element');
 
         if (!previewContainer || !imageElement) {
-            Logger.warn('Preview elements not found');
+            window.Logger.warn('Preview elements not found');
             return;
         }
 
@@ -493,14 +485,14 @@
 
             const reader = new FileReader();
 
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 imageElement.src = e.target.result;
                 imageElement.style.display = '';
                 previewContainer.style.display = 'none';
                 imageElement.alt = 'Payment screenshot preview';
             };
 
-            reader.onerror = function() {
+            reader.onerror = function () {
                 showNotification('Failed to preview image', 'error');
                 input.value = '';
             };
@@ -524,12 +516,12 @@
     function openQRModal(courseId) {
         if (!isValidCourseId(courseId)) {
             showNotification(STRINGS.ERROR_INVALID_COURSE, 'error');
-            Logger.error('Invalid course ID:', courseId);
+            window.Logger.error('Invalid course ID:', courseId);
             return;
         }
 
         state.currentCourseId = courseId;
-        Logger.debug('Opening payment modal for course:', courseId);
+        window.Logger.debug('Opening payment modal for course:', courseId);
 
         const modal = document.getElementById('payment-modal');
         if (!modal) {
@@ -550,7 +542,7 @@
 
         // Prevent double submission
         if (state.isSubmitting) {
-            Logger.debug('Submission already in progress');
+            window.Logger.debug('Submission already in progress');
             return;
         }
 
@@ -613,7 +605,7 @@
             }
 
         } catch (error) {
-            Logger.error('Submission error:', error.message);
+            window.Logger.error('Submission error:', error.message);
             showNotification(error.message, 'error');
             setButtonLoading(submitBtn, false, '', STRINGS.SUBMIT);
         } finally {
@@ -676,7 +668,7 @@
             showNotification(STRINGS.COPIED, 'success');
 
         } catch (error) {
-            Logger.error('Copy failed:', error);
+            window.Logger.error('Copy failed:', error);
             showNotification(STRINGS.COPY_FAILED, 'error');
         }
     }
@@ -689,7 +681,7 @@
      * Initialize checkout functionality
      */
     function initialize() {
-        Logger.debug('Initializing checkout.js');
+        window.Logger.debug('Initializing checkout.js');
 
         // Confirm Purchase Button
         const confirmBtn = document.getElementById('confirm-purchase-btn');
@@ -699,7 +691,7 @@
                 const courseId = confirmBtn.getAttribute('data-course-id');
                 openQRModal(courseId);
             });
-            Logger.debug('Confirm button initialized');
+            window.Logger.debug('Confirm button initialized');
         }
 
         // Close Modal Button
@@ -734,7 +726,7 @@
         if (fileInput) {
             // Add accept attribute for file picker [17.1]
             fileInput.setAttribute('accept', CONFIG.ALLOWED_FILE_TYPES.join(','));
-            
+
             fileInput.addEventListener('change', () => {
                 previewImage(fileInput);
             });
@@ -762,7 +754,7 @@
             });
         }
 
-        Logger.debug('Checkout.js initialization complete');
+        window.Logger.debug('Checkout.js initialization complete');
     }
 
     // Run initialization when DOM is ready

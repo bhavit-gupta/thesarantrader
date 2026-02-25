@@ -69,15 +69,7 @@
         abortController: null
     };
 
-    // =========================================================================
-    // LOGGER
-    // =========================================================================
-    const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Courses:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Courses:Info]', ...args),
-        warn: (...args) => console.warn('[Courses:Warn]', ...args),
-        error: (...args) => console.error('[Courses:Error]', ...args)
-    };
+    // [Removed local Logger definition]
 
     // =========================================================================
     // VALIDATION UTILITIES
@@ -275,7 +267,7 @@
         const match = url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
 
         if (!match || !match[1]) {
-            Logger.debug('Invalid YouTube URL:', url);
+            window.Logger.debug('Invalid YouTube URL:', url);
             return null;
         }
 
@@ -373,10 +365,10 @@
                 }
             });
 
-            Logger.debug('Loaded courses:', state.courses.length);
+            window.Logger.debug('Loaded courses:', state.courses.length);
 
         } catch (error) {
-            Logger.error('Error fetching courses:', error.message);
+            window.Logger.error('Error fetching courses:', error.message);
             state.fetchError = true;
             state.courses = []; // [19.1] Always initialize
         } finally {
@@ -523,7 +515,7 @@
             return btn;
         }
 
-        // [19.19] Properly encode URL
+        // [19.20] Properly encode URL
         const link = document.createElement('a');
         link.href = `/enroll?id=${encodeURIComponent(String(course.id))}`;
         link.className = 'px-4 py-2 rounded-lg bg-slate-50 text-slate-700 font-semibold text-sm hover:bg-blue-600 hover:text-white transition-all transform hover:-translate-y-0.5';
@@ -579,7 +571,7 @@
             grid.appendChild(card);
         });
 
-        Logger.debug('Rendered courses:', state.courses.length);
+        window.Logger.debug('Rendered courses:', state.courses.length);
     }
 
     // =========================================================================
@@ -600,7 +592,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             courseId = urlParams.get('id');
         } catch {
-            Logger.error('Failed to parse URL parameters');
+            window.Logger.error('Failed to parse URL parameters');
         }
 
         // Show loading if courses not ready
