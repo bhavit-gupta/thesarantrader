@@ -56,9 +56,8 @@ GLOBAL JAVASCRIPT VARIABLES:
     <link rel="canonical" href="https://thesarantrader.com/community">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="apple-touch-icon" href="/images/favicon.jpg">
 
     <!-- Theme Color -->
     <meta name="theme-color" content="#2563eb">
@@ -192,7 +191,7 @@ GLOBAL JAVASCRIPT VARIABLES:
         <script>
             // Set current user ID for client-side use (Safe JSON encoding to prevent XSS)
             window.currentUserId = "<%= (locals.user && locals.user.id) ? locals.user.id : '' %>";
-            window.isAdmin = <%= (locals.user && String(locals.user.role || '').toUpperCase() === 'ADMIN') ? 'true' : 'false' %>;
+            window.isAdmin = <%= (locals.user && String(locals.user.role || '').toUpperCase() === 'ADMIN') ? true : false %>;
         </script>
         <script src="/javascripts/main.js" defer></script>
         <script src="/javascripts/community.js" defer></script>

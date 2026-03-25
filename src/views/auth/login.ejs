@@ -42,9 +42,8 @@
     <title>Login - The Saran Trader</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="apple-touch-icon" href="/images/favicon.jpg">
     
     <!-- Theme Color -->
     <meta name="theme-color" content="#2563eb">
@@ -69,7 +68,7 @@
     <!-- ========== LOGIN FORM CONTAINER ========== -->
     <div class="flex-grow flex items-center justify-center p-4 pt-24">
         <div
-            class="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-blue-500/10 border border-slate-100 overflow-hidden">
+            class="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-brand-navy/10 border border-slate-100 overflow-hidden">
                 
                 <!-- Page Header -->
                 <div class="p-8 text-center bg-white border-b border-slate-50">
@@ -102,11 +101,11 @@
                             <!-- JavaScript in auth.js handles tab switching -->
                             <div class="flex gap-4 mb-4 text-sm font-medium text-slate-500">
                                 <button type="button" id="btn-username"
-                                    class="text-blue-600 border-b-2 border-blue-600 pb-1">Username</button>
+                                    class="text-brand-navy border-b-2 border-brand-navy pb-1">Username</button>
                                 <button type="button" id="btn-email"
-                                    class="hover:text-blue-600 pb-1">Email</button>
+                                    class="hover:text-brand-navy pb-1">Email</button>
                                 <button type="button" id="btn-phone" 
-                                    class="hover:text-blue-600 pb-1">Phone</button>
+                                    class="hover:text-brand-navy pb-1">Phone</button>
                             </div>
                             
                             <!-- Dynamic Label (Changes based on selected tab) -->
@@ -118,7 +117,7 @@
                             
                             <!-- Login Input Field (Multi-purpose: username/email/phone) -->
                             <input type="text" id="login-input" name="loginIdentifier"
-                                class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold transition-all"
                                 placeholder="Enter your username" required>
                         </div>
                         
@@ -131,36 +130,39 @@
                             <!-- Password Input with Eye Icon Toggle -->
                             <div class="relative flex">
                                 <input type="password" id="password" name="password"
-                                    class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pr-12"
+                                    class="w-full px-4 pr-12 py-3 rounded-xl border border-slate-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none transition-all placeholder:text-slate-400"
                                     placeholder="••••••••" required>
                                 
                                 <!-- Toggle Button: Shows/hides password -->
                                 <button type="button"
-                                    class="absolute right-4 text-slate-400 hover:text-blue-600 transition-colors h-full py-auto toggle-password-btn"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-navy transition-colors toggle-password-btn"
                                     data-target="password">
-                                    <div class="icon-placeholder"><i class="fa-solid fa-eye"></i></div>
+                                    <i class="fa-solid fa-eye"></i>
                                 </button>
                             </div>
                             
                             <!-- Forgot Password Link -->
                             <div class="text-right mt-1">
                                 <a href="/forgetPassword"
-                                    class="text-sm text-blue-600 font-semibold hover:text-blue-700">Forgot password?</a>
+                                    class="text-sm text-brand-gold font-semibold hover:text-brand-accent">Forgot password?</a>
                             </div>
                         </div>
                         
                         <!-- Submit Button -->
                         <button type="submit"
-                            class="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5">
+                            class="w-full py-3.5 bg-brand-navy text-white font-bold rounded-xl shadow-lg shadow-brand-navy/25 hover:bg-brand-gold hover:text-brand-navy hover:shadow-brand-gold/40 transition-all transform hover:-translate-y-0.5">
                             Sign In
                         </button>
                     </form>
                     
                     <!-- Signup Link for New Users -->
                     <div class="mt-8 pt-6 border-t border-slate-50 text-center">
-                        <p class="text-slate-600 text-sm">
+                        <p class="text-sm text-slate-500">
                             Don't have an account?
-                            <a href="/signup" class="text-blue-600 font-bold hover:text-blue-700">Sign up</a>
+                            <a href="/signup"
+                                class="font-bold text-brand-gold hover:text-brand-accent transition-colors">
+                                Sign up
+                            </a>
                         </p>
                     </div>
                 </div>

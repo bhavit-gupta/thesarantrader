@@ -310,7 +310,7 @@
             success: 'bg-green-500 text-white',
             error: 'bg-red-500 text-white',
             warning: 'bg-yellow-500 text-white',
-            info: 'bg-blue-500 text-white'
+            info: 'bg-brand-navy text-white'
         };
 
         const icons = {
@@ -461,12 +461,12 @@
         // Reset all buttons
         [btnUsername, btnEmail, btnPhone].forEach(btn => {
             if (btn) {
-                btn.className = 'hover:text-blue-600 pb-1 transition-colors';
+                btn.className = 'hover:text-brand-gold pb-1 transition-colors';
                 btn.setAttribute('aria-selected', 'false');
             }
         });
 
-        const activeClass = 'text-blue-600 border-b-2 border-blue-600 pb-1 transition-colors';
+        const activeClass = 'text-brand-gold border-b-2 border-brand-gold pb-1 transition-colors';
 
         const loginTypeInput = document.getElementById('login-type');
         if (loginTypeInput) loginTypeInput.value = method;

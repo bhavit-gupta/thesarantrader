@@ -424,12 +424,12 @@
         // Users count
         const usersDiv = document.createElement('div');
         usersDiv.className = 'flex items-center gap-2 mb-3';
-        usersDiv.innerHTML = `<span class="text-xs text-slate-500 font-medium"><i class="fa-solid fa-user-group text-blue-500 mr-1"></i> ${escapeHtml(String(course.users))} users enrolled</span>`;
+        usersDiv.innerHTML = `<span class="text-xs text-slate-500 font-medium"><i class="fa-solid fa-user-group text-brand-navy mr-1"></i> ${escapeHtml(String(course.users))} users enrolled</span>`;
         body.appendChild(usersDiv);
 
         // Title
         const title = document.createElement('h3');
-        title.className = 'text-lg font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2';
+        title.className = 'text-lg font-bold text-slate-800 mb-2 group-hover:text-brand-gold transition-colors line-clamp-2';
         title.textContent = course.title;
         body.appendChild(title);
 
@@ -534,7 +534,7 @@
         //  Properly encode URL
         const link = document.createElement('a');
         link.href = `/enroll?id=${encodeURIComponent(String(course.id))}`;
-        link.className = 'px-4 py-2 rounded-lg bg-slate-50 text-slate-700 font-semibold text-sm hover:bg-blue-600 hover:text-white transition-all transform hover:-translate-y-0.5';
+        link.className = 'px-4 py-2 rounded-lg bg-brand-navy/5 text-brand-navy font-semibold text-sm hover:bg-brand-navy hover:text-white transition-all transform hover:-translate-y-0.5';
         link.textContent = STRINGS.ENROLL_NOW;
         return link;
     }
@@ -651,7 +651,7 @@
 
         const link = document.createElement('a');
         link.href = '/courses';
-        link.className = 'text-blue-600 hover:text-blue-700 font-semibold';
+        link.className = 'text-brand-gold hover:text-brand-accent font-semibold';
         link.textContent = STRINGS.BROWSE_COURSES;
         wrapper.appendChild(link);
 
@@ -684,7 +684,7 @@
                 <div class="w-full py-4 bg-green-50 text-green-700 font-bold rounded-xl border border-green-100 flex items-center justify-center gap-2 text-lg">
                     <i class="fa-solid fa-circle-check"></i> ${escapeHtml(STRINGS.ALREADY_ENROLLED)}
                 </div>
-                <a href="/dashboard" class="block text-center text-sm font-semibold text-blue-600 hover:text-blue-700 mt-2">
+                <a href="/dashboard" class="block text-center text-sm font-semibold text-brand-gold hover:text-brand-accent mt-2">
                     ${escapeHtml(STRINGS.GO_TO_DASHBOARD)}
                 </a>`;
         }
@@ -701,7 +701,7 @@
 
         //  Encode course ID in URL
         return `
-            <a href="/checkout/${encodeURIComponent(String(course.id))}" class="w-full block text-center py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5 text-lg">
+            <a href="/checkout/${encodeURIComponent(String(course.id))}" class="w-full block text-center py-4 bg-brand-navy text-white font-bold rounded-xl shadow-lg shadow-brand-navy/25 hover:bg-brand-gold hover:text-brand-navy hover:shadow-brand-gold/40 transition-all transform hover:-translate-y-0.5 text-lg">
                 ${escapeHtml(STRINGS.ENROLL_NOW)} — ₹${escapeHtml(String(course.price))}
             </a>`;
     }
@@ -733,7 +733,7 @@
                 ${mediaSection}
 
                 <div class="flex items-center gap-2 mb-4">
-                    <span class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Course</span>
+                    <span class="bg-brand-gold/10 text-brand-gold text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Course</span>
                     ${course.badge ? `<span class="bg-${course.badgeColor}-100 text-${course.badgeColor}-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">${escapeHtml(course.badge)}</span>` : ''}
                 </div>
 
@@ -755,7 +755,7 @@
         <div class="lg:sticky lg:top-28">
             <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
                 <!-- Price Header -->
-                <div class="bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-white text-center">
+                <div class="bg-gradient-to-r from-brand-navy to-brand-gold p-6 text-white text-center">
                     <p class="text-sm font-medium opacity-80 mb-1">Course Price</p>
                     <div class="flex items-center justify-center gap-3">
                         <span class="text-4xl font-bold">₹${escapeHtml(String(course.price))}</span>
@@ -772,19 +772,19 @@
                     <div class="space-y-3 pt-4 border-t border-slate-100">
                         <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">This course includes</h4>
                         <div class="flex items-center gap-3 text-sm text-slate-600">
-                            <span class="text-blue-500">📹</span> Live trading sessions with Kundan Sir
+                            <span class="text-brand-gold">📹</span> Live trading sessions with Kundan Sir
                         </div>
                         <div class="flex items-center gap-3 text-sm text-slate-600">
-                            <span class="text-blue-500">📱</span> Access on Mobile and Web
+                            <span class="text-brand-gold">📱</span> Access on Mobile and Web
                         </div>
                         <div class="flex items-center gap-3 text-sm text-slate-600">
-                            <span class="text-blue-500">📊</span> Real-world case studies
+                            <span class="text-brand-gold">📊</span> Real-world case studies
                         </div>
                         <div class="flex items-center gap-3 text-sm text-slate-600">
-                            <span class="text-blue-500">👥</span> Exclusive Community Access
+                            <span class="text-brand-gold">👥</span> Exclusive Community Access
                         </div>
                         <div class="flex items-center gap-3 text-sm text-slate-600">
-                            <span class="text-blue-500">💬</span> Doubt clearing support
+                            <span class="text-brand-gold">💬</span> Doubt clearing support
                         </div>
                     </div>
 

@@ -54,9 +54,8 @@ JAVASCRIPT DEPENDENCIES:
     <title>All Users - Admin</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="apple-touch-icon" href="/images/favicon.jpg">
     
     <!-- Theme Color -->
     <meta name="theme-color" content="#2563eb">
@@ -222,7 +221,7 @@ JAVASCRIPT DEPENDENCIES:
                                                 
                                                 <!-- Role badge (admin or user) -->
                                                 <td class="px-6 py-4">
-                                                    <% if (user.role==='admin' ) { %>
+                                                    <% if (user.role?.toUpperCase()==='ADMIN' ) { %>
                                                         <!-- Admin role badge (purple) -->
                                                         <span
                                                             class="px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold">Admin</span>

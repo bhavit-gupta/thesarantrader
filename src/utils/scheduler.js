@@ -160,8 +160,27 @@ const initScheduler = () => {
         }
     }, WEEKLY_MS);
 
+    // [New] Schedule daily automated Google Drive Backups
+    const DAILY_BACKUP_MS = 24 * 60 * 60 * 1000; // 24 hours
+    setInterval(async () => {
+        if (!isShuttingDown) {
+            try {
+                console.log('⏰ [Scheduler] Starting automated daily backup...');
+                const { runFullBackup, uploadToGDrive, cleanOldLocalBackups } = require('./backup.service');
+                const zipPath = await runFullBackup();
+                await uploadToGDrive(zipPath);
+                
+                // Keep only the last 3 days of `.zip` files on the VPS to save space
+                cleanOldLocalBackups(parseInt(process.env.BACKUP_RETENTION_DAYS || '3'));
+            } catch (err) {
+                console.error('❌ [Scheduler] Automated backup failed:', err.message);
+            }
+        }
+    }, DAILY_BACKUP_MS);
+
     console.log(`⏰ [Scheduler] Cleanup task scheduled every ${INTERVAL_MS / 1000 / 60} minutes.`);
     console.log(`⏰ [Scheduler] Weekly maintenance scheduled every 7 days.`);
+    console.log(`⏰ [Scheduler] Automated backups scheduled every 24 hours.`);
 };
 
 /**

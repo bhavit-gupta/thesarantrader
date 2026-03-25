@@ -38,7 +38,11 @@ const compression = require('compression'); // Gzip compression
 const { PrismaSessionStore } = require('@quixo3/prisma-session-store');
 const prisma = require('./utils/prisma');
 const helmet = require('helmet');
+const links = require('./config/links'); // Centralized links config
 const app = express();
+
+// Expose links globally to all EJS templates
+app.locals.links = links;
 
 /* -------------------------------------------------------------------------- */
 /*                      ENVIRONMENT VARIABLES VALIDATION                      */
@@ -463,6 +467,11 @@ app.use(require("./routes/chat.routes"));                  // Course chat rooms
 app.use(require("./routes/payment.routes"));               // Payment verification
 app.use(require("./routes/admin.routes"));                 // Admin dashboard
 app.use(require("./routes/views.routes"));                 // View rendering
+
+// 404 Handler - MUST be after all routes
+app.use((req, res) => {
+    res.status(404).render('errors/404');
+});
 
 /* -------------------------------------------------------------------------- */
 /*                           GLOBAL ERROR HANDLER                             */

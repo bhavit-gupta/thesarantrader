@@ -178,6 +178,13 @@ router.get('/testimonials', authLimiter, (req, res) => res.render("layouts/testi
 
 // Features showcase page
 router.get('/features', authLimiter, (req, res) => res.render("layouts/features"));
+// About Us page
+router.get('/about', authLimiter, (req, res) => res.render("layouts/about"));
+
+// Legal Pages
+router.get('/privacy-policy', authLimiter, (req, res) => res.render("layouts/privacy"));
+router.get('/terms-and-conditions', authLimiter, (req, res) => res.render("layouts/terms"));
+router.get('/refund-policy', authLimiter, (req, res) => res.render("layouts/refund"));
 
 /* -------------------------------------------------------------------------- */
 /*                         AUTHENTICATION PAGES                              */
@@ -503,13 +510,26 @@ router.get('/admin/testimonials',
  * @access Public (but requires session to be meaningful)
  */
 router.post('/logout',
-    csrfProtection, // CSRF protection
+    csrfProtection,
     (req, res) => {
+        if (!req.session) {
+            return res.redirect(URLS.HOME);
+        }
+
+        const userId = req.session.user?.id;
+        
         req.session.destroy((err) => {
             if (err) {
                 console.error('[Logout] Session destroy error:', err.message);
             }
-            res.redirect(URLS.HOME);
+            // Clear the session cookie explicitly
+            res.clearCookie('thesarantrader.sid');
+            
+            if (userId) {
+                console.log(`[Logout] User ${userId.slice(-6)} logged out`);
+            }
+            
+            res.redirect(URLS.HOME + '?loggedOut=true');
         });
     }
 );

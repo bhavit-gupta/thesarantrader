@@ -521,8 +521,7 @@ router.post("/check-existence",
 router.post("/logout",
     isAuthenticated,
     csrfProtection,
-    logAuthAttempt('LOGOUT'),
-    asyncHandler(logoutUser)
+    (req, res) => res.redirect(307, '/logout')
 );
 
 /* -------------------------------------------------------------------------- */

@@ -67,9 +67,8 @@ JAVASCRIPT DEPENDENCIES:
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="apple-touch-icon" href="/images/favicon.jpg">
 
     <!-- Theme Color -->
     <meta name="theme-color" content="#2563eb">
@@ -244,8 +243,8 @@ JAVASCRIPT DEPENDENCIES:
 
                     <div class="bg-slate-50 rounded-xl p-6 border border-slate-200 mb-6 text-center">
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Scan QR Code</p>
-                        <!-- QR Code Placeholder -->
-                        <img src="/images/qr-placeholder.png" alt="Payment QR Code"
+                        <!-- QR Code -->
+                        <img src="<%= links.payment.qrCode %>" alt="Payment QR Code"
                             class="w-48 h-48 mx-auto rounded-lg shadow-sm border border-white">
 
                         <div class="mt-4 pt-4 border-t border-slate-200">
@@ -253,7 +252,7 @@ JAVASCRIPT DEPENDENCIES:
                             <div
                                 class="flex items-center justify-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-200">
                                 <span id="upi-id-text"
-                                    class="font-mono font-bold text-slate-700 select-all">example@upi</span>
+                                    class="font-mono font-bold text-slate-700 select-all"><%= links.payment.upiId %></span>
                                 <button type="button" id="copy-upi-btn" class="text-blue-500 hover:text-blue-700"><i
                                         class="fa-regular fa-copy"></i></button>
                             </div>

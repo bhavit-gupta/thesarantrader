@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <title>Admin Dashboard - The Saran Trader</title>
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="apple-touch-icon" href="/images/favicon.jpg">
     <link rel="stylesheet" href="/stylesheets/output.css">
     <!-- ... -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -37,11 +39,11 @@
                                 <h1 class="text-3xl font-bold text-slate-800">Admin Control Center 🛡️</h1>
                                 <p class="text-slate-500 mt-1">Manage your platform and live sessions.</p>
                             </div>
-                            <div class="flex gap-2">
-                                <span class="px-4 py-2 rounded-lg bg-blue-100 text-blue-700 font-bold text-sm">
-                                    v1.0.0
-                                </span>
-                            </div>
+                             <div class="flex gap-2">
+                                 <span class="px-4 py-2 rounded-lg bg-brand-gold/10 text-brand-gold font-bold text-sm border border-brand-gold/20">
+                                     v1.0.0
+                                 </span>
+                             </div>
                         </div>
 
                         <!-- ---------------- CONTROL GRID ---------------- -->
@@ -100,10 +102,10 @@
                                                         </td>
                                                         <td class="px-6 py-4">
                                                             <% if (purchase.screenshotUrl) { %>
-                                                                <a href="<%= purchase.screenshotUrl %>" target="_blank"
-                                                                    class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-2 py-1 rounded border border-blue-100 transition-colors">
-                                                                    <i class="fa-solid fa-image"></i> View
-                                                                </a>
+                                                                 <a href="<%= purchase.screenshotUrl %>" target="_blank"
+                                                                     class="inline-flex items-center gap-1 text-brand-gold hover:text-brand-accent font-medium text-xs bg-brand-gold/10 px-2 py-1 rounded border border-brand-gold/20 transition-colors">
+                                                                     <i class="fa-solid fa-image"></i> View
+                                                                 </a>
                                                                 <% } else { %>
                                                                     <span class="text-slate-400 text-xs">No Image</span>
                                                                     <% } %>
@@ -186,10 +188,10 @@
                                                                             <%= course.icon %>
                                                                         </div>
                                                                         <div>
-                                                                            <h3
-                                                                                class="font-bold text-slate-800 text-lg group-hover/card:text-blue-600 transition-colors">
-                                                                                <%= course.title %>
-                                                                            </h3>
+                                                                             <h3
+                                                                                 class="font-bold text-slate-800 text-lg group-hover/card:text-brand-gold transition-colors">
+                                                                                 <%= course.title %>
+                                                                             </h3>
                                                                             <div
                                                                                 class="flex items-center gap-3 text-sm mt-1">
                                                                                 <span class="text-slate-500"><i
@@ -231,7 +233,7 @@
                                                                                 <%= isLive
                                                                                     ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
                                                                                     : (hasLink
-                                                                                    ? 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-200 shadow-lg shadow-slate-500/20'
+                                                                                    ? 'bg-brand-navy text-white hover:bg-brand-navy/90 border border-white/10 shadow-lg shadow-brand-navy/20'
                                                                                     : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                                                                                     ) %>
                                                                                     ">
@@ -291,18 +293,18 @@
                                                                             <%= course.icon %>
                                                                         </div>
                                                                         <div>
-                                                                            <h3
-                                                                                class="font-bold text-slate-700 text-lg group-hover/card:text-blue-600 transition-colors">
-                                                                                <%= course.title %>
-                                                                            </h3>
+                                                                             <h3
+                                                                                 class="font-bold text-slate-700 text-lg group-hover/card:text-brand-gold transition-colors">
+                                                                                 <%= course.title %>
+                                                                             </h3>
                                                                             <div
                                                                                 class="flex items-center gap-3 text-sm mt-1">
-                                                                                <span
-                                                                                    class="text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded text-xs group-hover/card:bg-blue-100 transition-colors">
-                                                                                    <i
-                                                                                        class="fa-regular fa-clock mr-1"></i>Starts
-                                                                                    <%= formattedDate %>
-                                                                                </span>
+                                                                                 <span
+                                                                                     class="text-brand-gold font-medium bg-brand-gold/10 px-2 py-0.5 rounded text-xs group-hover/card:bg-brand-gold/20 transition-colors">
+                                                                                     <i
+                                                                                         class="fa-regular fa-clock mr-1"></i>Starts
+                                                                                     <%= formattedDate %>
+                                                                                 </span>
                                                                                 <span class="text-slate-400 text-xs">
                                                                                     <i
                                                                                         class="fa-solid fa-users mr-1"></i>
@@ -331,10 +333,10 @@
                                             <!-- Total users -->
                                             <div
                                                 class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm">
-                                                <div
-                                                    class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 text-xl">
-                                                    <i class="fa-solid fa-user-graduate"></i>
-                                                </div>
+                                                 <div
+                                                     class="w-12 h-12 rounded-xl bg-brand-gold/10 flex items-center justify-center text-brand-gold text-xl">
+                                                     <i class="fa-solid fa-user-graduate"></i>
+                                                 </div>
                                                 <div>
                                                     <p class="text-sm text-slate-500 font-medium">Total Members</p>
                                                     <h3 class="text-2xl font-bold text-slate-800">
@@ -365,17 +367,17 @@
                                             <h2 class="text-xl font-bold text-slate-800">Quick Actions</h2>
                                             <a href="/admin/testimonials"
                                                 class="bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group">
-                                                <div
-                                                    class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                                    <i class="fa-solid fa-comments"></i>
-                                                </div>
+                                                 <div
+                                                     class="w-12 h-12 rounded-xl bg-brand-navy/5 text-brand-navy flex items-center justify-center text-xl group-hover:bg-brand-navy group-hover:text-white transition-all">
+                                                     <i class="fa-solid fa-comments"></i>
+                                                 </div>
                                                 <div class="flex-1">
                                                     <h3 class="font-bold text-slate-800 line-clamp-1">Manage
                                                         Testimonials</h3>
                                                     <p class="text-xs text-slate-500">Approve or reject reviews</p>
                                                 </div>
-                                                <i
-                                                    class="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500 transition-colors"></i>
+                                                 <i
+                                                     class="fa-solid fa-chevron-right text-slate-300 group-hover:text-brand-navy transition-colors"></i>
                                             </a>
 
                                             <!-- Manage Users -->
@@ -635,10 +637,10 @@
                                     class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
                                     Cancel
                                 </button>
-                                <button type="submit" form="editCourseForm"
-                                    class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all transform hover:-translate-y-0.5">
-                                    Save Changes
-                                </button>
+                                 <button type="submit" form="editCourseForm"
+                                     class="flex-1 py-2.5 px-4 bg-brand-navy hover:bg-brand-navy/90 text-white font-bold rounded-xl shadow-lg shadow-brand-navy/20 transition-all transform hover:-translate-y-0.5">
+                                     Save Changes
+                                 </button>
                             </div>
                         </div>
                     </div>
@@ -666,7 +668,7 @@
                         <!-- Aspect ratio selector -->
                         <div class="px-6 py-3 border-b border-slate-100 flex items-center gap-3 flex-none">
                             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Ratio</span>
-                            <button onclick="setCropRatio(16/9)"  class="crop-ratio-btn px-3 py-1 rounded-lg text-sm font-bold bg-blue-600 text-white">16:9</button>
+                             <button onclick="setCropRatio(16/9)"  class="crop-ratio-btn px-3 py-1 rounded-lg text-sm font-bold bg-brand-navy text-white">16:9</button>
                             <button onclick="setCropRatio(2/1)"   class="crop-ratio-btn px-3 py-1 rounded-lg text-sm font-bold bg-slate-100 text-slate-700">2:1</button>
                             <button onclick="setCropRatio(4/3)"   class="crop-ratio-btn px-3 py-1 rounded-lg text-sm font-bold bg-slate-100 text-slate-700">4:3</button>
                             <button onclick="setCropRatio(NaN)"   class="crop-ratio-btn px-3 py-1 rounded-lg text-sm font-bold bg-slate-100 text-slate-700">Free</button>
@@ -675,9 +677,9 @@
                         <!-- Footer actions -->
                         <div class="px-6 py-4 flex justify-end gap-3 flex-none">
                             <button id="crop-cancel-btn2" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-colors">Cancel</button>
-                            <button id="crop-confirm-btn" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-600/25 transition-all hover:-translate-y-0.5">
-                                <i class="fa-solid fa-crop mr-1.5"></i>Crop &amp; Upload
-                            </button>
+                             <button id="crop-confirm-btn" class="px-5 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-navy/90 text-white font-bold text-sm shadow-lg shadow-brand-navy/25 transition-all hover:-translate-y-0.5">
+                                 <i class="fa-solid fa-crop mr-1.5"></i>Crop &amp; Upload
+                             </button>
                         </div>
                     </div>
                 </div>

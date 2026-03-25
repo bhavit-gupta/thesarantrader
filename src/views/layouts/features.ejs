@@ -80,7 +80,8 @@ JAVASCRIPT DEPENDENCIES:
     <meta name="theme-color" content="#2563eb">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="apple-touch-icon" href="/images/favicon.jpg">
 
     <!-- Performance -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -370,8 +371,7 @@ JAVASCRIPT DEPENDENCIES:
                             Explore Courses
                         </a>
                         <% if (typeof user !=='undefined' && user) { %>
-                            <% const dashboardUrl=(user && user.role==='ADMIN' ) ? '/admin/dashboard' : '/dashboard' ;
-                                %>
+                            <% const dashboardUrl = (user && user.role?.toUpperCase() === 'ADMIN') ? '/admin/dashboard' : '/dashboard'; %>
 
                                 <a href="<%= dashboardUrl %>"
                                     class="px-8 py-4 rounded-full bg-white text-blue-700 font-semibold text-center shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">

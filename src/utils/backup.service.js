@@ -143,7 +143,44 @@ async function uploadToGDrive(filePath) {
 
     // TODO: Implement actual googleapis.drive.files.create()
     console.log('   (Waiting for Service Account JSON key provided by user)');
+
+    // TODO: Implement old GDrive backup cleanup (drive.files.list & drive.files.delete)
+    console.log(`☁️ [GDrive] Retention policy: Will remove Google Drive backups older than ${process.env.BACKUP_RETENTION_DAYS || '7'} days.`);
+
     return true;
+}
+
+/**
+ * Deletes local ZIP backup files older than a specified number of days
+ * Prevents the VPS hard drive from filling up.
+ * @param {number} keepDays - Number of days to retain local backups
+ */
+function cleanOldLocalBackups(keepDays = 3) {
+    const backupDir = path.join(__dirname, '../../backups');
+    if (!fs.existsSync(backupDir)) return;
+
+    const files = fs.readdirSync(backupDir);
+    const now = Date.now();
+    const maxAgeMs = keepDays * 24 * 60 * 60 * 1000;
+    
+    let deletedCount = 0;
+
+    for (const file of files) {
+        if (!file.endsWith('.zip')) continue;
+        
+        const filePath = path.join(backupDir, file);
+        const stats = fs.statSync(filePath);
+        
+        if (now - stats.mtimeMs > maxAgeMs) {
+            console.log(`🗑️ [Backup] Removing old local backup: ${file}`);
+            fs.unlinkSync(filePath);
+            deletedCount++;
+        }
+    }
+    
+    if (deletedCount > 0) {
+        console.log(`✅ [Backup] Cleaned up ${deletedCount} old backup archives.`);
+    }
 }
 
 // CLI Support
@@ -161,4 +198,4 @@ if (require.main === module) {
     }
 }
 
-module.exports = { runFullBackup, uploadToGDrive };
+module.exports = { runFullBackup, uploadToGDrive, cleanOldLocalBackups };
