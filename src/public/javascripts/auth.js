@@ -68,13 +68,23 @@
     // =========================================================================
     const state = {
         resetIdentifier: '',
-        resetMethod: 'phone',
+        resetMethod: 'email', // Default to email
+        emailResendCount: 0,   // Track resends for progressive cooldown
+        resetResendCount: 0,   // Track resends for password reset OTP
         pendingRequests: new Map(),
         abortControllers: new Map(),
         debounceTimers: new Map()
     };
 
-    // [Removed local Logger definition]
+    // =========================================================================
+    // LOGGER (conditional debug logging)
+    // =========================================================================
+    const Logger = {
+        debug: (...args) => CONFIG.DEBUG && console.log('[Auth:Debug]', ...args),
+        info: (...args) => CONFIG.DEBUG && console.info('[Auth:Info]', ...args),
+        warn: (...args) => console.warn('[Auth:Warn]', ...args),
+        error: (...args) => console.error('[Auth:Error]', ...args)
+    };
 
     // =========================================================================
     // VALIDATION UTILITIES
@@ -82,13 +92,13 @@
 
     /**
      * Email validation with comprehensive regex
-     * [15.8] Better email regex validation
+     *  Better email regex validation
      */
     const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
     /**
      * Phone validation supporting international formats
-     * [15.9] International phone support
+     *  International phone support
      */
     const PHONE_REGEX = /^[+]?[0-9]{10,15}$/;
 
@@ -116,7 +126,7 @@
 
     /**
      * Validate OTP format
-     * [15.7] Consistent OTP length validation
+     *  Consistent OTP length validation
      * @param {string} otp - OTP to validate
      * @param {number} length - Expected length (default: 6)
      * @returns {boolean} Valid or not
@@ -129,7 +139,7 @@
 
     /**
      * Validate password complexity
-     * [15.4] Password complexity validation
+     *  Password complexity validation
      * @param {string} password - Password to validate
      * @returns {{ valid: boolean, errors: string[] }} Validation result
      */
@@ -187,19 +197,19 @@
 
     /**
      * Get CSRF token with validation
-     * [15.2] CSRF token validation
+     *  CSRF token validation
      * @returns {string|null} CSRF token or null if invalid
      */
     function getCSRFToken() {
         const meta = document.querySelector('meta[name="csrf-token"]');
         if (!meta) {
-            window.Logger.error('CSRF meta tag not found');
+            Logger.error('CSRF meta tag not found');
             return null;
         }
 
         const token = meta.getAttribute('content');
         if (!token || token.trim() === '') {
-            window.Logger.error('CSRF token is empty');
+            Logger.error('CSRF token is empty');
             return null;
         }
 
@@ -212,7 +222,7 @@
 
     /**
      * Fetch with timeout and proper error handling
-     * [15.1] response.ok check, [15.5] status checking, [15.6] timeout
+     *  response.ok check,  status checking,  timeout
      * @param {string} url - URL to fetch
      * @param {object} options - Fetch options
      * @param {string} requestId - Unique request ID for abort control
@@ -248,13 +258,13 @@
 
             clearTimeout(timeoutId);
 
-            // [15.1] Check response.ok before parsing
+            //  Check response.ok before parsing
             if (!response.ok) {
                 const errorText = await response.text().catch(() => 'Unknown error');
                 throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
             }
 
-            // [15.5] Validate JSON response
+            //  Validate JSON response
             const data = await response.json();
             return data;
 
@@ -283,7 +293,7 @@
 
     /**
      * Show notification toast
-     * [15.29] Custom notifications instead of alert()
+     *  Custom notifications instead of alert()
      * @param {string} message - Message to display
      * @param {'success'|'error'|'warning'|'info'} type - Notification type
      */
@@ -351,7 +361,7 @@
 
     /**
      * Set button loading state
-     * [15.10] Loading feedback during async operations
+     *  Loading feedback during async operations
      * @param {HTMLElement} button - Button element
      * @param {boolean} loading - Loading state
      * @param {string} loadingText - Text while loading
@@ -410,7 +420,7 @@
 
     /**
      * Debounce function calls
-     * [15.16] Debouncing for blur events
+     *  Debouncing for blur events
      * @param {string} key - Unique key for this debounce
      * @param {Function} fn - Function to debounce
      * @param {number} delay - Delay in ms
@@ -444,7 +454,7 @@
         const btnPhone = document.getElementById('btn-phone');
 
         if (!label || !input) {
-            window.Logger.warn('Login label or input not found');
+            Logger.warn('Login label or input not found');
             return;
         }
 
@@ -506,7 +516,7 @@
                 break;
         }
 
-        window.Logger.debug('Login method set to:', method);
+        Logger.debug('Login method set to:', method);
     }
 
     // =========================================================================
@@ -523,7 +533,7 @@
         const icon = button?.querySelector('i');
 
         if (!input || !icon) {
-            window.Logger.warn('Password toggle elements not found');
+            Logger.warn('Password toggle elements not found');
             return;
         }
 
@@ -566,7 +576,7 @@
                 setInputError(input, false);
             }
         } catch (error) {
-            window.Logger.error('Existence check failed:', error);
+            Logger.error('Existence check failed:', error);
             // Don't show error to user for validation checks
         }
     }
@@ -574,6 +584,34 @@
     // =========================================================================
     // OTP FUNCTIONS
     // =========================================================================
+
+    /**
+     * Start progressive cooldown timer for OTP buttons
+     */
+    function startCooldown(btn, resendCountKey) {
+        if (!btn) return;
+        
+        state[resendCountKey]++;
+        const count = state[resendCountKey];
+        
+        let seconds = 30; // 1st resend (count=1 since initial was 0)
+        if (count === 2) seconds = 60;
+        if (count >= 3) seconds = 120;
+        
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        
+        const timer = setInterval(() => {
+            seconds--;
+            btn.textContent = `Wait ${seconds}s`;
+            
+            if (seconds <= 0) {
+                clearInterval(timer);
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }, 1000);
+    }
 
     /**
      * Send OTP to email
@@ -597,60 +635,21 @@
         try {
             const data = await fetchWithTimeout('/auth/send-otp', {
                 method: 'POST',
-                body: JSON.stringify({ identifier: email, type: 'email' })
+                body: JSON.stringify({ email })
             }, 'send-email-otp');
 
             if (data.success) {
                 showNotification(data.message || STRINGS.SUCCESS_OTP_SENT, 'success');
                 if (otpContainer) otpContainer.classList.remove('hidden');
+                startCooldown(sendBtn, 'emailResendCount');
             } else {
                 showNotification(data.message || 'Failed to send OTP', 'error');
             }
         } catch (error) {
-            window.Logger.error('Send OTP error:', error);
+            Logger.error('Send OTP error:', error);
             showNotification(error.message || STRINGS.ERROR_GENERIC, 'error');
         } finally {
             setButtonLoading(sendBtn, false, '', STRINGS.GET_OTP);
-        }
-    }
-
-    /**
-     * Send OTP to mobile
-     */
-    async function sendMobileOTP() {
-        const phoneInput = document.getElementById('phone');
-        if (!phoneInput) return;
-
-        const phone = phoneInput.value.trim();
-        if (!isValidPhone(phone)) {
-            showNotification(STRINGS.ERROR_INVALID_PHONE, 'error');
-            phoneInput.focus();
-            return;
-        }
-
-        const otpContainer = document.getElementById('mobile-otp-container');
-        const sendBtn = document.getElementById('btn-send-mobile-otp') || phoneInput.nextElementSibling;
-        const btn = (sendBtn && sendBtn.tagName === 'BUTTON') ? sendBtn : null;
-
-        setButtonLoading(btn, true, STRINGS.SENDING, STRINGS.GET_OTP);
-
-        try {
-            const data = await fetchWithTimeout('/auth/send-otp', {
-                method: 'POST',
-                body: JSON.stringify({ identifier: phone, type: 'phone' })
-            }, 'send-mobile-otp');
-
-            if (data.success) {
-                showNotification(data.message || STRINGS.SUCCESS_OTP_SENT, 'success');
-                if (otpContainer) otpContainer.classList.remove('hidden');
-            } else {
-                showNotification(data.message || 'Failed to send OTP', 'error');
-            }
-        } catch (error) {
-            window.Logger.error('Send Mobile OTP error:', error);
-            showNotification(error.message || STRINGS.ERROR_GENERIC, 'error');
-        } finally {
-            setButtonLoading(btn, false, '', STRINGS.GET_OTP);
         }
     }
 
@@ -660,36 +659,24 @@
 
     /**
      * Validate signup form
-     * [15.4] Password complexity validation
+     *  Password complexity validation
      * @param {Event} event - Form submit event
      * @returns {boolean} Valid or not
-     */
-    function validateSignup(event) {
+     */    function validateSignup(event) {
         const passwordInput = document.getElementById('password');
         const confirmPasswordInput = document.getElementById('confirm-password');
         const otpInput = document.getElementById('otp');
-        const mobileOtpInput = document.getElementById('mobile-otp');
 
         if (!passwordInput || !confirmPasswordInput) return true;
 
         const password = passwordInput.value;
         const confirmPassword = confirmPasswordInput.value;
-
-        // Validate OTPs if present
         const otp = otpInput?.value || '';
-        const mobileOtp = mobileOtpInput?.value || '';
 
         if (otpInput && !isValidOTP(otp)) {
             event.preventDefault();
             showNotification(STRINGS.ERROR_INVALID_OTP.replace('{length}', CONFIG.OTP_LENGTH), 'error');
             otpInput.focus();
-            return false;
-        }
-
-        if (mobileOtpInput && !isValidOTP(mobileOtp)) {
-            event.preventDefault();
-            showNotification(STRINGS.ERROR_INVALID_OTP.replace('{length}', CONFIG.OTP_LENGTH), 'error');
-            mobileOtpInput.focus();
             return false;
         }
 
@@ -717,160 +704,18 @@
     // PASSWORD RESET FLOW
     // =========================================================================
 
-    /**
-     * Create input element for password reset
-     * [15.11] createElement instead of innerHTML
-     * @param {string} type - Input type
-     * @param {string} id - Input ID
-     * @param {string} placeholder - Placeholder text
-     * @param {object} attrs - Additional attributes
-     * @returns {HTMLElement} Input wrapper
-     */
-    function createResetInput(type, id, placeholder, attrs = {}) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'relative';
-
-        const iconSpan = document.createElement('span');
-        iconSpan.className = 'absolute inset-y-0 left-0 w-11 flex items-center justify-center text-slate-400 pointer-events-none';
-
-        const icon = document.createElement('i');
-        icon.className = `fa-solid ${type === 'email' ? 'fa-envelope' : 'fa-phone'} text-sm`;
-        iconSpan.appendChild(icon);
-
-        const input = document.createElement('input');
-        input.type = type === 'tel' ? 'tel' : type;
-        input.id = id;
-        input.className = 'w-full pl-10 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all';
-        input.placeholder = placeholder;
-        input.required = true;
-        input.setAttribute('autocomplete', type === 'email' ? 'email' : 'tel');
-
-        if (type === 'tel') {
-            input.className += ' font-mono';
-            input.pattern = '[0-9]{10,15}';
-            input.maxLength = 15;
-            input.addEventListener('input', function () {
-                this.value = this.value.replace(/[^0-9+]/g, '');
-            });
-        }
-
-        Object.entries(attrs).forEach(([key, value]) => {
-            input.setAttribute(key, value);
-        });
-
-        wrapper.appendChild(iconSpan);
-        wrapper.appendChild(input);
-
-        return wrapper;
-    }
-
-    /**
-     * Switch to email reset method
-     * [15.11] createElement instead of innerHTML
-     */
-    function switchToEmail() {
-        state.resetMethod = 'email';
-        const container = document.getElementById('identifier-section');
-        if (!container) return;
-
-        const label = container.querySelector('label');
-        const inputWrapper = container.querySelector('.relative');
-        const hint = container.querySelector('p.text-xs');
-        const link = container.querySelector('p.text-sm');
-
-        if (!label || !inputWrapper) return;
-
-        label.textContent = 'Email Address';
-
-        // Replace input wrapper content using createElement
-        const newWrapper = createResetInput('email', 'reset-email', 'your@email.com');
-        inputWrapper.replaceWith(newWrapper);
-
-        if (hint) hint.textContent = "We'll send an OTP to verify your identity.";
-
-        if (link) {
-            link.innerHTML = '';
-            const switchLink = document.createElement('a');
-            switchLink.href = '#';
-            switchLink.id = 'switch-phone-btn';
-            switchLink.className = 'text-blue-600 hover:text-blue-700 hover:underline font-medium';
-            switchLink.textContent = STRINGS.SWITCH_TO_PHONE;
-            switchLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchToPhone();
-            });
-            link.appendChild(switchLink);
-        }
-
-        window.Logger.debug('Switched to email reset method');
-    }
-
-    /**
-     * Switch to phone reset method
-     * [15.11] createElement instead of innerHTML
-     */
-    function switchToPhone() {
-        state.resetMethod = 'phone';
-        const container = document.getElementById('identifier-section');
-        if (!container) return;
-
-        const label = container.querySelector('label');
-        const inputWrapper = container.querySelector('.relative');
-        const hint = container.querySelector('p.text-xs');
-        const link = container.querySelector('p.text-sm');
-
-        if (!label || !inputWrapper) return;
-
-        label.textContent = 'Phone Number';
-
-        // Replace input wrapper content using createElement
-        const newWrapper = createResetInput('tel', 'reset-phone', '9876543210');
-        inputWrapper.replaceWith(newWrapper);
-
-        if (hint) hint.textContent = "We'll send an OTP to verify your identity.";
-
-        if (link) {
-            link.innerHTML = '';
-            const switchLink = document.createElement('a');
-            switchLink.href = '#';
-            switchLink.id = 'switch-email-btn';
-            switchLink.className = 'text-blue-600 hover:text-blue-700 hover:underline font-medium';
-            switchLink.textContent = STRINGS.SWITCH_TO_EMAIL;
-            switchLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchToEmail();
-            });
-            link.appendChild(switchLink);
-        }
-
-        window.Logger.debug('Switched to phone reset method');
-    }
 
     /**
      * Send password reset OTP
      */
     async function sendResetOTP() {
-        let identifier;
-        let input;
+        const input = document.getElementById('reset-email');
+        const email = input?.value.trim();
 
-        if (state.resetMethod === 'phone') {
-            input = document.getElementById('reset-phone');
-            identifier = input?.value.trim();
-
-            if (!isValidPhone(identifier)) {
-                showNotification(STRINGS.ERROR_INVALID_PHONE, 'error');
-                input?.focus();
-                return;
-            }
-        } else {
-            input = document.getElementById('reset-email');
-            identifier = input?.value.trim();
-
-            if (!isValidEmail(identifier)) {
-                showNotification(STRINGS.ERROR_INVALID_EMAIL, 'error');
-                input?.focus();
-                return;
-            }
+        if (!isValidEmail(email)) {
+            showNotification(STRINGS.ERROR_INVALID_EMAIL, 'error');
+            input?.focus();
+            return;
         }
 
         const sendBtn = document.querySelector('#identifier-section button');
@@ -879,13 +724,14 @@
         try {
             const data = await fetchWithTimeout('/auth/forgot-password', {
                 method: 'POST',
-                body: JSON.stringify({ identifier, type: state.resetMethod })
+                body: JSON.stringify({ email })
             }, 'send-reset-otp');
 
             if (data.success) {
-                // [15.3] Store in module state, not global
-                state.resetIdentifier = identifier;
+                //  Store in module state, not global
+                state.resetIdentifier = email;
                 showNotification(data.message || STRINGS.SUCCESS_OTP_SENT, 'success');
+                startCooldown(sendBtn, 'resetResendCount');
 
                 const identifierSection = document.getElementById('identifier-section');
                 const otpSection = document.getElementById('otp-section');
@@ -896,7 +742,7 @@
                 showNotification(data.message || 'Error sending OTP', 'error');
             }
         } catch (error) {
-            window.Logger.error('Send reset OTP error:', error);
+            Logger.error('Send reset OTP error:', error);
             showNotification(error.message || STRINGS.ERROR_GENERIC, 'error');
         } finally {
             setButtonLoading(sendBtn, false);
@@ -939,7 +785,7 @@
                 }
             }
         } catch (error) {
-            window.Logger.error('Verify reset OTP error:', error);
+            Logger.error('Verify reset OTP error:', error);
             showNotification(error.message || STRINGS.ERROR_GENERIC, 'error');
         } finally {
             setButtonLoading(verifyBtn, false);
@@ -948,7 +794,7 @@
 
     /**
      * Submit password reset
-     * [15.4] Password complexity validation
+     *  Password complexity validation
      */
     async function submitPasswordReset() {
         const newPasswordInput = document.getElementById('new-password');
@@ -998,7 +844,7 @@
                 // Clear sensitive state
                 state.resetIdentifier = '';
 
-                // [15.23] Safe redirect
+                //  Safe redirect
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 2000);
@@ -1006,7 +852,7 @@
                 showNotification(data.message || 'Error resetting password', 'error');
             }
         } catch (error) {
-            window.Logger.error('Submit password reset error:', error);
+            Logger.error('Submit password reset error:', error);
             showNotification(error.message || STRINGS.ERROR_GENERIC, 'error');
         } finally {
             setButtonLoading(submitBtn, false);
@@ -1015,7 +861,7 @@
 
     /**
      * Verify OTP (for verifyOTP.ejs page)
-     * [15.7] Consistent OTP length
+     *  Consistent OTP length
      */
     async function verifyOTP() {
         const otpInputs = document.querySelectorAll('.otp-input');
@@ -1057,7 +903,7 @@
      * Initialize auth functionality
      */
     function initialize() {
-        window.Logger.debug('Initializing auth.js');
+        Logger.debug('Initializing auth.js');
 
         // Login Method Toggle
         const btnUsername = document.getElementById('btn-username');
@@ -1068,7 +914,7 @@
         if (btnEmail) btnEmail.addEventListener('click', () => setLoginMethod('email'));
         if (btnPhone) btnPhone.addEventListener('click', () => setLoginMethod('phone'));
 
-        // Password Toggle - [15.26] ARIA attributes
+        // Password Toggle -  ARIA attributes
         document.querySelectorAll('.toggle-password-btn').forEach(btn => {
             btn.setAttribute('aria-label', 'Show password');
             btn.setAttribute('role', 'button');
@@ -1084,7 +930,7 @@
             signupForm.addEventListener('submit', validateSignup);
         }
 
-        // Live Existence Check with debouncing [15.16]
+        // Live Existence Check with debouncing 
         const checkFields = [
             { id: 'username', field: 'username' },
             { id: 'email', field: 'email' },
@@ -1105,7 +951,7 @@
             }
         });
 
-        // OTP Inputs Auto-focus [15.27] Keyboard navigation
+        // OTP Inputs Auto-focus  Keyboard navigation
         const otpInputs = document.querySelectorAll('.otp-input');
         if (otpInputs.length > 0) {
             otpInputs.forEach((input, index) => {
@@ -1159,17 +1005,9 @@
         // Bind OTP buttons
         const emailInput = document.getElementById('email');
         if (emailInput) {
-            const sendEmailBtn = emailInput.nextElementSibling;
+            const sendEmailBtn = document.getElementById('btn-send-email-otp') || emailInput.nextElementSibling;
             if (sendEmailBtn && sendEmailBtn.tagName === 'BUTTON') {
                 sendEmailBtn.addEventListener('click', sendOTP);
-            }
-        }
-
-        const phoneInput = document.getElementById('phone');
-        if (phoneInput) {
-            const sendPhoneBtn = phoneInput.nextElementSibling;
-            if (sendPhoneBtn && sendPhoneBtn.tagName === 'BUTTON') {
-                sendPhoneBtn.addEventListener('click', sendMobileOTP);
             }
         }
 
@@ -1192,24 +1030,8 @@
             submitResetBtn.addEventListener('click', submitPasswordReset);
         }
 
-        // Switch Links
-        const switchEmailLink = document.getElementById('switch-email-btn');
-        if (switchEmailLink) {
-            switchEmailLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchToEmail();
-            });
-        }
 
-        const switchPhoneLink = document.getElementById('switch-phone-btn');
-        if (switchPhoneLink) {
-            switchPhoneLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchToPhone();
-            });
-        }
-
-        window.Logger.debug('Auth.js initialization complete');
+        Logger.debug('Auth.js initialization complete');
     }
 
     // Run initialization when DOM is ready
@@ -1226,10 +1048,7 @@
         setLoginMethod,
         togglePassword,
         sendOTP,
-        sendMobileOTP,
         validateSignup,
-        switchToEmail,
-        switchToPhone,
         sendResetOTP,
         verifyResetOTP,
         submitPasswordReset,
@@ -1245,9 +1064,6 @@
     window.setLoginMethod = setLoginMethod;
     window.togglePassword = togglePassword;
     window.sendOTP = sendOTP;
-    window.sendMobileOTP = sendMobileOTP;
-    window.switchToEmail = switchToEmail;
-    window.switchToPhone = switchToPhone;
     window.sendResetOTP = sendResetOTP;
     window.verifyResetOTP = verifyResetOTP;
     window.submitPasswordReset = submitPasswordReset;

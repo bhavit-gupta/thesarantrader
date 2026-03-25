@@ -83,15 +83,24 @@
     // STATE MANAGEMENT
     // =========================================================================
     const state = {
-        selectedRating: 0,       // [22.5] Encapsulated, not global
+        selectedRating: 0,       //  Encapsulated, not global
         isSubmitting: false,
-        timerIntervals: [],      // [22.15] Store for cleanup
-        feedbackTimeout: null,   // [22.15] Store for cleanup
+        timerIntervals: [],      //  Store for cleanup
+        feedbackTimeout: null,   //  Store for cleanup
         abortController: null,
-        cachedElements: {}       // [22.16] Cache DOM elements
+        cachedElements: {}       //  Cache DOM elements
     };
 
-    // [Removed local Logger definition]
+    // =========================================================================
+    // LOGGER
+    // =========================================================================
+    const Logger = {
+        debug: (...args) => CONFIG.DEBUG && console.log('[Dashboard:Debug]', ...args),
+        info: (...args) => CONFIG.DEBUG && console.info('[Dashboard:Info]', ...args),
+        warn: (...args) => console.warn('[Dashboard:Warn]', ...args),
+        // [22.7, 22.30] Only log safe messages, not sensitive data
+        error: (msg) => console.error('[Dashboard:Error]', msg)
+    };
 
     // =========================================================================
     // VALIDATION UTILITIES
@@ -509,7 +518,7 @@
             return;
         }
 
-        // [22.2] Validate CSRF token
+        //  Validate CSRF token
         const csrfToken = getCSRFToken();
         if (!csrfToken) {
             showFeedback(STRINGS.ERROR_CSRF, 'error');
@@ -543,7 +552,7 @@
             });
 
             if (data.success) {
-                window.Logger.debug('Testimonial submitted successfully');
+                Logger.debug('Testimonial submitted successfully');
                 showFeedback(data.message || STRINGS.SUBMIT_SUCCESS, 'success');
 
                 // Reset all UI elements
@@ -556,7 +565,7 @@
             }
 
         } catch (error) {
-            window.Logger.error('[Submit Error]', error);
+            Logger.error('[Submit Error]', error);
             // Show the actual error message from the server if it's user-friendly
             const displayMsg = (error.message && !error.message.startsWith('HTTP')) ? error.message : STRINGS.ERROR_SUBMIT;
             showFeedback(displayMsg, 'error');
@@ -610,7 +619,7 @@
             // Check element exists
             const existingDiv = document.getElementById(CONFIG.SELECTORS.EXISTING_DIV);
             if (!existingDiv) {
-                window.Logger.warn('Existing testimonials container not found');
+                Logger.warn('Existing testimonials container not found');
                 return;
             }
 
@@ -634,7 +643,7 @@
             existingDiv.classList.remove(CONFIG.CLASSES.HIDDEN);
 
         } catch (error) {
-            window.Logger.error(error.message || 'Failed to load testimonials');
+            Logger.error(error.message || 'Failed to load testimonials');
         }
     }
 
@@ -747,7 +756,7 @@
                 return;
             }
 
-            // [22.18] TODO: Could replace with modal dialog for better UX
+            // Consider replacing with modal dialog for better UX
             if (confirm(STRINGS.DELETE_CONFIRM)) {
                 await deleteTestimonial(id);
             }
@@ -766,7 +775,7 @@
             return;
         }
 
-        // [22.2] Validate CSRF token
+        //  Validate CSRF token
         const csrfToken = getCSRFToken();
         if (!csrfToken) {
             showFeedback(STRINGS.ERROR_CSRF, 'error');
@@ -790,7 +799,7 @@
             }
 
         } catch (error) {
-            window.Logger.error(error.message || 'Delete failed');
+            Logger.error(error.message || 'Delete failed');
             showFeedback(STRINGS.ERROR_DELETE, 'error');
         }
     }
@@ -829,7 +838,7 @@
      * Initialize all dashboard functionality
      */
     function initialize() {
-        window.Logger.debug('Initializing user-dashboard.js');
+        Logger.debug('Initializing user-dashboard.js');
 
         startUserTimers();
         initTestimonialForm();
@@ -838,7 +847,7 @@
         // Cleanup on page unload
         window.addEventListener('beforeunload', cleanup);
 
-        window.Logger.debug('user-dashboard.js initialization complete');
+        Logger.debug('user-dashboard.js initialization complete');
     }
 
     // Run on DOMContentLoaded

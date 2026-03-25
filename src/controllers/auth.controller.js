@@ -10,7 +10,7 @@
  * hashing, session management, and single-session enforcement.
  * 
  * KEY FEATURES:
- * - User registration with dual OTP verification (email + phone)
+ * - User registration with email OTP verification
  * - Multi-method login (username, email, or phone)
  * - Password reset with OTP verification
  * - Lazy password migration (plain text to bcrypt hash)
@@ -41,11 +41,13 @@
 /*                                DEPENDENCIES                                */
 /* -------------------------------------------------------------------------- */
 
-const prisma = require("../utils/prisma");
-const { withRetry } = require("../utils/prisma");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
+const { sendOtpEmail } = require("../utils/mailer");
+const prisma = require("../utils/prisma");
 
+// In-memory store for OTPs and rate limiting
+// Structure: { email: { otp: string, expires: timestamp, resendCount: number, lastResendTime: timestamp } }
 const otpStore = {};
 
 // [Security] Cleanup interval to prevent memory leak from expired OTPs
@@ -148,90 +150,112 @@ exports.checkExistence = async (req, res) => {
 };
 
 /**
- * Send OTP to email or phone for registration verification.
+ * Helper to check and update progressive rate limiting for OTP resends.
+ * 
+ * Delays:
+ * - 1st Resend (2nd Request): 30s
+ * - 2nd Resend (3rd Request): 1m
+ * - 3rd+ Resend: 2m
+ * 
+ * @param {string} identifier - Email address
+ * @returns {{ allowed: boolean, waitSeconds?: number }}
+ */
+function getOtpRateLimitStatus(identifier) {
+    const record = otpStore[identifier];
+    if (!record || !record.lastResendTime) {
+        return { allowed: true };
+    }
+
+    const now = Date.now();
+    const resendCount = record.resendCount || 0;
+    const timeSinceLast = now - record.lastResendTime;
+
+    let requiredDelay = 0;
+    if (resendCount === 0) requiredDelay = 30 * 1000;      // 30s for 2nd request
+    else if (resendCount === 1) requiredDelay = 60 * 1000; // 1m for 3rd request
+    else requiredDelay = 120 * 1000;                       // 2m for 4th+ request
+
+    if (timeSinceLast < requiredDelay) {
+        return { 
+            allowed: false, 
+            waitSeconds: Math.ceil((requiredDelay - timeSinceLast) / 1000) 
+        };
+    }
+
+    return { allowed: true };
+}
+
+/**
+ * Send OTP to email for registration verification.
  * 
  * PURPOSE:
- * Generates and sends 6-digit OTP for email/phone verification during
- * user registration. Prevents registration with unverified contact info.
+ * Generates and sends 6-digit OTP for email verification during
+ * user registration.
  * 
  * @route POST /api/auth/send-otp
- * @access Public
- * 
- * @param {Object} req.body - Request payload
- * @param {string} req.body.identifier - Email address or phone number
- * @param {string} req.body.type - Type of identifier ('email' or 'phone')
- * 
- * @returns {Object} JSON response
- * @returns {boolean} success - Operation success status
- * @returns {string} message - Descriptive message
- * 
- * @throws {400} If identifier is already registered
- * @throws {500} If OTP generation/sending fails
- * 
- * OTP LIFECYCLE:
- * 1. Generate random 6-digit code
- * 2. Store in otpStore with 5-minute expiration
- * 3. Log to console (production: send via SMS/Email API)
- * 4. Expire after 5 minutes
- * 5. Delete after successful verification
- * 
- * NOTE: See ERROR_TRACKING.txt for issues and improvements
+ * @access Public (with progressive rate limiting)
  */
 exports.sendOtp = async (req, res) => {
     try {
-        const { identifier, type } = req.body; // type: 'email' or 'phone'
+        const { identifier } = req.body; 
 
-        if (!identifier) {
-            return res.status(400).json({ success: false, message: "Identifier is required" });
+        if (!identifier || !identifier.includes('@')) {
+            return res.status(400).json({ success: false, message: "Valid email is required" });
         }
 
-        const normalizedIdentifier = type === 'email' ? identifier.trim().toLowerCase() : identifier.trim();
+        const normalizedIdentifier = identifier.trim().toLowerCase();
 
-        // Check if Email/Phone exists in Database
-        const field = type === 'email' ? 'email' : 'phone';
-        const whereClause = {};
-        whereClause[field] = normalizedIdentifier;
+        // 1. Check Rate Limiter [Requirement: 30s, 1m, 2m]
+        const limitStatus = getOtpRateLimitStatus(normalizedIdentifier);
+        if (!limitStatus.allowed) {
+            return res.status(429).json({ 
+                success: false, 
+                message: `Please wait ${limitStatus.waitSeconds}s before requesting a new code.` 
+            });
+        }
 
-        const user = await prisma.user.findUnique({ where: whereClause });
+        // 2. Check if Email already registered
+        const user = await prisma.user.findUnique({ 
+            where: { email: normalizedIdentifier } 
+        });
 
         if (user) {
-            return res.status(400).json({ success: false, message: `${type === 'email' ? 'Email' : 'Phone number'} is already registered.` });
+            return res.status(400).json({ success: false, message: "Email is already registered." });
         }
 
-        // Generate 6-digit OTP using cryptographically secure generator [Security Hardening]
+        // 3. Generate 6-digit OTP
         const otp = crypto.randomInt(100000, 999999).toString();
 
-        // Store OTP with expiration (e.g., 5 min)
+        // 4. Update OTP record - this immediately invalidates the previous OTP
+        // by overwriting it with a new one.
+        const existingRecord = otpStore[normalizedIdentifier];
         otpStore[normalizedIdentifier] = {
             otp,
-            expires: Date.now() + 5 * 60 * 1000
+            expires: Date.now() + 10 * 60 * 1000, // [Requirement: 10 mins]
+            resendCount: existingRecord ? (existingRecord.resendCount + 1) : 0,
+            lastResendTime: Date.now()
         };
 
-        // Send OTP via configured service or fallback to console
-        if (process.env.EMAIL_SERVICE_ENABLED === 'true' && type === 'email') {
-            console.log(`✉️ [Email] Sending OTP to ${normalizedIdentifier} via SMTP...`);
-            // TODO: Implement nodemailer.sendMail({ to: normalizedIdentifier, text: `Your OTP is ${otp}` })
-        } else if (process.env.SMS_SERVICE_ENABLED === 'true' && type === 'phone') {
-            console.log(`📱 [SMS] Sending OTP to ${normalizedIdentifier} via API Gateway...`);
-            // TODO: Implement SMS API call using process.env.SMS_API_KEY
-        } else {
-            // Log OTP to console (Simulating SMS/Email for development)
-            console.log(`[OTP] Code for ${normalizedIdentifier}: ${otp} (Fallback to console)`);
+        // 5. Send Email via professional utility
+        const emailSent = await sendOtpEmail(normalizedIdentifier, otp);
+        
+        if (!emailSent) {
+            return res.status(500).json({ success: false, message: "Failed to deliver email. Please try again later." });
         }
 
-        res.json({ success: true, message: `OTP sent to ${normalizedIdentifier}` });
+        res.json({ success: true, message: `Verification code sent to ${normalizedIdentifier}` });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: "Error sending OTP" });
+        console.error("❌ Send OTP Error:", err);
+        res.status(500).json({ success: false, message: "Error sending verification code" });
     }
 };
 
 
 /**
- * Register new user with dual OTP verification (email + phone).
+ * Register new user with email OTP verification.
  * 
  * PURPOSE:
- * Creates new user account after verifying both email and phone OTPs.
+ * Creates new user account after verifying email OTP.
  * Implements comprehensive validation and secure password storage.
  * 
  * @route POST /auth/register
@@ -241,7 +265,7 @@ exports.sendOtp = async (req, res) => {
  * @param {string} req.body.name - User's full name
  * @param {string} req.body.username - Unique username
  * @param {string} req.body.email - Email address (must be OTP-verified)
- * @param {string} req.body.phone - Phone number (must be OTP-verified)
+ * @param {string} req.body.phone - Phone number (collected for profile)
  * @param {string} req.body.state - State/province
  * @param {string} req.body.city - City
  * @param {string} req.body.password - Plain text password (will be hashed)
@@ -253,8 +277,7 @@ exports.sendOtp = async (req, res) => {
  * 
  * VALIDATION FLOW:
  * 1. Verify email OTP (validity + expiration)
- * 2. Verify phone OTP (validity + expiration)
- * 3. Check for existing user (username, email, phone)
+ * 2. Check for existing user (username, email, phone)
  * 4. Hash password with bcrypt (10 rounds)
  * 5. Create user in database
  * 6. Clear OTPs from store
@@ -262,7 +285,7 @@ exports.sendOtp = async (req, res) => {
  * 
  * ERROR HANDLING:
  * - Invalid/expired email OTP → re-render with error + form data
- * - Invalid/expired phone OTP → re-render with error + form data
+ * - Invalid/expired email OTP → re-render with error + form data
  * - Duplicate user → re-render with error + form data
  * - Database error → re-render with generic error + form data
  * 
@@ -290,18 +313,7 @@ exports.registerUser = async (req, res) => {
         const storedEmailOtp = otpStore[email];
         if (!storedEmailOtp || storedEmailOtp.otp !== otp || Date.now() > storedEmailOtp.expires) {
             return res.render("auth/signup", {
-                error: "Invalid or expired Email OTP.",
-                formData: req.body
-            });
-        }
-
-        // Verify Mobile OTP
-        // Note: The frontend sends 'mobile-otp' as the name, ensure it matches
-        const mobileOtpValue = req.body['mobile-otp'];
-        const storedMobileOtp = otpStore[phone];
-        if (!storedMobileOtp || storedMobileOtp.otp !== mobileOtpValue || Date.now() > storedMobileOtp.expires) {
-            return res.render("auth/signup", {
-                error: "Invalid or expired Phone OTP.",
+                error: "Invalid or expired verification code.",
                 formData: req.body
             });
         }
@@ -353,9 +365,8 @@ exports.registerUser = async (req, res) => {
 
         console.log(`✅ [MongoDB] User Registered: ${newUser.username}`);
 
-        // Clear OTPs after successful registration
+        // Clear OTP after successful registration
         delete otpStore[email];
-        delete otpStore[phone];
 
         res.redirect("/login");
     } catch (err) {
@@ -446,14 +457,12 @@ exports.registerUser = async (req, res) => {
  * - CSRF protection via middleware ✓
  * 
  * REDIRECT LOGIC:
- * - Admin users → /admin/dashboard
- * - Regular users → /dashboard
+/**
+ * Login user with lazy password migration and single-session enforcement
  */
 exports.loginUser = async (req, res) => {
     try {
         const { loginIdentifier, password, loginType } = req.body;
-
-        console.log(`[Login Attempt] Identifier: ${loginIdentifier}, Type: ${loginType}`);
 
         let user = null;
         const identifier = loginIdentifier ? loginIdentifier.trim() : '';
@@ -467,6 +476,7 @@ exports.loginUser = async (req, res) => {
 
         // Fallback or Try All: If no user found with specific type, try searching all fields
         if (!user) {
+            console.log(`[AUTH DEBUG] Login attempt for: ${loginIdentifier}`);
             user = await withRetry(
                 () => prisma.user.findFirst({
                     where: {
@@ -516,8 +526,8 @@ exports.loginUser = async (req, res) => {
         // Store user in session
         req.session.regenerate(async (err) => {
             if (err) {
-                console.error('Session regeneration failed:', err);
-                return res.status(500).send('Login failed. Please try again.');
+                console.error('[AUTH ERROR] Session regeneration error:', err);
+                return res.render("auth/login", { error: "Login failed. Please try again." });
             }
 
             req.session.user = {
@@ -573,18 +583,16 @@ exports.loginUser = async (req, res) => {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Send password reset OTP to email or phone.
+ * Send password reset OTP to user's registered email.
  * 
  * PURPOSE:
  * Initiates password reset flow by generating and sending OTP to registered
- * email or phone number.
+ * password reset code (6-digit OTP) to the user's registered email.
  * 
  * @route POST /api/auth/forgot-password
  * @access Public (⚠️ NOT rate limited)
  * 
  * @param {Object} req.body - Request payload
- * @param {string} req.body.identifier - Email address or phone number
- * @param {string} req.body.type - Type of identifier ('email' or 'phone')
  * 
  * @returns {Object} JSON response
  * @returns {boolean} success - Operation success status
@@ -616,7 +624,7 @@ exports.loginUser = async (req, res) => {
  * 3. SMS/Email quota blown
  * 4. Cost: Twilio/SendGrid charges per message
  * 
- * FIX: Implement rate limiting (max 3 attempts per 15 minutes) ✓
+ * FIX: Rate limiting is implemented via resetLimiter in auth.route.js ✓
  * 
  * Also consider: IP-based rate limiting prevents single attacker abusing feature
  * 
@@ -633,65 +641,75 @@ exports.loginUser = async (req, res) => {
  * - Rationale: Password reset is emergency, user might be away
  * - But could also be accidental - should be documented
  */
+/**
+ * Helper for forgot password rate limiting.
+ */
+function getForgotPasswordRateLimitStatus(email) {
+    return getOtpRateLimitStatus(email); // Reuse the same logic
+}
 exports.forgotPassword = async (req, res) => {
     try {
-        const { identifier, type } = req.body; // type: 'email' or 'phone'
+        const { email } = req.body; 
 
-        if (!identifier || !type) {
-            return res.status(400).json({ success: false, message: "Identifier and type are required" });
+        if (!email) {
+            return res.status(400).json({ success: false, message: "Email is required" });
         }
 
-        const normalizedIdentifier = type === 'email' ? identifier.trim().toLowerCase() : identifier.trim();
+        const normalizedEmail = email.trim().toLowerCase();
 
-        // [Security] Rate limit per identifier to prevent OTP spamming
-        if (checkForgotPasswordLimit(normalizedIdentifier)) {
-            console.warn(`⚠️ [Security] Rate limit exceeded for forgot password: ${normalizedIdentifier}`);
-            return res.status(429).json({
-                success: false,
-                message: "Too many reset attempts. Please try again in 15 minutes."
-            });
-        }
-
-        // [Security] Basic email format validation if type is email
-        if (type === 'email') {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(normalizedIdentifier)) {
-                return res.status(400).json({ success: false, message: "Invalid email format" });
+        // Find user by email, username, or phone
+        // but OTP will ALWAYS go to the registered email.
+        const user = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email: normalizedEmail },
+                    { username: normalizedEmail },
+                    { phone: email.trim() }
+                ]
             }
-        }
+        });
 
-        // Find user in DB
-        const field = type === 'email' ? 'email' : 'phone';
-        const whereClause = {};
-        whereClause[field] = normalizedIdentifier;
-
-        const user = await prisma.user.findUnique({ where: whereClause });
-
-        if (!user) {
-            // [Security] Generic message for internal errors, but here we return 404
+        if (!user || !user.email) {
+            // [Security] We return 404 here to be explicit as requested, 
+            // but normally we might return 200 to prevent account enumeration.
             return res.status(404).json({
                 success: false,
-                message: `No account found with this ${type}.`
+                message: "No account found with this information."
             });
         }
 
-        // Generate 6-digit OTP using cryptographically secure generator [Security Hardening]
+        // Apply progressive rate limit to the user's email
+        const limitStatus = getForgotPasswordRateLimitStatus(user.email);
+        if (!limitStatus.allowed) {
+            return res.status(429).json({
+                success: false,
+                message: `Please wait ${limitStatus.waitSeconds}s before requesting a new code.`
+            });
+        }
+
+        // Generate 6-digit OTP
         const otp = crypto.randomInt(100000, 999999).toString();
 
-        // Store OTP with expiration (e.g., 10 minutes)
-        otpStore[normalizedIdentifier] = {
+        // Store OTP with 10-minute expiration - this immediately invalidates the previous OTP
+        const existingRecord = otpStore[user.email];
+        otpStore[user.email] = {
             otp,
-            expires: Date.now() + 10 * 60 * 1000
+            expires: Date.now() + 10 * 60 * 1000,
+            resendCount: existingRecord ? (existingRecord.resendCount + 1) : 0,
+            lastResendTime: Date.now()
         };
 
-        // Log OTP to console (Simulating SMS/Email)
-        // TODO: Replace with actual SMS/Email API call when key is provided
-        console.log(`[OTP] Password Reset Code for ${normalizedIdentifier}: ******`);
+        // Send Email
+        const emailSent = await sendOtpEmail(user.email, otp);
 
-        res.json({ success: true, message: `OTP sent to ${normalizedIdentifier}` });
+        if (!emailSent) {
+            return res.status(500).json({ success: false, message: "Failed to deliver reset code." });
+        }
+
+        res.json({ success: true, message: `Reset code sent to ${user.email.replace(/(.{2})(.*)(?=@)/, '$1***')}` });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: "Error sending OTP" });
+        console.error("❌ Forgot Password Error:", err);
+        res.status(500).json({ success: false, message: "Error sending reset code" });
     }
 };
 
@@ -754,8 +772,8 @@ exports.verifyResetOTP = async (req, res) => {
             return res.status(400).json({ success: false, message: "Identifier and OTP are required" });
         }
 
-        // Normalize email if identifier looks like one
-        const normalizedIdentifier = identifier.includes('@') ? identifier.trim().toLowerCase() : identifier.trim();
+        // Normalize email
+        const normalizedIdentifier = identifier.trim().toLowerCase();
 
         const storedOtp = otpStore[normalizedIdentifier];
 
@@ -800,7 +818,7 @@ exports.verifyResetOTP = async (req, res) => {
  * RESET FLOW:
  * 1. Re-verify OTP (CRITICAL: prevent bypass attacks)
  * 2. Validate OTP expiration
- * 3. Find user by email or phone
+ * 3. Find user by email
  * 4. Hash new password with bcrypt (10 rounds)
  * 5. Update password in database
  * 6. Delete OTP from store (prevent reuse)
@@ -820,8 +838,8 @@ exports.resetPassword = async (req, res) => {
             });
         }
 
-        // Normalize email if identifier looks like one
-        const normalizedIdentifier = identifier.includes('@') ? identifier.trim().toLowerCase() : identifier.trim();
+        // Normalize email
+        const normalizedIdentifier = identifier.trim().toLowerCase();
 
         // 1. Verify OTP again (CRITICAL for security)
         const storedOtp = otpStore[normalizedIdentifier];
@@ -835,17 +853,9 @@ exports.resetPassword = async (req, res) => {
         }
 
         // 2. Find user with retry
-        const user = await withRetry(
-            () => prisma.user.findFirst({
-                where: {
-                    OR: [
-                        { email: normalizedIdentifier },
-                        { phone: normalizedIdentifier }
-                    ]
-                }
-            }),
-            2
-        );
+        const user = await prisma.user.findUnique({
+            where: { email: normalizedIdentifier }
+        });
 
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
@@ -904,7 +914,7 @@ exports.resetPassword = async (req, res) => {
  * 6. Redirect to homepage
  * 
  * ⚠️ ISSUE: HARDCODED COOKIE NAME
- * ✋ Line: res.clearCookie('thesarantrader.sid')
+ * ✋ Line: res.clearCookie(process.env.SESSION_COOKIE_NAME || 'thesarantrader.sid')
  * 
  * PROBLEM:
  * - Cookie name is hardcoded as 'thesarantrader.sid'

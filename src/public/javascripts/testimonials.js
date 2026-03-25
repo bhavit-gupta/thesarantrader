@@ -25,12 +25,12 @@
         MAX_RATING: 5,
         MIN_RATING: 1,
         CACHE_KEY: 'testimonials_cache',
-        CACHE_EXPIRY_MS: 60 * 60 * 1000, // [21.30] 1 hour cache
+        CACHE_EXPIRY_MS: 60 * 60 * 1000, //  1 hour cache
         DEBUG: false,
         SELECTORS: Object.freeze({
             GRID: 'testimonials-grid'
         }),
-        // [21.24] Centralized class names
+        //  Centralized class names
         CLASSES: Object.freeze({
             CARD: 'bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden',
             STAR: 'fa-solid fa-star text-yellow-400',
@@ -75,7 +75,16 @@
         abortController: null
     };
 
-    // [Removed local Logger definition]
+    // =========================================================================
+    // LOGGER
+    // =========================================================================
+    const Logger = {
+        debug: (...args) => CONFIG.DEBUG && console.log('[Testimonials:Debug]', ...args),
+        info: (...args) => CONFIG.DEBUG && console.info('[Testimonials:Info]', ...args),
+        warn: (...args) => console.warn('[Testimonials:Warn]', ...args),
+        //  Only log safe message, not full error object
+        error: (msg) => console.error('[Testimonials:Error]', msg)
+    };
 
     // =========================================================================
     // VALIDATION UTILITIES
@@ -83,8 +92,8 @@
 
     /**
      * Escape HTML to prevent XSS
-     * [21.2] Fixed - complete function definition
-     * [21.16] DOM-based escaping (safe and reliable)
+     *  Fixed - complete function definition
+     *  DOM-based escaping (safe and reliable)
      * @param {string} text - Text to escape
      * @returns {string} Escaped text
      */
@@ -98,14 +107,14 @@
 
     /**
      * Validate testimonial structure
-     * [21.28] Required fields validation
+     *  Required fields validation
      * @param {*} testimonial - Testimonial object
      * @returns {object|null} Validated testimonial or null
      */
     function validateTestimonial(testimonial) {
         if (!testimonial || typeof testimonial !== 'object') return null;
 
-        // [21.17] Validate userName as string
+        //  Validate userName as string
         const userName = typeof testimonial.userName === 'string' && testimonial.userName.trim()
             ? testimonial.userName.trim()
             : null;
@@ -136,7 +145,7 @@
 
     /**
      * Get gradient for index
-     * [21.6] Safe gradient access with bounds checking
+     *  Safe gradient access with bounds checking
      * @param {number} index - Array index
      * @returns {object} Gradient object
      */
@@ -149,7 +158,7 @@
 
     /**
      * Get user initial
-     * [21.5] Safe initial extraction
+     *  Safe initial extraction
      * @param {string} userName - User name
      * @returns {string} Initial character
      */
@@ -166,7 +175,7 @@
 
     /**
      * Get cached testimonials
-     * [21.30] Cache with 1hr expiry
+     *  Cache with 1hr expiry
      * @returns {array|null} Cached testimonials or null
      */
     function getCachedTestimonials() {
@@ -224,14 +233,14 @@
             const response = await fetch(url, { signal: controller.signal });
             clearTimeout(timeoutId);
 
-            // [21.1] Check response.ok before JSON parse
+            //  Check response.ok before JSON parse
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
 
             const data = await response.json();
 
-            // [21.23] Validate response structure
+            //  Validate response structure
             if (!data || typeof data !== 'object') {
                 throw new Error('Invalid response format');
             }
@@ -261,7 +270,7 @@
 
     /**
      * Show loading state
-     * [21.22] Loading indicator
+     *  Loading indicator
      * @param {HTMLElement} grid - Grid element
      */
     function showLoading(grid) {
@@ -275,7 +284,7 @@
 
     /**
      * Show empty state
-     * [21.29] Grid layout compatible
+     *  Grid layout compatible
      * @param {HTMLElement} grid - Grid element
      */
     function showEmptyState(grid) {
@@ -290,7 +299,7 @@
 
     /**
      * Show error state
-     * [21.20] Error message display
+     *  Error message display
      * @param {HTMLElement} grid - Grid element
      * @param {string} message - Error message
      */
@@ -304,7 +313,7 @@
 
     /**
      * Create star rating element
-     * [21.13] DOM-based star creation
+     *  DOM-based star creation
      * @param {number} rating - Rating 1-5
      * @returns {HTMLElement} Star container
      */
@@ -383,7 +392,7 @@
 
     /**
      * Render testimonials grid
-     * [21.21] Uses DocumentFragment for batch insert
+     *  Uses DocumentFragment for batch insert
      * @param {HTMLElement} grid - Grid element
      * @param {array} testimonials - Validated testimonials
      */
@@ -396,7 +405,7 @@
             return;
         }
 
-        // [21.21] Use DocumentFragment for batch DOM insertion
+        //  Use DocumentFragment for batch DOM insertion
         const fragment = document.createDocumentFragment();
 
         // Limit to max testimonials
@@ -416,7 +425,7 @@
         }
 
         grid.appendChild(fragment);
-        window.Logger.debug('Rendered testimonials:', fragment.childNodes.length);
+        Logger.debug('Rendered testimonials:', fragment.childNodes.length);
     }
 
     // =========================================================================
@@ -425,28 +434,31 @@
 
     /**
      * Load testimonials from API or cache
+     * @param {boolean} forceRefresh - If true, bypasses the local cache
      */
-    async function loadTestimonials() {
-        // [21.9] Use configurable selector
+    async function loadTestimonials(forceRefresh = false) {
+        //  Use configurable selector
         const grid = document.getElementById(CONFIG.SELECTORS.GRID);
         if (!grid) return;
 
-        // [21.30] Check cache first
-        const cached = getCachedTestimonials();
-        if (cached && cached.length > 0) {
-            window.Logger.debug('Using cached testimonials');
-            renderTestimonials(grid, cached);
-            return;
+        //  Check cache first (unless forced)
+        if (!forceRefresh) {
+            const cached = getCachedTestimonials();
+            if (cached && cached.length > 0) {
+                Logger.debug('Using cached testimonials');
+                renderTestimonials(grid, cached);
+                return;
+            }
         }
 
-        // [21.22] Show loading state
+        //  Show loading state
         showLoading(grid);
         state.isLoading = true;
 
         try {
             const data = await fetchWithTimeout('/api/testimonials/approved?featured=true');
 
-            // [21.3] Validate response has testimonials array
+            //  Validate response has testimonials array
             if (data.success && Array.isArray(data.testimonials)) {
                 state.testimonials = data.testimonials;
                 setCachedTestimonials(data.testimonials);
@@ -456,8 +468,8 @@
             }
 
         } catch (error) {
-            // [21.7] Only log safe message
-            window.Logger.error(error.message || 'API request failed');
+            //  Only log safe message
+            Logger.error(error.message || 'API request failed');
             showErrorState(grid, error.message);
         } finally {
             state.isLoading = false;
@@ -470,17 +482,20 @@
 
     /**
      * Initialize testimonials module
-     * [21.26] Wrapped in DOMContentLoaded
+     *  Wrapped in DOMContentLoaded
      */
     function initialize() {
-        window.Logger.debug('Initializing testimonials.js');
+        Logger.debug('Initializing testimonials.js');
 
         if (document.getElementById(CONFIG.SELECTORS.GRID)) {
-            loadTestimonials();
+            // Force refresh if there's a specific URL parameter (e.g., ?refresh_testimonials=true)
+            const urlParams = new URLSearchParams(window.location.search);
+            const forceRefresh = urlParams.get('refresh_testimonials') === 'true';
+            loadTestimonials(forceRefresh);
         }
     }
 
-    // [21.26] Wait for DOM ready
+    //  Wait for DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initialize);
     } else {

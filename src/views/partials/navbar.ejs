@@ -70,7 +70,7 @@
                 <!-- ========== DESKTOP NAVIGATION MENU ========== -->
                 <!-- Visible on md (768px) and larger screens -->
                 <div class="hidden md:flex space-x-8 items-center">
-                    <a href="/"
+                    <a href="/<%= (typeof user !=='undefined' && user && user.role === 'ADMIN') ? '?refresh_testimonials=true' : '' %>"
                         class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">Home</a>
                     <a href="/features"
                         class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">Features</a>
@@ -175,7 +175,7 @@
     <!-- Hidden by default, toggled via JavaScript on hamburger click -->
     <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 bg-white">
         <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <a href="/"
+            <a href="/<%= (typeof user !=='undefined' && user && (user.role === 'ADMIN' || user.role === 'admin')) ? '?refresh_testimonials=true' : '' %>"
                 class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Home</a>
             <a href="/features"
                 class="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50">Features</a>
@@ -276,9 +276,6 @@
     </script>
     <script id="server-side-pending-courses" type="application/json">
         <%- safeJson(locals.pendingCourseIds || []) %>
-    </script>
-    <script id="server-side-env" type="application/json">
-        <%- safeJson({ isDevelopment: locals.isDevelopment || false }) %>
     </script>
 
     <!-- Client-side auth initialization script -->

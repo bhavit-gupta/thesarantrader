@@ -146,7 +146,22 @@ async function verifyAdminInDatabase(req, res, next) {
 
 // Landing page
 // Rate limiting on public pages
-router.get('/', authLimiter, (req, res) => res.render("layouts/index"));
+router.get('/', authLimiter, async (req, res) => {
+    try {
+        // Fetch custom hero image if set by admin
+        const heroSetting = await prisma.siteSetting.findUnique({
+            where: { key: 'hero_image' }
+        });
+        
+        const heroImage = heroSetting ? heroSetting.value : '/images/hero-image.png';
+        
+        res.render("layouts/index", { heroImage });
+    } catch (error) {
+        // Fallback to default if database fails
+        console.error('[Views] Home error:', error.message);
+        res.render("layouts/index", { heroImage: '/images/hero-image.png' });
+    }
+});
 
 // Course catalog
 // Caching and pagination handled at app level
@@ -244,7 +259,7 @@ router.get('/checkout/:courseId',
             });
 
             // Log without exposing full userId
-            console.log(`[Checkout] User: ${userId.slice(-6)} - Course: ${courseId.slice(-6)} - Pending: ${!!pendingPurchase}`);
+            console.log(`[Checkout] User: ${userId.slice(-6)} - Course: ${courseId.slice(-6)} - Pending: ${Boolean(pendingPurchase)}`);
 
             if (pendingPurchase) {
                 return res.redirect(`${URLS.DASHBOARD}?info=payment_pending`);
@@ -344,26 +359,26 @@ router.get('/admin/dashboard',
                 coursesResult,
                 totalPaidUsersResult,
                 pendingPurchasesResult,
-                revenueResult,
                 totalUsersResult,
-                allEnrollmentsResult
+                allEnrollmentsResult,
+                heroSettingResult
             ] = await Promise.allSettled([
                 prisma.course.findMany({ orderBy: { startDate: 'asc' } }),
                 prisma.user.count({ where: { purchasedCourseIds: { isEmpty: false } } }),
                 prisma.purchase.findMany({ where: { status: 'PENDING' }, orderBy: { date: 'desc' } }).catch(() => prisma.purchase.findMany({ where: { status: 'PENDING' } })), // Fallback if date sorting fails
-                prisma.purchase.aggregate({ _sum: { amount: true }, where: { status: 'COMPLETED' } }),
                 prisma.user.count(),
-                prisma.user.findMany({ where: { purchasedCourseIds: { isEmpty: false } }, select: { purchasedCourseIds: true } })
+                prisma.user.findMany({ where: { purchasedCourseIds: { isEmpty: false } }, select: { purchasedCourseIds: true } }),
+                prisma.siteSetting.findUnique({ where: { key: 'hero_image' } })
             ]);
 
             // Extract results with default fallbacks
             const courses = coursesResult.status === 'fulfilled' ? coursesResult.value : [];
             const totalPaidUsers = totalPaidUsersResult.status === 'fulfilled' ? totalPaidUsersResult.value : 0;
             const pendingPurchases = pendingPurchasesResult.status === 'fulfilled' ? pendingPurchasesResult.value : [];
-            const revenueAgg = revenueResult.status === 'fulfilled' ? revenueResult.value : {};
-            const totalRevenue = revenueAgg._sum?.amount || 0;
             const totalUsers = totalUsersResult.status === 'fulfilled' ? totalUsersResult.value : 0;
             const allEnrollments = allEnrollmentsResult.status === 'fulfilled' ? allEnrollmentsResult.value : [];
+            const heroSetting = heroSettingResult.status === 'fulfilled' ? heroSettingResult.value : null;
+            const heroImage = heroSetting ? heroSetting.value : '/images/hero-image.png';
 
             if (totalPaidUsersResult.status === 'rejected') console.error('[Dashboard] totalPaidUsers failed:', totalPaidUsersResult.reason.message);
             if (pendingPurchasesResult.status === 'rejected') console.error('[Dashboard] pendingPurchases failed:', pendingPurchasesResult.reason.message);
@@ -426,9 +441,9 @@ router.get('/admin/dashboard',
                 upcomingCourses,
                 expiredCourses,
                 pendingPurchases: enrichedPendingPurchases,
+                heroImage,
                 stats: {
                     totalPaidUsers,
-                    totalRevenue,
                     totalUsers
                 }
             });

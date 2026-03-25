@@ -93,23 +93,7 @@ const STRINGS = {
 /* -------------------------------------------------------------------------- */
 
 // Safe controller import with validation
-let controllers;
-try {
-    controllers = require("../controllers/auth.controller");
-} catch (error) {
-    console.error('[AUTH ROUTES] Failed to load auth.controller:', error.message);
-    // Provide fallback error handlers
-    controllers = {
-        registerUser: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        loginUser: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        logoutUser: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        forgotPassword: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        resetPassword: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        verifyResetOTP: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        sendOtp: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        checkExistence: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' })
-    };
-}
+const controllers = require("../controllers/auth.controller");
 
 const {
     registerUser,
@@ -206,8 +190,7 @@ function validateRegisterInput(req, res, next) {
     if (!isValidPassword(password)) errors.push(STRINGS.INVALID_PASSWORD);
     if (!state || state.trim().length === 0) errors.push('State is required');
     if (!city || city.trim().length === 0) errors.push('City is required');
-    if (!otp) errors.push('Email OTP is required');
-    if (!req.body['mobile-otp']) errors.push('Mobile OTP is required');
+    if (!otp) errors.push('Verification code is required');
 
     if (errors.length > 0) {
         if (req.headers.accept && req.headers.accept.includes('application/json')) {
@@ -267,31 +250,23 @@ function validateLoginInput(req, res, next) {
  * Send OTP input validation middleware
  */
 function validateSendOtpInput(req, res, next) {
-    const { email, phone } = req.body || {};
+    const { email } = req.body || {};
 
-    if (!email && !phone) {
+    if (!email) {
         return res.status(400).json({
             success: false,
-            message: 'Email or phone is required'
+            message: 'Email is required'
         });
     }
 
-    if (email && !isValidEmail(email)) {
+    if (!isValidEmail(email)) {
         return res.status(400).json({
             success: false,
             message: STRINGS.INVALID_EMAIL
         });
     }
 
-    if (phone && !isValidPhone(phone)) {
-        return res.status(400).json({
-            success: false,
-            message: STRINGS.INVALID_PHONE
-        });
-    }
-
-    if (email) req.body.email = email.trim().toLowerCase();
-    if (phone) req.body.phone = phone.trim();
+    req.body.email = email.trim().toLowerCase();
     next();
 }
 
@@ -308,17 +283,10 @@ function validateForgotPasswordInput(req, res, next) {
         });
     }
 
-    if (type === 'email' && !isValidEmail(identifier)) {
+    if (!isValidEmail(identifier)) {
         return res.status(400).json({
             success: false,
             message: STRINGS.INVALID_EMAIL
-        });
-    }
-
-    if (type === 'phone' && !isValidPhone(identifier)) {
-        return res.status(400).json({
-            success: false,
-            message: STRINGS.INVALID_PHONE
         });
     }
 

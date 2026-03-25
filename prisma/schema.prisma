@@ -64,7 +64,7 @@ datasource db {
 
 /**
  * UserRole Enum - Defines user access levels
- * [31.1] Added enum to enforce valid role values at schema level
+ *  Added enum to enforce valid role values at schema level
  * Values:
  * - USER: Regular user/learner (default)
  * - ADMIN: Instructor/administrator with elevated privileges
@@ -76,7 +76,7 @@ enum UserRole {
 
 /**
  * PurchaseStatus Enum - Payment verification states
- * [31.5] Added enum to enforce valid purchase status values
+ *  Added enum to enforce valid purchase status values
  * Values:
  * - PENDING: Awaiting admin review (manual payment)
  * - COMPLETED: Payment verified, user enrolled
@@ -90,7 +90,7 @@ enum PurchaseStatus {
 
 /**
  * TestimonialStatus Enum - Moderation workflow states
- * [31.6] Added enum to enforce valid testimonial status values
+ *  Added enum to enforce valid testimonial status values
  * Values:
  * - PENDING: Submitted, awaiting admin review
  * - APPROVED: Admin approved, visible to public
@@ -104,7 +104,7 @@ enum TestimonialStatus {
 
 /**
  * PaymentMethod Enum - How payment was made
- * [31.22] Added enum to validate payment method values
+ *  Added enum to validate payment method values
  * Values:
  * - GATEWAY: Automatic payment via Razorpay/Stripe
  * - MANUAL: User uploaded screenshot for verification
@@ -116,7 +116,7 @@ enum PaymentMethod {
 
 /**
  * TestimonialUserRole Enum - Display role on testimonials
- * [31.24] Added enum to validate testimonial userRole values
+ *  Added enum to validate testimonial userRole values
  * Values:
  * - user: Learning user
  * - TRADER: Active trader
@@ -142,23 +142,23 @@ enum TestimonialUserRole {
  * - email: Login email (must be unique, verified for registration)
  * - phone: Contact phone number (must be unique)
  * - password: Hashed password (NEVER store plaintext)
- * NOTE: [31.2] Password length validation enforced at application level
+ * NOTE:  Password length validation enforced at application level
  * - name: Full name (optional)
  * - role: User type - USER (user) or ADMIN (instructor/admin)
- * NOTE: [31.1] Uses UserRole enum for schema-level validation
+ * NOTE:  Uses UserRole enum for schema-level validation
  * - state & city: User location (for demographic tracking)
  * - currentSessionId: Device/session ID for single-session enforcement
  * (prevents login from multiple devices simultaneously)
  * - purchasedCourseIds: Array of Course IDs user has purchased/enrolled in
- * NOTE: [31.3] Deduplication enforced at application level
+ * NOTE:  Deduplication enforced at application level
  * - deletedAt: Soft delete timestamp (null = active, set = deleted)
- * NOTE: [31.20] Added for soft delete support
+ * NOTE:  Added for soft delete support
  * - createdAt: Account creation timestamp (auto-set)
  * - updatedAt: Last profile update timestamp (auto-updated)
  * UNIQUENESS CONSTRAINTS:
  * Each user must have unique username, email, and phone to prevent duplicates
  * INDEXES:
- * - email: Fast login lookups [31.10]
+ * - email: Fast login lookups 
  * USAGE:
  * - Authentication: Login with username/email/phone + password
  * - Profile: Store user metadata and location
@@ -170,14 +170,14 @@ model User {
   username           String    @unique
   email              String    @unique
   phone              String    @unique
-  password           String // [31.2] Length validation at app level (bcrypt hashes are 60 chars)
+  password           String //  Length validation at app level (bcrypt hashes are 60 chars)
   name               String?
-  role               UserRole  @default(USER) // [31.1] Enum for valid roles
+  role               UserRole  @default(USER) //  Enum for valid roles
   state              String? // User's state/region
   city               String? // User's city
   currentSessionId   String? // Current device session ID (enforces single login per device)
-  purchasedCourseIds String[]  @db.ObjectId // [31.3] Deduplication at app level
-  deletedAt          DateTime? // [31.20] Soft delete timestamp (null = active)
+  purchasedCourseIds String[]  @db.ObjectId //  Deduplication at app level
+  deletedAt          DateTime? //  Soft delete timestamp (null = active)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 }
@@ -193,15 +193,15 @@ model User {
  * - title: Course name displayed to users
  * - description: Course overview/summary
  * - price: Current selling price (in rupees)
- * NOTE: [31.7] Non-negative validation enforced at application level
+ * NOTE:  Non-negative validation enforced at application level
  * - originalPrice: Original price (for discount display)
  * - users: Count of enrolled users
- * NOTE: [31.26] Non-negative validation enforced at application level
+ * NOTE:  Non-negative validation enforced at application level
  * - badge: Optional badge label (e.g., "Bestseller", "New")
- * NOTE: [31.21] Sanitization enforced at application level (XSS prevention)
+ * NOTE:  Sanitization enforced at application level (XSS prevention)
  * - badgeColor: Badge background color (Tailwind class)
  * - icon: Emoji or icon representing course topic
- * NOTE: [31.21] Sanitization enforced at application level
+ * NOTE:  Sanitization enforced at application level
  * - iconBg: Background color for icon container
  * - iconColor: Icon text color
  * - demoVideoUrl: YouTube link for course preview video
@@ -210,10 +210,10 @@ model User {
  * - lastLiveStartedAt: Timestamp when last live session started
  * - startDate: When course content becomes available
  * - endDate: When course access expires
- * NOTE: [31.8] Date logic (endDate >= startDate) validated at application level
+ * NOTE:  Date logic (endDate >= startDate) validated at application level
  * - enrollmentDeadline: Last day users can enroll (after this: no new enrollments)
  * - deletedAt: Soft delete timestamp (null = active, set = deleted)
- * NOTE: [31.19] Added for soft delete support
+ * NOTE:  Added for soft delete support
  * - createdAt: When course was created
  * - updatedAt: Last modification timestamp
  * DISPLAY USAGE:
@@ -225,12 +225,12 @@ model Course {
   id                 String    @id @default(auto()) @map("_id") @db.ObjectId
   title              String
   description        String
-  price              Int // In rupees (₹) - [31.7] App-level validation: >= 0
+  price              Int // In rupees (₹) -  App-level validation: >= 0
   originalPrice      Int // For displaying discount percentage
-  users              Int       @default(0) @map("users") // [31.26] App-level validation: >= 0
-  badge              String? // e.g., "Bestseller" - [31.21] Sanitized at app level
+  users              Int       @default(0) @map("users") //  App-level validation: >= 0
+  badge              String? // e.g., "Bestseller" -  Sanitized at app level
   badgeColor         String? // e.g., "blue", "red"
-  icon               String? // Emoji (📚, 📊, etc.) - [31.21] Sanitized at app level
+  icon               String? // Emoji (📚, 📊, etc.) -  Sanitized at app level
   iconBg             String? // Tailwind bg color class
   iconColor          String? // Tailwind text color class
   demoVideoUrl       String? // YouTube link for preview
@@ -238,9 +238,9 @@ model Course {
   isLive             Boolean   @default(false) // Currently broadcasting?
   lastLiveStartedAt  DateTime? // When did current live session start?
   startDate          DateTime? // Course availability start
-  endDate            DateTime? // Course availability end - [31.8] App-level validation
+  endDate            DateTime? // Course availability end -  App-level validation
   enrollmentDeadline DateTime? // Last day to enroll (after this: Enrollment Closed)
-  deletedAt          DateTime? // [31.19] Soft delete timestamp (null = active)
+  deletedAt          DateTime? //  Soft delete timestamp (null = active)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -262,10 +262,10 @@ model Course {
  * Multiple videos belong to one course (one-to-many)
  * Videos are displayed in order on user course page
  * UNIQUE CONSTRAINT:
- * [31.16] Each video must have unique order within its course
+ *  Each video must have unique order within its course
  * Prevents duplicate ordering ambiguity
  * FOREIGN KEY:
- * [31.4] courseId validated at application level (MongoDB/Prisma no FK support)
+ *  courseId validated at application level (MongoDB/Prisma no FK support)
  * USAGE:
  * - Dashboard: Show enrolled users the video content
  * - Admin: Add/edit/delete course videos
@@ -273,7 +273,7 @@ model Course {
  */
 model CourseVideo {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  courseId     String   @db.ObjectId // FK to Course - [31.4] App-level validation
+  courseId     String   @db.ObjectId // FK to Course -  App-level validation
   title        String // Video lesson title
   description  String? // What's covered in this video
   youtubeUrl   String // YouTube URL (watch or embed format)
@@ -282,7 +282,7 @@ model CourseVideo {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@unique([courseId, order]) // [31.16] Unique order per course
+  @@unique([courseId, order]) //  Unique order per course
 }
 
 // ============================================================================
@@ -316,28 +316,28 @@ model CourseVideo {
  * - Dashboard: Show user's own testimonials (all statuses)
  * - Admin: Show all testimonials with status badges
  * INDEXES:
- * [31.27] userId indexed for fast user testimonial lookups
+ *  userId indexed for fast user testimonial lookups
  * ENUMS:
- * [31.6] status uses TestimonialStatus enum
- * [31.24] userRole uses TestimonialUserRole enum
+ *  status uses TestimonialStatus enum
+ *  userRole uses TestimonialUserRole enum
  * NOTES:
- * [31.17] Audit trail: reviewedAt tracks when status changed
- * [31.18] userName cached - sync at application level if user changes name
+ *  Audit trail: reviewedAt tracks when status changed
+ *  userName cached - sync at application level if user changes name
  */
 model Testimonial {
   id          String            @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String            @db.ObjectId // FK to User - [31.4] App-level validation
-  userName    String // [31.18] Cached username - sync at app level
+  userId      String            @db.ObjectId // FK to User -  App-level validation
+  userName    String //  Cached username - sync at app level
   userRole    String            @default("User") // Allowed to be any string now
   message     String // The review text
-  rating      Int // 1-5 stars - [31.25] App-level range validation
-  status      TestimonialStatus @default(PENDING) // [31.6] Enum for valid statuses
+  rating      Int // 1-5 stars -  App-level range validation
+  status      TestimonialStatus @default(PENDING) //  Enum for valid statuses
   isFeatured  Boolean           @default(false) // [New] Featured on homepage and pinned to top
   submittedAt DateTime          @default(now()) // When user submitted
-  reviewedAt  DateTime? // [31.17] When admin approved/rejected
+  reviewedAt  DateTime? //  When admin approved/rejected
 
   @@index([status, submittedAt(sort: Desc)]) // Support admin moderation and public feeds
-  @@index([userId]) // [31.27] Fast user testimonial lookups
+  @@index([userId]) //  Fast user testimonial lookups
 }
 
 /**
@@ -352,12 +352,12 @@ model Testimonial {
  * - likes: Total like count
  * - likedBy: Array of User IDs who liked (used to check if current user liked)
  * - comments: Nested array of Comment objects (denormalized for performance)
- * NOTE: [31.14] Large comment volumes may hit 16MB limit - consider pagination
+ * NOTE:  Large comment volumes may hit 16MB limit - consider pagination
  * - createdAt: Post creation timestamp
  * - updatedAt: Last edit or comment
  * INDEXES:
  * - createdAt: Fast feed sorting (newest first)
- * - userId: [31.28] Fast user's posts lookup
+ * - userId:  Fast user's posts lookup
  * NESTED TYPE:
  * Comment object (embedded in post):
  * - id: Unique comment ID (UUID)
@@ -366,9 +366,9 @@ model Testimonial {
  * - content: Comment text
  * - createdAt: Comment timestamp
  * NOTES:
- * [31.9] content length validation (1000 chars) enforced at application level
- * [31.13] likedBy array may grow large - monitor popular posts
- * [31.18] userName cached - sync at application level if user changes name
+ *  content length validation (1000 chars) enforced at application level
+ *  likedBy array may grow large - monitor popular posts
+ *  userName cached - sync at application level if user changes name
  * USAGE:
  * - Community page: Load posts sorted by newest first
  * - Like button: Add/remove userId from likedBy array
@@ -377,19 +377,19 @@ model Testimonial {
  */
 model CommunityPost {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String    @db.ObjectId // FK to User - [31.4] App-level validation
-  userName  String // [31.18] Cached for performance - sync at app level
+  userId    String    @db.ObjectId // FK to User -  App-level validation
+  userName  String //  Cached for performance - sync at app level
   title     String? // Optional post title
-  content   String // [31.9] App-level validation: max 1000 chars
+  content   String //  App-level validation: max 1000 chars
   imageUrl  String? // Optional attached image
   likes     Int       @default(0) // Like count
-  likedBy   String[]  @db.ObjectId // [31.13] May grow large - monitor
-  comments  Comment[] // [31.14] Nested comments - paginate if needed
+  likedBy   String[]  @db.ObjectId //  May grow large - monitor
+  comments  Comment[] //  Nested comments - paginate if needed
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
   @@index([createdAt]) // Fast feed sorting (newest first)
-  @@index([userId]) // [31.28] Fast user's posts lookup
+  @@index([userId]) //  Fast user's posts lookup
 }
 
 /**
@@ -426,14 +426,14 @@ type Comment {
  * - timestamp: When message was sent
  * INDEXES:
  * - (courseId, timestamp): Fast lookup of messages in a course by time
- * - userId: [31.29] Fast lookup of user's messages
+ * - userId:  Fast lookup of user's messages
  * POLLING LOGIC:
  * Client polls with: GET /api/chat/:courseId/messages?after=1708345600000
  * Server returns only messages where timestamp > 'after' value
  * This minimizes bandwidth and improves performance
  * NOTES:
- * [31.4] courseId/userId validated at application level
- * [31.18] userName cached - sync at application level if user changes name
+ *  courseId/userId validated at application level
+ *  userName cached - sync at application level if user changes name
  * USAGE:
  * - Dashboard: Load chat for enrolled course
  * - Message history: Get all messages in course (limit 100)
@@ -442,15 +442,15 @@ type Comment {
  */
 model ChatMessage {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  courseId  String   @db.ObjectId // FK to Course - [31.4] App-level validation
-  userId    String   @db.ObjectId // FK to User - [31.4] App-level validation
-  userName  String // [31.18] Sender's name (cached) - sync at app level
+  courseId  String   @db.ObjectId // FK to Course -  App-level validation
+  userId    String   @db.ObjectId // FK to User -  App-level validation
+  userName  String //  Sender's name (cached) - sync at app level
   message   String // Message content
   imageUrl  String? // Optional image attachment
   timestamp DateTime @default(now())
 
   @@index([courseId, timestamp]) // Fast retrieval by course and time
-  @@index([userId]) // [31.29] Fast user's messages lookup
+  @@index([userId]) //  Fast user's messages lookup
 }
 
 // ============================================================================
@@ -489,13 +489,13 @@ model ChatMessage {
  * - Get user's purchase status for a course
  * - Get all pending purchases for admin review
  * ENUMS:
- * [31.5] status uses PurchaseStatus enum
- * [31.22] paymentMethod uses PaymentMethod enum
+ *  status uses PurchaseStatus enum
+ *  paymentMethod uses PaymentMethod enum
  * NOTES:
- * [31.4] userId/courseId validated at application level
- * [31.7] amount validated as non-negative at application level
- * [31.17] Audit trail: date tracks when purchase was created
- * [31.23] Uniqueness on userId+courseId should be checked at application level
+ *  userId/courseId validated at application level
+ *  amount validated as non-negative at application level
+ *  Audit trail: date tracks when purchase was created
+ *  Uniqueness on userId+courseId should be checked at application level
  * ENROLLMENT LOGIC:
  * A user is "enrolled" if:
  * - Purchase record exists AND
@@ -503,13 +503,13 @@ model ChatMessage {
  */
 model Purchase {
   id              String         @id @default(auto()) @map("_id") @db.ObjectId
-  userId          String         @db.ObjectId // FK to User - [31.4] App-level validation
-  courseId        String         @db.ObjectId // FK to Course - [31.4] App-level validation
-  amount          Int // Price in rupees - [31.7] App-level validation: >= 0
+  userId          String         @db.ObjectId // FK to User -  App-level validation
+  courseId        String         @db.ObjectId // FK to Course -  App-level validation
+  amount          Int // Price in rupees -  App-level validation: >= 0
   transactionId   String? // Payment gateway transaction ID
-  paymentMethod   PaymentMethod  @default(GATEWAY) // [31.22] Enum for valid methods
+  paymentMethod   PaymentMethod  @default(GATEWAY) //  Enum for valid methods
   screenshotUrl   String? // Uploaded payment proof image URL
-  status          PurchaseStatus @default(PENDING) // [31.5] Enum for valid statuses
+  status          PurchaseStatus @default(PENDING) //  Enum for valid statuses
   rejectionReason String? // Why was it rejected (shown to user)
   date            DateTime       @default(now())
 
@@ -544,8 +544,8 @@ model Purchase {
  */
 model CommunityLike {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  postId    String   @db.ObjectId // FK to CommunityPost - [31.4] App-level validation
-  userId    String   @db.ObjectId // FK to User - [31.4] App-level validation
+  postId    String   @db.ObjectId // FK to CommunityPost -  App-level validation
+  userId    String   @db.ObjectId // FK to User -  App-level validation
   createdAt DateTime @default(now())
 
   // Prevent duplicate likes: user can only like a post once
@@ -558,7 +558,7 @@ model CommunityLike {
  * - id: Unique MongoDB ObjectId
  * - sid: Session ID (unique identifier for user session)
  * - data: Serialized session data (JSON string with user info)
- * NOTE: [31.12] Using String for serialized JSON - native JSON type not supported
+ * NOTE:  Using String for serialized JSON - native JSON type not supported
  * - expiresAt: When the session expires
  * HOW IT WORKS:
  * When user logs in:
@@ -572,8 +572,8 @@ model CommunityLike {
  * 2. If different: Invalidate old session by deleting from this table
  * 3. User logged out on old device
  * INDEXES:
- * - sid: [31.30] Explicit index for fast session lookups (also @unique)
- * - expiresAt: [31.15] TTL index for automatic cleanup of expired sessions
+ * - sid:  Explicit index for fast session lookups (also @unique)
+ * - expiresAt:  TTL index for automatic cleanup of expired sessions
  * NOTE: Configure MongoDB TTL at database level with expireAfterSeconds: 0
  * AUTO-DELETE:
  * MongoDB TTL index removes expired sessions automatically
@@ -586,10 +586,29 @@ model CommunityLike {
 model Session {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   sid       String   @unique // Express session ID
-  data      String // [31.12] Serialized session data (JSON string)
+  data      String //  Serialized session data (JSON string)
   expiresAt DateTime // Expiration time
 
-  @@index([expiresAt]) // [31.15] TTL index - configure TTL at MongoDB level
+  @@index([expiresAt]) //  TTL index - configure TTL at MongoDB level
+}
+
+// ============================================================================
+// SITE CONFIGURATION & SETTINGS
+// ============================================================================
+
+/**
+ * SiteSetting Model - Stores global site configuration
+ * FIELDS:
+ * - id: Unique MongoDB ObjectId
+ * - key: Setting identifier (e.g., "hero_image")
+ * - value: Setting value (e.g., "/uploads/settings/hero.webp")
+ * USAGE:
+ * - Dynamic site content that can be managed by admin
+ */
+model SiteSetting {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  key   String @unique
+  value String
 }
 
 // ============================================================================

@@ -52,27 +52,27 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcrypt'); // [11.13] Added bcrypt import
+const bcrypt = require('bcrypt'); //  Added bcrypt import
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-const SEED_VERSION = '1.0.0'; // [11.30] Version tracking
+const SEED_VERSION = '1.0.0'; //  Version tracking
 const SEED_NAME = 'initial-users';
-const BCRYPT_ROUNDS = 12; // [11.1] Secure password hashing
+const BCRYPT_ROUNDS = 12; //  Secure password hashing
 
-// Valid role values - matches schema enum [11.10]
+// Valid role values - matches schema enum 
 const VALID_ROLES = Object.freeze({
     ADMIN: 'ADMIN',
     USER: 'USER'
 });
 
 // ============================================================================
-// ENVIRONMENT VALIDATION [11.3][11.9]
+// ENVIRONMENT VALIDATION 
 // ============================================================================
 
-// [11.9] Prevent accidental production seeding
+//  Prevent accidental production seeding
 if (process.env.NODE_ENV === 'production') {
     console.error('❌ SECURITY: Cannot seed production database!');
     console.error('   Set ALLOW_PRODUCTION_SEED=true to override (not recommended)');
@@ -83,14 +83,14 @@ if (process.env.NODE_ENV === 'production') {
     console.warn('⚠️ WARNING: Seeding production database (ALLOW_PRODUCTION_SEED=true)');
 }
 
-// [11.3] Database URL validation
+//  Database URL validation
 if (!process.env.DATABASE_URL) {
     console.error('❌ Database connection failed: DATABASE_URL not set in .env');
     console.error('   Create .env file with: DATABASE_URL=mongodb+srv://...');
     process.exit(1);
 }
 
-// [11.9] Warn if DATABASE_URL looks like production
+//  Warn if DATABASE_URL looks like production
 if (process.env.DATABASE_URL.includes('production')) {
     console.error('⚠️ WARNING: DATABASE_URL contains "production"');
     console.error('   This might be the real production database!');
@@ -105,7 +105,7 @@ if (process.env.DATABASE_URL.includes('production')) {
 // PRISMA CLIENT INITIALIZATION
 // ============================================================================
 
-// [11.17] Configure Prisma logging based on DEBUG env var
+//  Configure Prisma logging based on DEBUG env var
 const prisma = new PrismaClient({
     log: process.env.DEBUG === 'true' 
         ? ['query', 'info', 'warn', 'error']
@@ -113,7 +113,7 @@ const prisma = new PrismaClient({
 });
 
 // ============================================================================
-// VALIDATION FUNCTIONS [11.5]
+// VALIDATION FUNCTIONS 
 // ============================================================================
 
 /**
@@ -174,7 +174,7 @@ const validateUser = (user) => {
         errors.push(`Invalid phone: ${user.phone} (must be 10 digits)`);
     }
     
-    // Username validation [11.23]
+    // Username validation 
     if (!user.username || !isValidUsername(user.username)) {
         errors.push(`Invalid username: ${user.username} (must be 3-30 chars, alphanumeric + underscore)`);
     }
@@ -184,12 +184,12 @@ const validateUser = (user) => {
         errors.push('Name cannot be empty');
     }
     
-    // Role validation [11.10]
+    // Role validation 
     if (!Object.values(VALID_ROLES).includes(user.role)) {
         errors.push(`Invalid role: ${user.role} (must be '${VALID_ROLES.ADMIN}' or '${VALID_ROLES.USER}')`);
     }
     
-    // Password validation [11.2]
+    // Password validation 
     if (!user.password || user.password.length < 8) {
         errors.push('Password must be at least 8 characters');
     }
@@ -198,21 +198,21 @@ const validateUser = (user) => {
 };
 
 // ============================================================================
-// SAMPLE DATA [11.2] Credentials from environment
+// SAMPLE DATA  Credentials from environment
 // ============================================================================
 
 /**
  * USERS ARRAY - Sample user accounts for development/testing
  * 
- * [11.2] Credentials loaded from environment variables with secure defaults
- * [11.29] isDemoAccount flag for test isolation
+ *  Credentials loaded from environment variables with secure defaults
+ *  isDemoAccount flag for test isolation
  */
 const users = [
     {
         username: process.env.SEED_ADMIN_USERNAME || 'admin',
         email: process.env.SEED_ADMIN_EMAIL || 'admin@example.com',
         phone: normalizePhone(process.env.SEED_ADMIN_PHONE || '9876543210'),
-        password: process.env.SEED_ADMIN_PASSWORD || 'changeme123!', // [11.2] From env
+        password: process.env.SEED_ADMIN_PASSWORD || 'changeme123!', //  From env
         role: VALID_ROLES.ADMIN,
         name: 'Admin User'
     },
@@ -220,7 +220,7 @@ const users = [
         username: process.env.SEED_USER1_USERNAME || 'testuser',
         email: process.env.SEED_USER1_EMAIL || 'test@example.com',
         phone: normalizePhone(process.env.SEED_USER1_PHONE || '9999999999'),
-        password: process.env.SEED_USER_PASSWORD || 'changeme123!', // [11.2] From env
+        password: process.env.SEED_USER_PASSWORD || 'changeme123!', //  From env
         role: VALID_ROLES.USER,
         name: 'Test User'
     },
@@ -228,7 +228,7 @@ const users = [
         username: process.env.SEED_USER2_USERNAME || 'kundan_raj',
         email: process.env.SEED_USER2_EMAIL || 'kundan@example.com',
         phone: normalizePhone(process.env.SEED_USER2_PHONE || '9876543211'),
-        password: process.env.SEED_USER_PASSWORD || 'changeme123!', // [11.2] From env
+        password: process.env.SEED_USER_PASSWORD || 'changeme123!', //  From env
         role: VALID_ROLES.USER,
         name: 'Kundan Raj'
     }
@@ -243,22 +243,22 @@ const users = [
  * Creates sample users in the database with proper validation and hashing
  * 
  * FEATURES:
- * - [11.1] Password hashing with bcrypt
- * - [11.5] Input validation before insert
- * - [11.6] Upsert by username (immutable identifier)
- * - [11.7] Transaction for all-or-nothing seeding
- * - [11.8] Clear logging of created vs skipped users
- * - [11.11] Optional --reset flag to clear data first
- * - [11.12] Statistics tracking
- * - [11.14] Duration tracking
- * - [11.21] Email uniqueness validation
- * - [11.24] Pre-compute password hashes before transaction
+ * -  Password hashing with bcrypt
+ * -  Input validation before insert
+ * -  Upsert by username (immutable identifier)
+ * -  Transaction for all-or-nothing seeding
+ * -  Clear logging of created vs skipped users
+ * -  Optional --reset flag to clear data first
+ * -  Statistics tracking
+ * -  Duration tracking
+ * -  Email uniqueness validation
+ * -  Pre-compute password hashes before transaction
  */
 async function main() {
-    const startTime = Date.now(); // [11.14] Duration tracking
+    const startTime = Date.now(); //  Duration tracking
     console.log(`🌱 Seeding ${SEED_NAME} v${SEED_VERSION}...`);
     
-    // [11.11] Handle --reset flag
+    //  Handle --reset flag
     const shouldReset = process.argv.includes('--reset');
     if (shouldReset) {
         console.log('🗑️ Resetting database (--reset flag detected)...');
@@ -267,7 +267,7 @@ async function main() {
     }
     
     // ========================================================================
-    // VALIDATE ALL USERS FIRST [11.5]
+    // VALIDATE ALL USERS FIRST 
     // ========================================================================
     console.log('\n📋 Validating user data...');
     
@@ -282,7 +282,7 @@ async function main() {
     console.log('✓ All user data valid');
     
     // ========================================================================
-    // PRE-COMPUTE PASSWORD HASHES [11.1][11.24]
+    // PRE-COMPUTE PASSWORD HASHES 
     // ========================================================================
     console.log('\n🔐 Hashing passwords...');
     
@@ -295,7 +295,7 @@ async function main() {
     console.log('✓ Passwords hashed');
     
     // ========================================================================
-    // SEED USERS WITH TRANSACTION [11.7]
+    // SEED USERS WITH TRANSACTION 
     // ========================================================================
     console.log('\n📝 Seeding users...');
     
@@ -306,7 +306,7 @@ async function main() {
     try {
         await prisma.$transaction(async (tx) => {
             for (const u of usersWithHashedPasswords) {
-                // [11.21] Check email uniqueness before upsert
+                //  Check email uniqueness before upsert
                 const emailUser = await tx.user.findUnique({
                     where: { email: u.email }
                 });
@@ -317,7 +317,7 @@ async function main() {
                     );
                 }
                 
-                // [11.4] Check phone uniqueness
+                //  Check phone uniqueness
                 const phoneUser = await tx.user.findUnique({
                     where: { phone: u.phone }
                 });
@@ -328,13 +328,13 @@ async function main() {
                     );
                 }
                 
-                // Check if user exists before upsert [11.8]
+                // Check if user exists before upsert 
                 const existingUser = await tx.user.findUnique({
                     where: { username: u.username }
                 });
                 
-                // [11.6] Upsert by username (immutable identifier)
-                // [11.20] Update fields if user exists
+                //  Upsert by username (immutable identifier)
+                //  Update fields if user exists
                 const user = await tx.user.upsert({
                     where: { username: u.username },
                     update: {
@@ -347,7 +347,7 @@ async function main() {
                     create: u
                 });
                 
-                // [11.8] Log created vs skipped
+                //  Log created vs skipped
                 if (existingUser) {
                     console.log(`ℹ️  User UPDATED: ${user.username} (${user.email})`);
                     skipped++;
@@ -365,31 +365,31 @@ async function main() {
     }
     
     // ========================================================================
-    // FINAL SUMMARY [11.12][11.14]
+    // FINAL SUMMARY 
     // ========================================================================
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     
     console.log('\n📊 Seed Results:');
-    console.table(results); // [11.15] Table format instead of loop
+    console.table(results); //  Table format instead of loop
     
     console.log(`\n✅ Seeding finished in ${duration}s!`);
     console.log(`   Created: ${created}, Updated: ${skipped}, Total: ${users.length}`);
 }
 
 // ============================================================================
-// ERROR HANDLING & EXECUTION [11.18]
+// ERROR HANDLING & EXECUTION 
 // ============================================================================
 
 /**
  * Execute main seeding function with proper error handling
  * 
  * FEATURES:
- * - [11.18] Safe disconnect on all exit paths
+ * -  Safe disconnect on all exit paths
  * - Proper exit codes for CI/CD
  * - Signal handling for graceful shutdown
  */
 
-// [11.18] Handle shutdown signals
+//  Handle shutdown signals
 process.on('SIGINT', async () => {
     console.log('\nShutdown signal received...');
     try {

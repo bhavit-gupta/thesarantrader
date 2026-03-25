@@ -6,6 +6,10 @@
  */
 
 const sharp = require('sharp');
+
+// Disable sharp cache to prevent file locking issues on Windows
+sharp.cache(false);
+
 const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
@@ -142,9 +146,9 @@ async function compressImage(file, destinationDir, preset = 'chat') {
         const metadata = await sharp(inputPath).metadata();
         if (!metadata.width || !metadata.height) throw new Error('Could not read image metadata');
 
-        // Bomb detection
+        // Bomb detection (Relaxed for high-res low-complexity images like screenshots)
         const estimatedDecompressed = metadata.width * metadata.height * (metadata.channels || 3);
-        if (estimatedDecompressed / file.size > 50) throw new Error('Suspicious file compression ratio');
+        if (estimatedDecompressed / file.size > 250) throw new Error('Suspicious file compression ratio');
 
         // Lock file for concurrency
         let release;

@@ -15,7 +15,7 @@
 (function () {
     'use strict';
 
-    // [20.30] Guard against multiple initializations
+    //  Guard against multiple initializations
     if (window.__MAIN_JS_INITIALIZED__) return;
     window.__MAIN_JS_INITIALIZED__ = true;
 
@@ -24,8 +24,8 @@
     // =========================================================================
     const CONFIG = Object.freeze({
         POLL_INTERVAL_MS: 5000,
-        MAX_POLL_INTERVAL_MS: 60000,      // [20.18] Max backoff interval
-        BACKOFF_MULTIPLIER: 2,             // [20.18] Exponential backoff
+        MAX_POLL_INTERVAL_MS: 60000,      //  Max backoff interval
+        BACKOFF_MULTIPLIER: 2,             //  Exponential backoff
         MAX_CONSECUTIVE_FAILURES: 5,
         REQUEST_TIMEOUT_MS: 10000,
         DEBUG: false,
@@ -53,10 +53,10 @@
     const state = {
         pollIntervalId: null,          // [20.2, 20.24] Store interval for cleanup
         currentPollInterval: CONFIG.POLL_INTERVAL_MS,
-        consecutiveFailures: 0,        // [20.18] Track failures for backoff
+        consecutiveFailures: 0,        //  Track failures for backoff
         isPolling: false,
-        isPageVisible: true,           // [20.17] Page visibility
-        mobileMenuHandler: null,       // [20.21] Store handler for removal
+        isPageVisible: true,           //  Page visibility
+        mobileMenuHandler: null,       //  Store handler for removal
         cachedLiveButtons: null,       // [20.14, 20.16] Cache DOM elements
         cachedButtonElements: new WeakMap()  // Cache child elements per button
     };
@@ -64,16 +64,12 @@
     // =========================================================================
     // LOGGER
     // =========================================================================
-    // Use environment-based logging [Fix: console methods]
     const Logger = {
-        debug: (...args) => window.__IS_DEVELOPMENT__ && console.log('[Main:Debug]', ...args),
-        info: (...args) => window.__IS_DEVELOPMENT__ && console.info('[Main:Info]', ...args),
+        debug: (...args) => CONFIG.DEBUG && console.log('[Main:Debug]', ...args),
+        info: (...args) => CONFIG.DEBUG && console.info('[Main:Info]', ...args),
         warn: (...args) => console.warn('[Main:Warn]', ...args),
         error: (...args) => console.error('[Main:Error]', ...args)
     };
-
-    // Expose globally as required
-    window.Logger = Logger;
 
     // =========================================================================
     // DATE FORMATTING
@@ -92,12 +88,12 @@
         try {
             const date = new Date(dateString);
 
-            // [20.11] Return empty string on invalid, not original
+            //  Return empty string on invalid, not original
             if (isNaN(date.getTime())) return '';
 
             // [20.12, 20.13] Validate types
             const dayNum = date.getDate();
-            const monthNum = date.getMonth() + 1;  // [20.28] 0-indexed handled
+            const monthNum = date.getMonth() + 1;  //  0-indexed handled
             const yearNum = date.getFullYear();
 
             if (typeof dayNum !== 'number' || typeof monthNum !== 'number') {
@@ -131,7 +127,7 @@
 
             if (!btn || !menu) return;
 
-            // [20.21] Remove existing handler if any
+            //  Remove existing handler if any
             if (state.mobileMenuHandler) {
                 btn.removeEventListener('click', state.mobileMenuHandler);
             }
@@ -144,7 +140,7 @@
             btn.addEventListener('click', state.mobileMenuHandler);
             Logger.debug('Mobile menu setup complete');
         } catch (err) {
-            // [20.20] Error boundary
+            //  Error boundary
             Logger.error('Error setting up mobile menu:', err);
         }
     }
@@ -173,7 +169,7 @@
      * @returns {boolean} True if any live
      */
     function isAnySessionLive(liveSessions) {
-        // [20.3] Proper null/type check
+        //  Proper null/type check
         if (liveSessions === null || liveSessions === undefined) {
             return false;
         }
@@ -181,10 +177,10 @@
             return false;
         }
 
-        // [20.26] Use for...of for early exit
+        //  Use for...of for early exit
         try {
             for (const session of Object.values(liveSessions)) {
-                // [20.27] Validate each session is object with isLive
+                //  Validate each session is object with isLive
                 if (session && typeof session === 'object' && session.isLive === true) {
                     return true;
                 }
@@ -208,14 +204,14 @@
             const response = await fetch(url, { signal: controller.signal });
             clearTimeout(timeoutId);
 
-            // [20.1] Check response.ok before JSON
+            //  Check response.ok before JSON
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
 
             const data = await response.json();
 
-            // [20.4] Validate response is object
+            //  Validate response is object
             if (!isValidLiveStatusResponse(data)) {
                 throw new Error('Invalid response format');
             }
@@ -232,7 +228,7 @@
 
     /**
      * Get cached button elements
-     * [20.14] Cache element references
+     *  Cache element references
      * @param {HTMLElement} btn - Button element
      * @returns {object} Cached elements
      */
@@ -253,17 +249,17 @@
      * @param {boolean} isLive - Live status
      */
     function updateButtonState(btn, isLive) {
-        // [20.22] Type check before classList
+        //  Type check before classList
         if (!(btn instanceof HTMLElement)) return;
 
         const { dot, text } = getCachedButtonElements(btn);
 
         if (isLive) {
-            // [20.8] Use validated class arrays
+            //  Use validated class arrays
             CONFIG.CSS_CLASSES.LIVE_INACTIVE.forEach(c => btn.classList.remove(c));
             CONFIG.CSS_CLASSES.LIVE_ACTIVE.forEach(c => btn.classList.add(c));
 
-            // [20.6] Use disabled property, not aria-disabled
+            //  Use disabled property, not aria-disabled
             if (btn.hasAttribute('href')) {
                 btn.removeAttribute('aria-disabled');
             }
@@ -273,7 +269,7 @@
                 CONFIG.CSS_CLASSES.DOT_ACTIVE.forEach(c => dot.classList.add(c));
             }
 
-            // [20.7] Check instanceof before textContent
+            //  Check instanceof before textContent
             if (text instanceof HTMLElement) {
                 text.textContent = 'Live Now';
             } else if (!dot && !text) {
@@ -349,7 +345,7 @@
      * @param {boolean} isLive - True if any course has active live session
      */
     function updateLiveUI(isLive) {
-        // [20.16] Use cached buttons
+        //  Use cached buttons
         if (state.cachedLiveButtons) {
             state.cachedLiveButtons.forEach(btn => updateButtonState(btn, isLive));
         }
@@ -362,7 +358,7 @@
      * [20.1, 20.18] With response validation and backoff
      */
     async function checkLive() {
-        if (!state.isPageVisible) return;  // [20.17] Skip if page hidden
+        if (!state.isPageVisible) return;  //  Skip if page hidden
 
         try {
             const data = await fetchWithTimeout('/api/live-status');
@@ -373,17 +369,17 @@
             // Reset on success
             state.consecutiveFailures = 0;
 
-            // [20.18] Reset poll interval on success
+            //  Reset poll interval on success
             if (state.currentPollInterval !== CONFIG.POLL_INTERVAL_MS) {
                 state.currentPollInterval = CONFIG.POLL_INTERVAL_MS;
                 restartPolling();
             }
 
         } catch (err) {
-            // [20.25] Log error (could integrate with monitoring service)
+            //  Log error (could integrate with monitoring service)
             Logger.error('Error polling live status:', err.message);
 
-            // [20.18] Implement exponential backoff
+            //  Implement exponential backoff
             state.consecutiveFailures++;
 
             if (state.consecutiveFailures >= CONFIG.MAX_CONSECUTIVE_FAILURES) {
@@ -416,10 +412,10 @@
      * [20.2, 20.5, 20.17, 20.24] With cleanup and visibility handling
      */
     function startPolling() {
-        // [20.16] Cache live buttons
+        //  Cache live buttons
         state.cachedLiveButtons = document.querySelectorAll(CONFIG.SELECTORS.LIVE_BUTTON);
 
-        // [20.5] Don't start polling if no buttons
+        //  Don't start polling if no buttons
         if (!state.cachedLiveButtons || state.cachedLiveButtons.length === 0) {
             Logger.debug('No live buttons found, skipping polling');
             return;
@@ -434,10 +430,10 @@
         // [20.2, 20.24] Store interval ID for cleanup
         state.pollIntervalId = setInterval(checkLive, state.currentPollInterval);
 
-        // [20.17] Page Visibility API - pause when hidden
+        //  Page Visibility API - pause when hidden
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        // [20.2] Cleanup on page unload
+        //  Cleanup on page unload
         window.addEventListener('beforeunload', cleanup);
 
         Logger.debug('Live status polling started');
@@ -445,7 +441,7 @@
 
     /**
      * Handle page visibility change
-     * [20.17] Pause polling when page hidden
+     *  Pause polling when page hidden
      */
     function handleVisibilityChange() {
         state.isPageVisible = !document.hidden;
@@ -461,7 +457,7 @@
 
     /**
      * Cleanup function
-     * [20.2] Clean up interval and listeners
+     *  Clean up interval and listeners
      */
     function cleanup() {
         if (state.pollIntervalId) {

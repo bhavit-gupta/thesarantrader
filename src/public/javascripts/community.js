@@ -35,19 +35,19 @@
  * - CSRF token in meta tag
  * 
  * ISSUES FOUND: 30 total (4 critical, 8 major, 18 moderate)
- * 🔴 CRITICAL [18.1] XSS in onclick handlers - post.id not escaped
- * 🔴 CRITICAL [18.2] No response.ok check on fetch calls
- * 🔴 CRITICAL [18.3] CSRF token not validated for empty string
- * 🔴 CRITICAL [18.4] currentUserId and window.isAdmin not validated
- * 🟠 MAJOR [18.5] No file type validation - any file could be uploaded
- * 🟠 MAJOR [18.6] No file size validation - unlimited upload
- * 🟠 MAJOR [18.7] confirm() used for destructive actions - unreliable UX
- * 🟠 MAJOR [18.8] Comment deletion reloads all posts - performance hit
- * 🟠 MAJOR [18.9] Image URL in onclick handler - XSS vulnerability
- * 🟠 MAJOR [18.10] No timeout on fetch requests
- * 🟠 MAJOR [18.11] Post content in template literal could be injected
- * 🟠 MAJOR [18.12] Toast creation memory leak - recreates every time
- * See ERROR_TRACKING.txt [18.1]-[18.30] for detailed analysis
+ * 🔴 CRITICAL  XSS in onclick handlers - post.id not escaped
+ * 🔴 CRITICAL  No response.ok check on fetch calls
+ * 🔴 CRITICAL  CSRF token not validated for empty string
+ * 🔴 CRITICAL  currentUserId and window.isAdmin not validated
+ * 🟠 MAJOR  No file type validation - any file could be uploaded
+ * 🟠 MAJOR  No file size validation - unlimited upload
+ * 🟠 MAJOR  confirm() used for destructive actions - unreliable UX
+ * 🟠 MAJOR  Comment deletion reloads all posts - performance hit
+ * 🟠 MAJOR  Image URL in onclick handler - XSS vulnerability
+ * 🟠 MAJOR  No timeout on fetch requests
+ * 🟠 MAJOR  Post content in template literal could be injected
+ * 🟠 MAJOR  Toast creation memory leak - recreates every time
+ * See ERROR_TRACKING.txt - for detailed analysis
  */
 
 /* ============================================================================
@@ -210,7 +210,7 @@ if (createPostForm) {
                 showFeedback(data.message || 'Failed to create post.', 'error');
             }
         } catch (error) {
-            window.Logger.error('Community post error:', error);
+            console.error('Community post error:', error);
             showFeedback('Failed to create post. Please refresh and try again.', 'error');
         }
     });
@@ -293,7 +293,7 @@ async function pollNewPosts() {
         }
     } catch (error) {
         // Silent fail for polling — don't interrupt the user
-        window.Logger.warn('[Community Poll] Failed to fetch new posts:', error);
+        console.warn('[Community Poll] Failed to fetch new posts:', error);
     }
 }
 
@@ -484,7 +484,7 @@ async function toggleLike(postId) {
             }
         }
     } catch (error) {
-        window.Logger.error('Failed to toggle like:', error);
+        console.error('Failed to toggle like:', error);
     }
 }
 
@@ -524,7 +524,7 @@ async function addComment(event, postId) {
             loadPosts();
         }
     } catch (error) {
-        window.Logger.error('Failed to add comment:', error);
+        console.error('Failed to add comment:', error);
     }
 }
 
@@ -559,7 +559,7 @@ async function deletePost(postId) {
             showFeedback(data.message || 'Failed to delete post', 'error');
         }
     } catch (error) {
-        window.Logger.error('Failed to delete post:', error);
+        console.error('Failed to delete post:', error);
         showFeedback('Failed to delete post. Please try again.', 'error');
     }
 }
@@ -590,7 +590,7 @@ async function deleteComment(postId, commentId) {
             showFeedback(data.message || 'Failed to delete comment', 'error');
         }
     } catch (error) {
-        window.Logger.error('Failed to delete comment:', error);
+        console.error('Failed to delete comment:', error);
         showFeedback('Failed to delete comment. Please try again.', 'error');
     }
 }

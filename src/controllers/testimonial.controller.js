@@ -274,7 +274,7 @@ exports.submitTestimonial = async (req, res) => {
  * - testimonials: Array of approved testimonials
  * - pagination: { page, limit, total, totalPages }
  * - ordered by reviewedAt desc (most recently approved first)
- * - Includes user relation for up-to-date userName [5.11]
+ * - Includes user relation for up-to-date userName 
  */
 exports.getPublicTestimonials = async (req, res) => {
     try {
@@ -284,7 +284,11 @@ exports.getPublicTestimonials = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // 3. Prepare where clause
-        const where = { status: 'APPROVED' };
+        //  Support optional featured filtering
+        const where = {
+            status: 'APPROVED'
+        };
+
         if (req.query.featured === 'true') {
             where.isFeatured = true;
         }
@@ -343,7 +347,6 @@ exports.getPublicTestimonials = async (req, res) => {
  * - testimonials: Array of user's own testimonials (all statuses)
  * - ordered by submittedAt desc
  * 
- * ⚠️ Known Issues: See ERROR_TRACKING.txt [5.14]
  */
 exports.getUserTestimonials = async (req, res) => {
     // 1. Authentication check
@@ -384,7 +387,7 @@ exports.getUserTestimonials = async (req, res) => {
  * 
  * Returns:
  * - status: 200 on success (renders page)
- * - status: 403 for API requests without admin access [5.6]
+ * - status: 403 for API requests without admin access 
  * - Three categories:
  *   • pending: Awaiting review (ordered by submittedAt desc)
  *   • approved: Publicly visible (ordered by reviewedAt desc)
@@ -438,14 +441,14 @@ exports.getAdminTestimonials = async (req, res) => {
  * Authorization: Admin only
  * 
  * Actions:
- * - Verifies admin authorization [5.4]
- * - Checks testimonial is in pending status [5.7]
+ * - Verifies admin authorization 
+ * - Checks testimonial is in pending status 
  * - Sets status to 'approved'
  * - Sets reviewedAt to current timestamp
  * - Makes testimonial publicly visible
  */
 exports.approveTestimonial = async (req, res) => {
-    // 1. Authorization check (admin only) [5.4]
+    // 1. Authorization check (admin only) 
     if (!req.session.user || req.session.user.role !== 'ADMIN') {
         return res.status(403).json({
             success: false,
@@ -456,7 +459,7 @@ exports.approveTestimonial = async (req, res) => {
     const testimonialId = req.params.id;
 
     try {
-        // 2. Fetch testimonial to check status [5.7]
+        // 2. Fetch testimonial to check status 
         const existingTestimonial = await withRetry(
             () => prisma.testimonial.findUnique({
                 where: { id: testimonialId }
@@ -471,11 +474,11 @@ exports.approveTestimonial = async (req, res) => {
             });
         }
 
-        // 3. Check if testimonial is pending [5.7]
-        if (existingTestimonial.status !== 'PENDING' && existingTestimonial.status !== 'pending') {
+        // 3. Check if testimonial is already approved 
+        if (existingTestimonial.status === 'APPROVED' || existingTestimonial.status === 'approved') {
             return res.status(400).json({
                 success: false,
-                message: 'Testimonial has already been reviewed'
+                message: 'Testimonial is already approved'
             });
         }
 
@@ -513,18 +516,18 @@ exports.approveTestimonial = async (req, res) => {
  * Reject a testimonial (Admin action)
  * POST /reject/:testimonialId
  * Authorization: Admin only
- * Body: { reason?: string } - Optional rejection reason [5.8]
+ * Body: { reason?: string } - Optional rejection reason 
  * 
  * Actions:
- * - Verifies admin authorization [5.4]
- * - Checks testimonial is in pending status [5.7]
+ * - Verifies admin authorization 
+ * - Checks testimonial is in pending status 
  * - Sets status to 'rejected'
- * - Records rejection reason if provided [5.8]
+ * - Records rejection reason if provided 
  * - Sets reviewedAt to current timestamp
  * - User can delete and resubmit
  */
 exports.rejectTestimonial = async (req, res) => {
-    // 1. Authorization check (admin only) [5.4]
+    // 1. Authorization check (admin only) 
     if (!req.session.user || req.session.user.role !== 'ADMIN') {
         return res.status(403).json({
             success: false,
@@ -536,7 +539,7 @@ exports.rejectTestimonial = async (req, res) => {
     const { reason } = req.body; // Optional rejection reason
 
     try {
-        // 2. Fetch testimonial to check status [5.7]
+        // 2. Fetch testimonial to check status 
         const existingTestimonial = await withRetry(
             () => prisma.testimonial.findUnique({
                 where: { id: testimonialId }
@@ -551,11 +554,11 @@ exports.rejectTestimonial = async (req, res) => {
             });
         }
 
-        // 3. Check if testimonial is pending [5.7]
-        if (existingTestimonial.status !== 'PENDING' && existingTestimonial.status !== 'pending') {
+        // 3. Check if testimonial is already rejected 
+        if (existingTestimonial.status === 'REJECTED' || existingTestimonial.status === 'rejected') {
             return res.status(400).json({
                 success: false,
-                message: 'Testimonial has already been reviewed'
+                message: 'Testimonial is already rejected'
             });
         }
 

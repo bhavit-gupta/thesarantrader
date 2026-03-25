@@ -35,17 +35,17 @@
  * - CSRF token in meta tag
  * 
  * ISSUES FOUND: 30 total (3 critical, 7 major, 20 moderate)
- * 🔴 CRITICAL [16.1] XSS in onclick handler - imageUrl not escaped
- * 🔴 CRITICAL [16.2] No response.ok check on all fetch calls
- * 🔴 CRITICAL [16.3] CSRF token not validated for empty string
- * 🟠 MAJOR [16.4] escapeHtml incomplete - allows some XSS patterns
- * 🟠 MAJOR [16.5] Fixed 3s polling wastes resources when no new messages
- * 🟠 MAJOR [16.6] No timestamp validation - could be negative/very large
- * 🟠 MAJOR [16.7] scrollToBottom() called on every message - performance hit
- * 🟠 MAJOR [16.8] Console.log with emojis unprofessional - data leak
- * 🟠 MAJOR [16.9] window.courseId and window.currentUserId not validated
- * 🟠 MAJOR [16.10] Image upload validation only checks mimetype string
- * See ERROR_TRACKING.txt [16.1]-[16.30] for detailed analysis
+ * 🔴 CRITICAL  XSS in onclick handler - imageUrl not escaped
+ * 🔴 CRITICAL  No response.ok check on all fetch calls
+ * 🔴 CRITICAL  CSRF token not validated for empty string
+ * 🟠 MAJOR  escapeHtml incomplete - allows some XSS patterns
+ * 🟠 MAJOR  Fixed 3s polling wastes resources when no new messages
+ * 🟠 MAJOR  No timestamp validation - could be negative/very large
+ * 🟠 MAJOR  scrollToBottom() called on every message - performance hit
+ * 🟠 MAJOR  Console.log with emojis unprofessional - data leak
+ * 🟠 MAJOR  window.courseId and window.currentUserId not validated
+ * 🟠 MAJOR  Image upload validation only checks mimetype string
+ * See ERROR_TRACKING.txt - for detailed analysis
  */
 
 /* ============================================================================
@@ -75,7 +75,7 @@ function validateCourseId(id) {
 }
 
 if (!validateCourseId(trimmedCourseId)) {
-    window.Logger.error(`❌ [CHAT] Invalid courseId detected!
+    console.error(`❌ [CHAT] Invalid courseId detected!
       Original: "${rawCourseId}"
       Trimmed: "${trimmedCourseId}"
       Type: ${typeof rawCourseId}`);
@@ -134,9 +134,9 @@ function setupChatImagePreview() {
                     chatImageInput.value = '';
                     return;
                 }
-                // Validate file size (100MB max)
-                if (file.size > 100 * 1024 * 1024) {
-                    showFeedback('Image must be less than 100MB', 'error');
+                // Validate file size (50MB max)
+                if (file.size > 50 * 1024 * 1024) {
+                    showFeedback('Image must be less than 50MB', 'error');
                     chatImageInput.value = '';
                     return;
                 }
@@ -189,6 +189,14 @@ async function loadMessages() {
                 'Accept': 'application/json'
             }
         });
+
+        // Update CSRF token from header if it exists
+        const newCsrf = response.headers.get('x-csrf-token');
+        if (newCsrf) {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta) csrfMeta.setAttribute('content', newCsrf);
+        }
+
         const data = await response.json();
 
         if (data.success) {
@@ -208,7 +216,7 @@ async function loadMessages() {
             // No new messages since last poll - do nothing
         }
     } catch (error) {
-        window.Logger.error('Failed to load messages:', error);
+        console.error('Failed to load messages:', error);
     }
 }
 
@@ -341,13 +349,13 @@ function createMessageElement(msg) {
  */
 async function sendMessage(e) {
     e.preventDefault();
-    window.Logger.debug("📤 Sending message...");
+    console.log("📤 Sending message...");
 
     const input = document.getElementById('message-input');
     const imageInput = document.getElementById('chat-image');
 
     if (!input) {
-        window.Logger.error("❌ Error: message-input not found");
+        console.error("❌ Error: message-input not found");
         return;
     }
 
@@ -355,14 +363,14 @@ async function sendMessage(e) {
     const hasImage = imageInput && imageInput.files && imageInput.files[0];
 
     if (!message && !hasImage) {
-        window.Logger.debug("⚠️ Ignoring empty message/image");
+        console.log("⚠️ Ignoring empty message/image");
         return;
     }
 
     try {
         const csrfMeta = document.querySelector('meta[name="csrf-token"]');
         if (!csrfMeta) {
-            window.Logger.error("❌ Error: CSRF meta tag missing");
+            console.error("❌ Error: CSRF meta tag missing");
             showFeedback('Security error: CSRF token missing', 'error');
             return;
         }
@@ -374,7 +382,7 @@ async function sendMessage(e) {
             formData.append('image', imageInput.files[0]);
         }
 
-        window.Logger.debug("📡 Fetching to:", `/api/chat/${window.courseId}/messages`);
+        console.log("📡 Fetching to:", `/api/chat/${window.courseId}/messages`);
         const response = await fetch(`/api/chat/${window.courseId}/messages`, {
             method: 'POST',
             headers: {
@@ -385,7 +393,7 @@ async function sendMessage(e) {
         });
 
         const data = await response.json();
-        window.Logger.debug("📥 Server response:", data);
+        console.log("📥 Server response:", data);
 
         if (data.success) {
             input.value = '';
@@ -406,7 +414,7 @@ async function sendMessage(e) {
             showFeedback(data.message || 'Failed to send message', 'error');
         }
     } catch (error) {
-        window.Logger.error('❌ Failed to send message:', error);
+        console.error('❌ Failed to send message:', error);
         showFeedback('Failed to send message', 'error');
     }
 }

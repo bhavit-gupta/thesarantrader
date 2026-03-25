@@ -66,7 +66,15 @@
         previousOverflow: ''
     };
 
-    // [Removed local Logger definition]
+    // =========================================================================
+    // LOGGER (conditional debug logging)
+    // =========================================================================
+    const Logger = {
+        debug: (...args) => CONFIG.DEBUG && console.log('[Checkout:Debug]', ...args),
+        info: (...args) => CONFIG.DEBUG && console.info('[Checkout:Info]', ...args),
+        warn: (...args) => console.warn('[Checkout:Warn]', ...args),
+        error: (...args) => console.error('[Checkout:Error]', ...args)
+    };
 
     // =========================================================================
     // VALIDATION UTILITIES
@@ -74,7 +82,7 @@
 
     /**
      * Validate course ID
-     * [17.4] courseId validation
+     *  courseId validation
      * @param {string|number} courseId - Course ID to validate
      * @returns {boolean} Valid or not
      */
@@ -87,7 +95,7 @@
 
     /**
      * Validate file type
-     * [17.1] File type validation
+     *  File type validation
      * @param {File} file - File to validate
      * @returns {{ valid: boolean, error: string|null }} Validation result
      */
@@ -108,7 +116,7 @@
             return { valid: false, error: STRINGS.ERROR_FILE_TYPE };
         }
 
-        // [17.5] Check file size
+        //  Check file size
         if (file.size > CONFIG.MAX_FILE_SIZE_BYTES) {
             return { valid: false, error: STRINGS.ERROR_FILE_SIZE };
         }
@@ -118,7 +126,7 @@
 
     /**
      * Escape HTML to prevent XSS
-     * [17.6] UPI ID escaping
+     *  UPI ID escaping
      * @param {string} text - Text to escape
      * @returns {string} Escaped text
      */
@@ -136,19 +144,19 @@
 
     /**
      * Get CSRF token with validation
-     * [17.3] CSRF token validation
+     *  CSRF token validation
      * @returns {string|null} CSRF token or null if invalid
      */
     function getCSRFToken() {
         const meta = document.querySelector('meta[name="csrf-token"]');
         if (!meta) {
-            window.Logger.error('CSRF meta tag not found');
+            Logger.error('CSRF meta tag not found');
             return null;
         }
 
         const token = meta.getAttribute('content');
         if (!token || token.trim() === '') {
-            window.Logger.error('CSRF token is empty');
+            Logger.error('CSRF token is empty');
             return null;
         }
 
@@ -161,7 +169,7 @@
 
     /**
      * Show notification toast
-     * [17.10] Replace alert() with custom notifications
+     *  Replace alert() with custom notifications
      * @param {string} message - Message to display
      * @param {'success'|'error'|'warning'|'info'} type - Notification type
      */
@@ -234,7 +242,7 @@
 
     /**
      * Set button loading state
-     * [17.11] Safe button state management
+     *  Safe button state management
      * @param {HTMLElement} button - Button element
      * @param {boolean} loading - Loading state
      * @param {string} loadingText - Text while loading
@@ -266,7 +274,7 @@
         button.disabled = true;
         button.innerHTML = `<i class="fa-solid fa-check-circle mr-2"></i>${escapeHtml(text)}`;
 
-        // Safe class replacement [17.11]
+        // Safe class replacement 
         button.classList.remove('bg-green-600', 'hover:bg-green-700');
         button.classList.add('bg-blue-600');
     }
@@ -277,7 +285,7 @@
 
     /**
      * Fetch with timeout and proper error handling
-     * [17.2] response.ok check, [17.7] timeout
+     *  response.ok check,  timeout
      * @param {string} url - URL to fetch
      * @param {object} options - Fetch options
      * @returns {Promise<object>} JSON response
@@ -305,7 +313,7 @@
 
             clearTimeout(timeoutId);
 
-            // [17.2] Check response.ok before parsing
+            //  Check response.ok before parsing
             if (!response.ok) {
                 let errorMessage = `Server error (${response.status})`;
                 try {
@@ -343,7 +351,7 @@
 
     /**
      * Open payment modal
-     * [17.9] Proper body overflow handling
+     *  Proper body overflow handling
      */
     function openPaymentModal() {
         const modal = document.getElementById('payment-modal');
@@ -352,7 +360,7 @@
             return;
         }
 
-        // Store previous overflow state [17.9]
+        // Store previous overflow state 
         state.previousOverflow = document.body.style.overflow;
 
         modal.classList.remove('hidden');
@@ -369,7 +377,7 @@
         // Add escape key listener
         modal.addEventListener('keydown', handleModalKeydown);
 
-        window.Logger.debug('Payment modal opened');
+        Logger.debug('Payment modal opened');
     }
 
     /**
@@ -382,7 +390,7 @@
         modal.classList.add('hidden');
         modal.classList.remove('flex');
 
-        // Restore previous overflow state [17.9]
+        // Restore previous overflow state 
         document.body.style.overflow = state.previousOverflow || '';
         state.modalOpen = false;
 
@@ -401,7 +409,7 @@
             state.abortController = null;
         }
 
-        window.Logger.debug('Payment modal closed');
+        Logger.debug('Payment modal closed');
     }
 
     /**
@@ -422,7 +430,7 @@
         const s2 = document.getElementById('modal-step-2');
         if (s1) s1.style.display = '';
         if (s2) s2.style.display = 'none';
-        window.Logger.debug('Showing step 1');
+        Logger.debug('Showing step 1');
     }
 
     /**
@@ -433,7 +441,7 @@
         const s2 = document.getElementById('modal-step-2');
         if (s1) s1.style.display = 'none';
         if (s2) s2.style.display = '';
-        window.Logger.debug('Showing step 2');
+        Logger.debug('Showing step 2');
     }
 
     // =========================================================================
@@ -458,7 +466,7 @@
 
     /**
      * Preview selected image
-     * [17.1] Validate file before preview
+     *  Validate file before preview
      * @param {HTMLInputElement} input - File input element
      */
     function previewImage(input) {
@@ -466,7 +474,7 @@
         const imageElement = document.getElementById('image-preview-element');
 
         if (!previewContainer || !imageElement) {
-            window.Logger.warn('Preview elements not found');
+            Logger.warn('Preview elements not found');
             return;
         }
 
@@ -510,18 +518,18 @@
 
     /**
      * Open QR Modal for payment
-     * [17.4] Validate courseId
+     *  Validate courseId
      * @param {string|number} courseId - Course ID
      */
     function openQRModal(courseId) {
         if (!isValidCourseId(courseId)) {
             showNotification(STRINGS.ERROR_INVALID_COURSE, 'error');
-            window.Logger.error('Invalid course ID:', courseId);
+            Logger.error('Invalid course ID:', courseId);
             return;
         }
 
         state.currentCourseId = courseId;
-        window.Logger.debug('Opening payment modal for course:', courseId);
+        Logger.debug('Opening payment modal for course:', courseId);
 
         const modal = document.getElementById('payment-modal');
         if (!modal) {
@@ -542,11 +550,11 @@
 
         // Prevent double submission
         if (state.isSubmitting) {
-            window.Logger.debug('Submission already in progress');
+            Logger.debug('Submission already in progress');
             return;
         }
 
-        // Get course ID [17.4]
+        // Get course ID 
         const confirmBtn = document.getElementById('confirm-purchase-btn');
         const courseId = confirmBtn?.getAttribute('data-course-id') || state.currentCourseId;
 
@@ -605,7 +613,7 @@
             }
 
         } catch (error) {
-            window.Logger.error('Submission error:', error.message);
+            Logger.error('Submission error:', error.message);
             showNotification(error.message, 'error');
             setButtonLoading(submitBtn, false, '', STRINGS.SUBMIT);
         } finally {
@@ -619,7 +627,7 @@
 
     /**
      * Copy UPI ID to clipboard
-     * [17.6] Safe UPI handling
+     *  Safe UPI handling
      */
     async function copyUpiId() {
         const upiElement = document.getElementById('upi-id-text');
@@ -668,7 +676,7 @@
             showNotification(STRINGS.COPIED, 'success');
 
         } catch (error) {
-            window.Logger.error('Copy failed:', error);
+            Logger.error('Copy failed:', error);
             showNotification(STRINGS.COPY_FAILED, 'error');
         }
     }
@@ -681,7 +689,7 @@
      * Initialize checkout functionality
      */
     function initialize() {
-        window.Logger.debug('Initializing checkout.js');
+        Logger.debug('Initializing checkout.js');
 
         // Confirm Purchase Button
         const confirmBtn = document.getElementById('confirm-purchase-btn');
@@ -691,7 +699,7 @@
                 const courseId = confirmBtn.getAttribute('data-course-id');
                 openQRModal(courseId);
             });
-            window.Logger.debug('Confirm button initialized');
+            Logger.debug('Confirm button initialized');
         }
 
         // Close Modal Button
@@ -724,7 +732,7 @@
         // File Input Preview
         const fileInput = document.getElementById('payment-screenshot');
         if (fileInput) {
-            // Add accept attribute for file picker [17.1]
+            // Add accept attribute for file picker 
             fileInput.setAttribute('accept', CONFIG.ALLOWED_FILE_TYPES.join(','));
 
             fileInput.addEventListener('change', () => {
@@ -754,7 +762,7 @@
             });
         }
 
-        window.Logger.debug('Checkout.js initialization complete');
+        Logger.debug('Checkout.js initialization complete');
     }
 
     // Run initialization when DOM is ready

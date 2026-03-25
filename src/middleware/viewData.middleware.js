@@ -510,7 +510,7 @@ async function getUserPurchaseData(user, req) {
  * Complete graceful degradation
  */
 function setDefaultLocals(req, res) {
-    // [10.27] Safe session access with optional chaining
+    //  Safe session access with optional chaining
     res.locals.user = req.session?.user || null;
     res.locals.path = req.path;
     res.locals.courses = [];
@@ -534,7 +534,7 @@ function setDefaultLocals(req, res) {
  * Optimized implementation:
  */
 const viewDataMiddleware = async (req, res, next) => {
-    // [10.1] & [10.21] Skip routes that don't need view data
+    //  &  Skip routes that don't need view data
     if (shouldSkipRequest(req)) {
         return next();
     }
@@ -560,10 +560,10 @@ const viewDataMiddleware = async (req, res, next) => {
         const liveSessions = courseCache.liveSessions || {};
 
         // ========== STEP 3: USER-SPECIFIC DATA ==========
-        // [10.27] Safe session access
+        //  Safe session access
         const user = req.session?.user || null;
 
-        // [10.28] Conditional initialization based on user login status
+        //  Conditional initialization based on user login status
         let purchaseData;
         if (user) {
             // Fetch purchase data for all authenticated users to ensure global navbar consistency
@@ -581,7 +581,6 @@ const viewDataMiddleware = async (req, res, next) => {
         // ========== STEP 4: POPULATE RES.LOCALS ==========
         res.locals.user = user;
         res.locals.path = req.path;
-        res.locals.isDevelopment = process.env.NODE_ENV !== 'production';
         res.locals.courses = courses;
         res.locals.ongoingCourses = categorized.ongoing;
         res.locals.upcomingCourses = categorized.upcoming;
@@ -595,7 +594,7 @@ const viewDataMiddleware = async (req, res, next) => {
         next();
 
     } catch (error) {
-        // [10.25] Log with full context
+        //  Log with full context
         logError('Middleware error', error, req);
 
         // Complete graceful degradation with all fields

@@ -4,8 +4,6 @@
 /*
  * Purpose: Initializes and starts the Express HTTP server
  * 
- * 
- * 
  * Responsibilities:
  * 1. Load environment variables from .env
  * 2. Validate configuration
@@ -467,7 +465,6 @@ function startMonitoring() {
 
         if (!isConnected) {
             console.error('❌ Database connection failed. Server startup aborted.');
-            // Sanitize URL in error message
             console.error(`   Database URL: ${sanitizeDbUrl(process.env.DATABASE_URL)}`);
             process.exit(1);
         }
@@ -502,7 +499,7 @@ Scheduler:   Will start in 30 seconds
             if (error.code === 'EADDRINUSE') {
                 console.error(`❌ ERROR: Port ${PORT} is already in use`);
                 console.error(`   Kill process: npx kill-port ${PORT}`);
-                console.error(`   Or use different port: PORT=3001 npm start`);
+                console.error('   Or use different port: PORT=3001 npm start');
             } else {
                 console.error('❌ Server error:', error);
             }

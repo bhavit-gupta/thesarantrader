@@ -35,7 +35,7 @@
    CONFIGURATION
    ============================================================================ */
 
-// [11.6] Configurable constants (no magic numbers)
+//  Configurable constants (no magic numbers)
 const CONFIG = {
     RELOAD_DELAY_MS: 1000,              // Delay before page reload after action
     NOTIFICATION_DURATION_MS: 4000,     // How long notification shows  
@@ -48,7 +48,7 @@ const CONFIG = {
     ID_PATTERN: /^[a-zA-Z0-9_-]+$/      // Valid testimonial ID pattern
 };
 
-// [11.21] Configurable API endpoints
+//  Configurable API endpoints
 const API_BASE = window.location.origin;
 const ENDPOINTS = {
     approve: (id) => `${API_BASE}/admin/testimonials/${id}/approve`,
@@ -60,21 +60,27 @@ const ENDPOINTS = {
    UTILITY FUNCTIONS
    ============================================================================ */
 
+//  Conditional logger (only logs in development)
+const DEBUG = window.location.hostname === 'localhost' ||
+    window.location.search.includes('debug=true');
 
+const logger = {
+    log: (...args) => DEBUG && console.log('[Admin]', ...args),
+    error: (...args) => console.error('[Admin]', ...args),
+    warn: (...args) => DEBUG && console.warn('[Admin]', ...args)
+};
 
-// [Removed local logger definition]
-
-// [11.17] Centralized CSRF token retrieval with validation
+//  Centralized CSRF token retrieval with validation
 function getCsrfToken() {
     const token = document.querySelector('meta[name="csrf-token"]')?.content;
     if (!token || token.trim() === '') {
-        window.Logger.error('CSRF token missing from page');
+        logger.error('CSRF token missing from page');
         return null;
     }
     return token.trim();
 }
 
-// [11.2] Validate testimonial ID
+//  Validate testimonial ID
 function validateId(id) {
     if (!id || typeof id !== 'string') {
         return { valid: false, error: 'Invalid testimonial ID' };
@@ -89,7 +95,7 @@ function validateId(id) {
     return { valid: true, id: trimmedId };
 }
 
-// [11.18] Debounce utility
+//  Debounce utility
 function debounce(func, wait) {
     let timeout;
     return function (...args) {
@@ -102,28 +108,28 @@ function debounce(func, wait) {
    NOTIFICATION SYSTEM
    ============================================================================ */
 
-// [11.12] Track active notifications for stacking
+//  Track active notifications for stacking
 let notificationStack = [];
 let activeTimeouts = [];
 
 /**
  * Shows a toast notification in the top-right corner
- * [11.1] XSS-safe using textContent instead of innerHTML
- * [11.11] Accessible with ARIA attributes
- * [11.12] Stacked notifications
- * [11.19] Timeout cleanup on navigation
+ *  XSS-safe using textContent instead of innerHTML
+ *  Accessible with ARIA attributes
+ *  Stacked notifications
+ *  Timeout cleanup on navigation
  * 
  * @param {string} message - Text to display
  * @param {'success'|'error'} type - Notification type
- * @param {Function} [onUndo] - Optional undo callback [11.26]
+ * @param {Function} [onUndo] - Optional undo callback 
  */
 function showNotification(message, type, onUndo = null) {
     const notification = document.createElement('div');
 
-    // [11.12] Calculate stack position
+    //  Calculate stack position
     const stackOffset = notificationStack.length * CONFIG.NOTIFICATION_STACK_OFFSET;
 
-    // [11.11] ARIA attributes for accessibility
+    //  ARIA attributes for accessibility
     notification.setAttribute('role', 'alert');
     notification.setAttribute('aria-live', 'assertive');
     notification.setAttribute('aria-atomic', 'true');
@@ -134,7 +140,7 @@ function showNotification(message, type, onUndo = null) {
     notification.style.top = `${96 + stackOffset}px`;
     notification.style.transition = `all ${CONFIG.ANIMATION_DURATION_MS}ms ease-out`;
 
-    // [11.1] XSS-safe: Use createElement and textContent
+    //  XSS-safe: Use createElement and textContent
     const icon = document.createElement('i');
     icon.className = `fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`;
 
@@ -145,7 +151,7 @@ function showNotification(message, type, onUndo = null) {
     notification.appendChild(icon);
     notification.appendChild(messageSpan);
 
-    // [11.26] Undo button if callback provided
+    //  Undo button if callback provided
     if (onUndo && typeof onUndo === 'function') {
         const undoBtn = document.createElement('button');
         undoBtn.className = 'ml-3 underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-white';
@@ -159,7 +165,7 @@ function showNotification(message, type, onUndo = null) {
         notification.appendChild(undoBtn);
     }
 
-    // [11.11] Close button for accessibility
+    //  Close button for accessibility
     const closeBtn = document.createElement('button');
     closeBtn.className = 'ml-2 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-white';
     closeBtn.innerHTML = '<i class="fas fa-times"></i>';
@@ -206,7 +212,7 @@ function repositionNotifications() {
     });
 }
 
-// [11.19] Clear timeouts before navigation
+//  Clear timeouts before navigation
 window.addEventListener('beforeunload', () => {
     activeTimeouts.forEach(clearTimeout);
     activeTimeouts = [];
@@ -217,9 +223,9 @@ window.addEventListener('beforeunload', () => {
    ============================================================================ */
 
 /**
- * [11.8] Non-blocking custom confirmation modal
- * [11.23] Descriptive confirmation text
- * [11.30] Optional reason input for rejections
+ *  Non-blocking custom confirmation modal
+ *  Descriptive confirmation text
+ *  Optional reason input for rejections
  * 
  * @param {Object} options - Modal options
  * @param {string} options.title - Modal title
@@ -247,7 +253,7 @@ function showConfirmModal(options) {
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-labelledby', 'modal-title');
 
-        // [11.1] XSS-safe modal content
+        //  XSS-safe modal content
         const modalContent = document.createElement('div');
         modalContent.className = 'bg-white rounded-lg p-6 max-w-md shadow-xl mx-4';
 
@@ -263,7 +269,7 @@ function showConfirmModal(options) {
         modalContent.appendChild(titleEl);
         modalContent.appendChild(messageEl);
 
-        // [11.30] Optional reason input
+        //  Optional reason input
         let reasonInput = null;
         if (showReasonInput) {
             reasonInput = document.createElement('textarea');
@@ -340,11 +346,11 @@ function showConfirmModal(options) {
    ============================================================================ */
 
 /**
- * [11.14] Request with timeout
- * [11.16] Retry mechanism
- * [11.7] Safe JSON parsing
- * [11.9] HTTP status validation
- * [11.13] Network error differentiation
+ *  Request with timeout
+ *  Retry mechanism
+ *  Safe JSON parsing
+ *  HTTP status validation
+ *  Network error differentiation
  * 
  * @param {string} url - API endpoint
  * @param {Object} options - Fetch options
@@ -352,18 +358,18 @@ function showConfirmModal(options) {
  * @returns {Promise<{success: boolean, data?: any, error?: string}>}
  */
 async function apiRequest(url, options, retries = CONFIG.MAX_RETRIES) {
-    // [11.27] Check online status
+    //  Check online status
     if (!navigator.onLine) {
         return { success: false, error: 'You are offline. Please check your connection.' };
     }
 
-    // [11.3] Validate CSRF token
+    //  Validate CSRF token
     const csrfToken = getCsrfToken();
     if (!csrfToken) {
         return { success: false, error: 'Security token missing. Please refresh the page.' };
     }
 
-    // [11.14] Create abort controller for timeout
+    //  Create abort controller for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT_MS);
 
@@ -380,7 +386,7 @@ async function apiRequest(url, options, retries = CONFIG.MAX_RETRIES) {
 
         clearTimeout(timeoutId);
 
-        // [11.9] HTTP status validation
+        //  HTTP status validation
         if (!response.ok) {
             if (response.status === 401) {
                 return { success: false, error: 'Session expired. Please log in again.', redirect: '/login' };
@@ -395,7 +401,7 @@ async function apiRequest(url, options, retries = CONFIG.MAX_RETRIES) {
             }
         }
 
-        // [11.7] Check content type before parsing
+        //  Check content type before parsing
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             return { success: false, error: 'Invalid server response.' };
@@ -407,10 +413,10 @@ async function apiRequest(url, options, retries = CONFIG.MAX_RETRIES) {
     } catch (error) {
         clearTimeout(timeoutId);
 
-        // [11.13] Network error differentiation
+        //  Network error differentiation
         if (error.name === 'AbortError') {
             if (retries > 0) {
-                window.Logger.log(`Request timeout, retrying... (${retries} left)`);
+                logger.log(`Request timeout, retrying... (${retries} left)`);
                 await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY_MS));
                 return apiRequest(url, options, retries - 1);
             }
@@ -425,14 +431,14 @@ async function apiRequest(url, options, retries = CONFIG.MAX_RETRIES) {
             return { success: false, error: 'Invalid server response.' };
         }
 
-        // [11.16] Retry on server errors
+        //  Retry on server errors
         if (retries > 0 && error.message?.includes('Server error')) {
-            window.Logger.log(`Server error, retrying... (${retries} left)`);
+            logger.log(`Server error, retrying... (${retries} left)`);
             await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY_MS));
             return apiRequest(url, options, retries - 1);
         }
 
-        window.Logger.error('API request failed:', error);
+        logger.error('API request failed:', error);
         return { success: false, error: 'An unexpected error occurred.' };
     }
 }
@@ -442,8 +448,8 @@ async function apiRequest(url, options, retries = CONFIG.MAX_RETRIES) {
    ============================================================================ */
 
 /**
- * [11.4] Set button loading state
- * [11.20] Visual indication of processing row
+ *  Set button loading state
+ *  Visual indication of processing row
  */
 function setProcessingState(id, action, isProcessing) {
     const button = document.querySelector(`[data-id="${id}"].${action}-btn`);
@@ -470,7 +476,7 @@ function setProcessingState(id, action, isProcessing) {
 }
 
 /**
- * [11.5] Remove row with animation (preserves scroll)
+ *  Remove row with animation (preserves scroll)
  */
 function removeRow(id, successColor = 'bg-green-100') {
     const button = document.querySelector(`[data-id="${id}"]`);
@@ -505,7 +511,7 @@ function removeRow(id, successColor = 'bg-green-100') {
    ============================================================================ */
 
 /**
- * [11.23] Get testimonial details from DOM for confirmation
+ *  Get testimonial details from DOM for confirmation
  */
 function getTestimonialDetails(id) {
     const button = document.querySelector(`[data-id="${id}"]`);
@@ -526,10 +532,10 @@ function getTestimonialDetails(id) {
 
 /**
  * Handles approving a testimonial
- * Addresses: [11.2] [11.3] [11.4] [11.7] [11.9] [11.14] [11.20] [11.23] [11.25]
+ * Addresses:         
  */
 async function handleApprove(id) {
-    // [11.2] Validate ID
+    //  Validate ID
     const validation = validateId(id);
     if (!validation.valid) {
         showNotification(validation.error, 'error');
@@ -537,13 +543,13 @@ async function handleApprove(id) {
     }
     const validId = validation.id;
 
-    // [11.23] Get details for descriptive confirmation
+    //  Get details for descriptive confirmation
     const { userName, messagePreview } = getTestimonialDetails(validId);
     const confirmMessage = messagePreview
         ? `This will publish the testimonial on the homepage:\n\n"${messagePreview.substring(0, 100)}${messagePreview.length > 100 ? '...' : ''}"`
         : 'This will publish the testimonial on the homepage.';
 
-    // [11.8] Non-blocking confirmation modal
+    //  Non-blocking confirmation modal
     const result = await showConfirmModal({
         title: `Approve Testimonial from ${userName}?`,
         message: confirmMessage,
@@ -552,15 +558,15 @@ async function handleApprove(id) {
     });
 
     if (!result.confirmed) {
-        window.Logger.log('Approval cancelled by user');
+        logger.log('Approval cancelled by user');
         return;
     }
 
-    // [11.4] [11.20] Set loading state
+    //   Set loading state
     setProcessingState(validId, 'approve', true);
 
     try {
-        // [11.28] POST with body
+        //  POST with body
         const { success, data, error, redirect } = await apiRequest(ENDPOINTS.approve(validId), {
             method: 'POST',
             body: JSON.stringify({ timestamp: Date.now(), source: 'admin_panel' })
@@ -577,13 +583,13 @@ async function handleApprove(id) {
         }
 
         if (data.success) {
-            // [11.22] Track action (if analytics available)
+            //  Track action (if analytics available)
             trackAction('testimonial_approved', validId);
 
-            // [11.25] Descriptive success message
+            //  Descriptive success message
             showNotification('Testimonial approved and published!', 'success');
 
-            // [11.5] Remove row without full page reload
+            //  Remove row without full page reload
             removeRow(validId, 'bg-green-100');
         } else {
             setProcessingState(validId, 'approve', false);
@@ -591,7 +597,7 @@ async function handleApprove(id) {
         }
 
     } catch (error) {
-        window.Logger.error('Error approving testimonial:', error);
+        logger.error('Error approving testimonial:', error);
         setProcessingState(validId, 'approve', false);
         showNotification('Failed to approve testimonial. Please try again.', 'error');
     }
@@ -599,10 +605,10 @@ async function handleApprove(id) {
 
 /**
  * Handles rejecting a testimonial
- * Addresses: [11.2] [11.3] [11.4] [11.7] [11.9] [11.14] [11.20] [11.23] [11.25] [11.30]
+ * Addresses:          
  */
 async function handleReject(id) {
-    // [11.2] Validate ID
+    //  Validate ID
     const validation = validateId(id);
     if (!validation.valid) {
         showNotification(validation.error, 'error');
@@ -610,10 +616,10 @@ async function handleReject(id) {
     }
     const validId = validation.id;
 
-    // [11.23] Get details for descriptive confirmation
+    //  Get details for descriptive confirmation
     const { userName } = getTestimonialDetails(validId);
 
-    // [11.8] [11.30] Non-blocking confirmation with reason input
+    //   Non-blocking confirmation with reason input
     const result = await showConfirmModal({
         title: `Reject Testimonial from ${userName}?`,
         message: 'This will hide the testimonial from public view.',
@@ -624,15 +630,15 @@ async function handleReject(id) {
     });
 
     if (!result.confirmed) {
-        window.Logger.log('Rejection cancelled by user');
+        logger.log('Rejection cancelled by user');
         return;
     }
 
-    // [11.4] [11.20] Set loading state
+    //   Set loading state
     setProcessingState(validId, 'reject', true);
 
     try {
-        // [11.28] [11.30] POST with body including reason
+        //   POST with body including reason
         const { success, data, error, redirect } = await apiRequest(ENDPOINTS.reject(validId), {
             method: 'POST',
             body: JSON.stringify({
@@ -653,13 +659,13 @@ async function handleReject(id) {
         }
 
         if (data.success) {
-            // [11.22] Track action
+            //  Track action
             trackAction('testimonial_rejected', validId);
 
-            // [11.25] Descriptive success message
+            //  Descriptive success message
             showNotification('Testimonial rejected and hidden.', 'success');
 
-            // [11.5] Remove row without full page reload
+            //  Remove row without full page reload
             removeRow(validId, 'bg-red-100');
         } else {
             setProcessingState(validId, 'reject', false);
@@ -667,7 +673,7 @@ async function handleReject(id) {
         }
 
     } catch (error) {
-        window.Logger.error('Error rejecting testimonial:', error);
+        logger.error('Error rejecting testimonial:', error);
         setProcessingState(validId, 'reject', false);
         showNotification('Failed to reject testimonial. Please try again.', 'error');
     }
@@ -713,7 +719,7 @@ async function handleFeatureToggle(id) {
             showNotification(data.message || 'Failed to toggle featured status', 'error');
         }
     } catch (error) {
-        window.Logger.error('Error toggling featured status:', error);
+        logger.error('Error toggling featured status:', error);
         setProcessingState(validId, 'feature', false);
         showNotification('Failed to toggle featured status. Please try again.', 'error');
     }
@@ -724,7 +730,7 @@ async function handleFeatureToggle(id) {
    ============================================================================ */
 
 /**
- * [11.22] Track admin actions for audit
+ *  Track admin actions for audit
  */
 function trackAction(action, resourceId) {
     // Google Analytics (if available)
@@ -736,19 +742,19 @@ function trackAction(action, resourceId) {
         });
     }
 
-    window.Logger.log(`Action tracked: ${action} for ${resourceId}`);
+    logger.log(`Action tracked: ${action} for ${resourceId}`);
 }
 
 /* ============================================================================
    INITIALIZATION
    ============================================================================ */
 
-// [11.24] Wrap in error boundary
+//  Wrap in error boundary
 (function initAdminTestimonials() {
     try {
-        window.Logger.log('admin-testimonials.js loaded');
+        logger.log('admin-testimonials.js loaded');
 
-        // [11.29] Browser compatibility check
+        //  Browser compatibility check
         const requiredFeatures = {
             fetch: typeof fetch !== 'undefined',
             Promise: typeof Promise !== 'undefined',
@@ -760,23 +766,23 @@ function trackAction(action, resourceId) {
             .map(([name]) => name);
 
         if (unsupported.length > 0) {
-            window.Logger.error('Unsupported browser features:', unsupported);
-            alert(`Your browser doesn't support required features. Please upgrade your browser.`);
+            logger.error('Unsupported browser features:', unsupported);
+            alert("Your browser doesn't support required features. Please upgrade your browser.");
             return;
         }
 
         // Wait for DOM
         document.addEventListener('DOMContentLoaded', () => {
-            window.Logger.log('Testimonial event listeners initializing');
+            logger.log('Testimonial event listeners initializing');
 
-            // [11.5] Restore scroll position if saved
+            //  Restore scroll position if saved
             const scrollPos = sessionStorage.getItem('adminScrollPosition');
             if (scrollPos) {
                 window.scrollTo(0, parseInt(scrollPos));
                 sessionStorage.removeItem('adminScrollPosition');
             }
 
-            // [11.18] Debounced click handler
+            //  Debounced click handler
             const handleClick = debounce(async (e) => {
                 const approveBtn = e.target.closest('.approve-btn');
                 const rejectBtn = e.target.closest('.reject-btn');
@@ -797,7 +803,7 @@ function trackAction(action, resourceId) {
             document.addEventListener('click', handleClick);
         });
 
-        // [11.27] Online/offline detection
+        //  Online/offline detection
         window.addEventListener('offline', () => {
             showNotification('You are now offline.', 'error');
         });
@@ -806,7 +812,7 @@ function trackAction(action, resourceId) {
             showNotification('You are back online.', 'success');
         });
 
-        // [11.24] Handle unhandled promise rejections
+        //  Handle unhandled promise rejections
         window.addEventListener('unhandledrejection', (event) => {
             logger.error('Unhandled promise rejection:', event.reason);
         });
@@ -828,7 +834,7 @@ function trackAction(action, resourceId) {
    CSS ANIMATIONS
    ============================================================================ */
 
-// [11.15] CSP-safe style injection with nonce support
+//  CSP-safe style injection with nonce support
 (function injectStyles() {
     const style = document.createElement('style');
 

@@ -446,7 +446,7 @@ exports.editCourse = async (req, res) => {
     const courseId = req.params.id;
     const { title, description, price, originalPrice, icon, colorTheme, liveLink, demoVideoUrl, startDate, endDate, enrollmentDeadline, badge, badgeColor } = req.body;
 
-    // 2. Comprehensive validation [FIX 4.1, 4.2, 4.5, 4.6, 4.7, 4.16]
+    // 2. Comprehensive validation [, 4.2, 4.5, 4.6, 4.7, 4.16]
     const validationError = validateCourseInput(req.body);
     if (validationError) {
         return res.status(400).json({ success: false, message: validationError });
@@ -800,5 +800,51 @@ exports.viewCourseVideos = async (req, res) => {
     } catch (e) {
         console.error("❌ User Video Fetch Error:", e);
         res.status(500).json({ success: false, message: 'Error loading course content' });
+    }
+};
+
+/* -------------------------------------------------------------------------- */
+/*                          AUTOMATED CLEANUP TASK                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Background task: Clean up expired courses.
+ * 
+ * Purpose:
+ * - Automatically stops live streams for courses that have ended
+ * - Performs any other maintenance for expired courses
+ * 
+ * Logic: 
+ * 1. Find all courses where endDate < now AND isLive is true
+ * 2. Update them to set isLive = false
+ * 
+ * @returns {Promise<number>} Number of courses updated
+ */
+exports.cleanupExpiredCourses = async () => {
+    try {
+        const now = new Date();
+        
+        // 1. Find and stop live streams for courses that have ended
+        const result = await prisma.course.updateMany({
+            where: {
+                endDate: { lt: now },
+                isLive: true
+            },
+            data: {
+                isLive: false,
+                lastLiveStartedAt: null
+            }
+        });
+
+        if (result.count > 0) {
+            console.log(`🧹 [CLEANUP] Stopped live streams for ${result.count} expired courses.`);
+            // Invalidate cache if courses were updated
+            invalidateCourseCache();
+        }
+
+        return result.count;
+    } catch (error) {
+        console.error("❌ Error running course cleanup:", error);
+        throw error;
     }
 };

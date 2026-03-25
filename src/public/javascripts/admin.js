@@ -7,7 +7,7 @@ function getLiveSessions() {
     try {
         return JSON.parse(dataDiv.getAttribute('data-live-sessions'));
     } catch (e) {
-        window.Logger.error("Failed to parse live sessions data", e);
+        console.error("Failed to parse live sessions data", e);
         return {};
     }
 }
@@ -22,7 +22,7 @@ function getAllCourses() {
     try {
         return JSON.parse(dataDiv.getAttribute('data-courses')) || [];
     } catch (e) {
-        window.Logger.error("Failed to parse courses data", e);
+        console.error("Failed to parse courses data", e);
         return [];
     }
 }
@@ -32,7 +32,7 @@ function getCsrfToken() {
 
 function showToast(message, type = 'info') {
     // Basic fallback if toast library isn't loaded
-    window.Logger.debug(`[Toast ${type}]: ${message}`);
+    console.log(`[Toast ${type}]: ${message}`);
 
     // Check for custom toast container
     const container = document.getElementById('toast-container');
@@ -143,7 +143,7 @@ function updateLiveStatus(courseId, isLive, startTime = null) {
             // 4. Update Global Navbar Status
             updateNavbarLiveStatus();
         } catch (e) {
-            window.Logger.error("Data tracking update failed", e);
+            console.error("Data tracking update failed", e);
         }
     }
 }
@@ -189,7 +189,7 @@ function updateNavbarLiveStatus() {
             }
         }
     } catch (e) {
-        window.Logger.error("Navbar update failed", e);
+        console.error("Navbar update failed", e);
     }
 }
 
@@ -225,7 +225,7 @@ async function toggleCourseLive(courseId) {
             throw new Error(data.message || 'Toggle failed');
         }
     } catch (error) {
-        window.Logger.error('Live toggle error:', error);
+        console.error('Live toggle error:', error);
         showToast(error.message, 'error');
         btn.innerHTML = originalContent;
         btn.disabled = false;
@@ -275,7 +275,7 @@ function setupEventListeners() {
             if (courseData) {
                 openEditModal(courseData);
             } else {
-                window.Logger.error("Course data not found for ID:", courseId);
+                console.error("Course data not found for ID:", courseId);
                 alert("Error: Course data not found. Please refresh the page.");
             }
             return;
@@ -463,7 +463,7 @@ window.openEditModal = function (course) {
         // Initialize Icon
         const icon = course.icon || '📚';
         const iconBtn = document.querySelector(`.edit-icon-btn[data-icon="${icon}"]`) ||
-            document.querySelector(`.edit-icon-btn[data-icon="📚"]`);
+            document.querySelector('.edit-icon-btn[data-icon="📚"]');
 
         if (iconBtn) {
             window.selectEditIcon(iconBtn, icon, iconBtn.getAttribute('data-label'));
@@ -472,7 +472,7 @@ window.openEditModal = function (course) {
         // Initialize Color
         const color = course.colorTheme || 'blue';
         const colorBtn = document.querySelector(`.edit-color-btn[data-color="${color}"]`) ||
-            document.querySelector(`.edit-color-btn[data-color="blue"]`);
+            document.querySelector('.edit-color-btn[data-color="blue"]');
 
         if (colorBtn) {
             window.selectEditColor(colorBtn, color, colorBtn.getAttribute('data-label'), colorBtn.getAttribute('data-bg'), colorBtn.getAttribute('data-text'));
@@ -481,7 +481,7 @@ window.openEditModal = function (course) {
         modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden'); // Prevent scroll
     } catch (e) {
-        window.Logger.error("Error opening edit modal:", e);
+        console.error("Error opening edit modal:", e);
     }
 }
 
@@ -514,7 +514,7 @@ async function approvePayment(purchaseId) {
             alert(data.message || "Failed to approve payment");
         }
     } catch (e) {
-        window.Logger.error(e);
+        console.error(e);
         alert("Error approving payment");
     }
 }
@@ -544,16 +544,126 @@ async function rejectPayment(purchaseId) {
             alert(data.message || "Failed to reject payment");
         }
     } catch (e) {
-        window.Logger.error(e);
+        console.error(e);
         alert("Error rejecting payment");
     }
 }
 
 
 
+/* ---------------- HERO IMAGE UPLOAD + CROP ---------------- */
+
+let cropperInstance = null;
+
+function openCropModal(file) {
+    const modal = document.getElementById('cropModal');
+    const cropImg = document.getElementById('crop-image');
+    if (!modal || !cropImg) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        cropImg.src = e.target.result;
+        modal.classList.remove('hidden');
+
+        if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+
+        cropperInstance = new Cropper(cropImg, {
+            aspectRatio: 16 / 9,
+            viewMode: 1,
+            autoCropArea: 1,
+            movable: true,
+            zoomable: true,
+            rotatable: false,
+            scalable: false,
+            responsive: true,
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+function closeCropModal() {
+    const modal = document.getElementById('cropModal');
+    if (modal) modal.classList.add('hidden');
+    if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+    const heroInput = document.getElementById('hero-image-input');
+    if (heroInput) heroInput.value = '';
+}
+
+window.setCropRatio = function (ratio) {
+    if (cropperInstance) cropperInstance.setAspectRatio(ratio);
+    document.querySelectorAll('.crop-ratio-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-slate-100', 'text-slate-700');
+    });
+    if (event && event.target) {
+        event.target.classList.add('bg-blue-600', 'text-white');
+        event.target.classList.remove('bg-slate-100', 'text-slate-700');
+    }
+};
+
+async function cropAndUpload() {
+    if (!cropperInstance) return;
+
+    const canvas = cropperInstance.getCroppedCanvas({ width: 1200, height: 675, imageSmoothingQuality: 'high' });
+    if (!canvas) { showToast('Could not process image. Please try again.', 'error'); return; }
+
+    const confirmBtn = document.getElementById('crop-confirm-btn');
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i>Uploading...';
+
+    canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('heroImage', blob, 'hero-image.jpg');
+
+        try {
+            const response = await fetch('/api/admin/settings/hero-image', {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': getCsrfToken() },
+                body: formData
+            });
+            const data = await response.json();
+            if (data.success) {
+                closeCropModal();
+                showToast('Hero image updated!', 'success');
+                const preview = document.getElementById('hero-preview');
+                if (preview) preview.src = data.imageUrl + '?t=' + Date.now();
+            } else {
+                throw new Error(data.message || 'Upload failed');
+            }
+        } catch (error) {
+            console.error('Hero upload error:', error);
+            showToast(error.message, 'error');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fa-solid fa-crop mr-1.5"></i>Crop &amp; Upload';
+        }
+    }, 'image/jpeg', 0.92);
+}
+
 /* ---------------- INITIALIZATION ---------------- */
 document.addEventListener('DOMContentLoaded', () => {
     updateTimers();
     setInterval(updateTimers, 1000);
     setupEventListeners();
+
+    const heroInput = document.getElementById('hero-image-input');
+    const heroBtn = document.getElementById('hero-upload-btn');
+    if (heroBtn && heroInput) {
+        heroBtn.addEventListener('click', () => heroInput.click());
+        heroInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowed.includes(file.type)) { showToast('Upload JPG, PNG or WebP only', 'error'); heroInput.value = ''; return; }
+            if (file.size > 10 * 1024 * 1024) { showToast('Image must be under 10MB', 'error'); heroInput.value = ''; return; }
+            openCropModal(file);
+        });
+    }
+
+    const cancelBtn = document.getElementById('crop-cancel-btn');
+    const cancelBtn2 = document.getElementById('crop-cancel-btn2');
+    const confirmBtn = document.getElementById('crop-confirm-btn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeCropModal);
+    if (cancelBtn2) cancelBtn2.addEventListener('click', closeCropModal);
+    if (confirmBtn) confirmBtn.addEventListener('click', cropAndUpload);
 });

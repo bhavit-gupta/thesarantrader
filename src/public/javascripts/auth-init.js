@@ -5,7 +5,7 @@
  * ============================================================================
  * 
  * ISSUES FOUND: 30 total (3 critical, 5 major, 22 moderate)
- * See ERROR_TRACKING.txt [14.1]-[14.30] for detailed analysis
+ * See ERROR_TRACKING.txt - for detailed analysis
  * 
  * CRITICAL ISSUES [14.1, 14.2, 14.3]:
  * - No type checking on parsed JSON (could be malicious objects)
@@ -59,19 +59,14 @@
         // Parse and store pending course IDs globally (empty array if element missing)
         window.__PENDING_COURSES__ = pendingEl ? JSON.parse(pendingEl.textContent) : [];
 
-        // [New] Parse and store environment flag globally
-        const envEl = document.getElementById('server-side-env');
-        const envData = envEl ? JSON.parse(envEl.textContent) : { isDevelopment: false };
-        window.__IS_DEVELOPMENT__ = envData.isDevelopment;
-
         // Log successful initialization with user status
-        window.Logger.log('🛡️ Auth State Loaded:', {
-            loggedIn: !!window.__AUTH_USER__,
+        console.log('🛡️ Auth State Loaded:', {
+            loggedIn: Boolean(window.__AUTH_USER__),
             username: window.__AUTH_USER__ ? window.__AUTH_USER__.username : 'guest'
         });
     } catch (e) {
         // Log parsing error if JSON is malformed
-        window.Logger.error('❌ Auth State Error:', e);
+        console.error('❌ Auth State Error:', e);
 
         // Set safe default values if parsing fails
         window.__AUTH_USER__ = null;
@@ -88,7 +83,7 @@
 window.logoutUser = function (e) {
     // Prevent default link navigation
     e.preventDefault();
-    window.Logger.log("Attempting logout...");
+    console.log("Attempting logout...");
 
     // Try to submit existing logout form
     const form = document.getElementById('logout-form');
@@ -96,7 +91,7 @@ window.logoutUser = function (e) {
         form.submit();
     } else {
         // Fallback: create and submit logout form dynamically if not found
-        window.Logger.error("Logout form not found!");
+        console.error("Logout form not found!");
 
         // Create new form element
         const newForm = document.createElement('form');

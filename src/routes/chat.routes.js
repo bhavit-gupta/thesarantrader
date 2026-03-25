@@ -39,7 +39,6 @@ const crypto = require('crypto');
 const { isAuthenticated } = require('../middleware/auth.middleware');
 const { requireCoursePurchase } = require('../utils/helpers');
 const csrfProtection = require('../middleware/csrfProtection');
-const { authLimiter } = require('../middleware/rateLimiter');
 
 // Validate middleware exists at startup
 if (typeof isAuthenticated !== 'function') {
@@ -72,8 +71,8 @@ try {
 /* -------------------------------------------------------------------------- */
 
 const CONFIG = {
-    // Reduced file size limit (10MB for chat images)
-    MAX_FILE_SIZE: 10 * 1024 * 1024,
+    // File size limit (50MB for chat images)
+    MAX_FILE_SIZE: 50 * 1024 * 1024,
 
     // Request size limits (enforced at app level)
     MAX_BODY_SIZE: '50kb',
@@ -105,7 +104,7 @@ const CONFIG = {
 const STRINGS = {
     UPLOAD_ERROR: 'File upload failed. Please try again.',
     INVALID_FILE_TYPE: 'Only images (JPEG, PNG, GIF, WebP) are allowed.',
-    FILE_TOO_LARGE: 'File size exceeds the 10MB limit.',
+    FILE_TOO_LARGE: 'File size exceeds the 50MB limit.',
     INVALID_COURSE_ID: 'Invalid course identifier.',
     INVALID_PAGINATION: 'Invalid pagination parameters.',
     SERVICE_ERROR: 'Service temporarily unavailable.',
@@ -390,7 +389,6 @@ router.post('/api/chat/:courseId/messages',
     isAuthenticated,
     validateCourseId,
     csrfProtection,              // CSRF protection
-    authLimiter,                  // Rate limiting
     requireCoursePurchase(),
     cleanupOnError,               // Clean temp files on error
     (req, res, next) => {

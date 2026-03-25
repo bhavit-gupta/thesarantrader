@@ -63,13 +63,21 @@
     // STATE MANAGEMENT
     // =========================================================================
     const state = {
-        courses: [],          // [19.1] Always initialized as array
+        courses: [],          //  Always initialized as array
         fetchError: false,
         isLoading: false,
         abortController: null
     };
 
-    // [Removed local Logger definition]
+    // =========================================================================
+    // LOGGER
+    // =========================================================================
+    const Logger = {
+        debug: (...args) => CONFIG.DEBUG && console.log('[Courses:Debug]', ...args),
+        info: (...args) => CONFIG.DEBUG && console.info('[Courses:Info]', ...args),
+        warn: (...args) => console.warn('[Courses:Warn]', ...args),
+        error: (...args) => console.error('[Courses:Error]', ...args)
+    };
 
     // =========================================================================
     // VALIDATION UTILITIES
@@ -91,7 +99,7 @@
 
     /**
      * Validate course ID
-     * [19.12] Type validation
+     *  Type validation
      * @param {*} courseId - Course ID to validate
      * @returns {boolean} Valid or not
      */
@@ -161,7 +169,7 @@
 
     /**
      * Format date safely
-     * [19.11] Handle undefined formatDate
+     *  Handle undefined formatDate
      * @param {*} dateValue - Date to format
      * @returns {string} Formatted date or fallback
      */
@@ -187,7 +195,7 @@
 
     /**
      * Check if enrollment is closed
-     * [19.10] Safe date comparison
+     *  Safe date comparison
      * @param {*} deadline - Enrollment deadline
      * @returns {boolean} True if closed
      */
@@ -199,7 +207,7 @@
 
     /**
      * Validate course structure
-     * [19.27] Structure validation
+     *  Structure validation
      * @param {*} course - Course object
      * @returns {object|null} Validated course or null
      */
@@ -267,13 +275,13 @@
         const match = url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
 
         if (!match || !match[1]) {
-            window.Logger.debug('Invalid YouTube URL:', url);
+            Logger.debug('Invalid YouTube URL:', url);
             return null;
         }
 
         const videoId = match[1];
 
-        // [19.4] Always use HTTPS
+        //  Always use HTTPS
         const embedUrl = `${CONFIG.YOUTUBE_EMBED_BASE}${videoId}`;
 
         // Validate final URL
@@ -292,7 +300,7 @@
 
     /**
      * Fetch with timeout
-     * [19.23] Request timeout
+     *  Request timeout
      * @param {string} url - URL to fetch
      * @returns {Promise<object>} Response data
      */
@@ -315,7 +323,7 @@
 
             const data = await response.json();
 
-            // [19.13] Validate response is array
+            //  Validate response is array
             if (!isValidArray(data)) {
                 throw new Error('Invalid API response format');
             }
@@ -345,7 +353,7 @@
 
     /**
      * Fetch courses from API
-     * [19.1] Initialize array on error
+     *  Initialize array on error
      */
     async function fetchCourses() {
         state.fetchError = false;
@@ -354,7 +362,7 @@
         try {
             const data = await fetchWithTimeout(CONFIG.API_ENDPOINTS.COURSES);
 
-            // [19.21] Clear previous data
+            //  Clear previous data
             state.courses = [];
 
             // Validate and store each course
@@ -365,12 +373,12 @@
                 }
             });
 
-            window.Logger.debug('Loaded courses:', state.courses.length);
+            Logger.debug('Loaded courses:', state.courses.length);
 
         } catch (error) {
-            window.Logger.error('Error fetching courses:', error.message);
+            Logger.error('Error fetching courses:', error.message);
             state.fetchError = true;
-            state.courses = []; // [19.1] Always initialize
+            state.courses = []; //  Always initialize
         } finally {
             state.isLoading = false;
         }
@@ -439,7 +447,7 @@
             // Start date
             const startDiv = document.createElement('div');
             startDiv.className = 'flex items-center gap-2';
-            startDiv.innerHTML = `<i class="fa-regular fa-calendar text-blue-500"></i>`;
+            startDiv.innerHTML = '<i class="fa-regular fa-calendar text-blue-500"></i>';
             const startSpan = document.createElement('span');
             startSpan.textContent = `Starts: ${formatDateSafe(course.startDate)}`;
             startDiv.appendChild(startSpan);
@@ -449,7 +457,7 @@
             if (course.endDate) {
                 const endDiv = document.createElement('div');
                 endDiv.className = 'flex items-center gap-2';
-                endDiv.innerHTML = `<i class="fa-regular fa-flag text-red-500"></i>`;
+                endDiv.innerHTML = '<i class="fa-regular fa-flag text-red-500"></i>';
                 const endSpan = document.createElement('span');
                 endSpan.textContent = `Ends: ${formatDateSafe(course.endDate)}`;
                 endDiv.appendChild(endSpan);
@@ -460,7 +468,7 @@
             if (course.enrollmentDeadline) {
                 const deadlineDiv = document.createElement('div');
                 deadlineDiv.className = 'flex items-center gap-2';
-                deadlineDiv.innerHTML = `<i class="fa-solid fa-hourglass-half text-orange-500"></i>`;
+                deadlineDiv.innerHTML = '<i class="fa-solid fa-hourglass-half text-orange-500"></i>';
                 const deadlineSpan = document.createElement('span');
                 deadlineSpan.className = isEnrollmentClosed(course.enrollmentDeadline) ? 'text-red-500 font-bold' : '';
                 deadlineSpan.textContent = `Enroll by: ${formatDateSafe(course.enrollmentDeadline)}`;
@@ -492,13 +500,21 @@
 
     /**
      * Create action button for course card
-     * [19.9] Safe array checks
+     *  Safe array checks
      * @param {object} course - Course object
      * @returns {HTMLElement} Action element
      */
     function createCourseActionButton(course) {
+        const isPurchased = arrayContainsId(window.__PURCHASED_COURSES__, course.id);
         const isPending = arrayContainsId(window.__PENDING_COURSES__, course.id);
         const closed = isEnrollmentClosed(course.enrollmentDeadline);
+
+        if (isPurchased) {
+            const div = document.createElement('div');
+            div.className = 'px-4 py-2 rounded-lg bg-green-50 text-green-700 font-semibold text-sm border border-green-100 flex items-center gap-1';
+            div.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${escapeHtml(STRINGS.ALREADY_ENROLLED)}`;
+            return div;
+        }
 
         if (isPending) {
             const div = document.createElement('div');
@@ -515,7 +531,7 @@
             return btn;
         }
 
-        // [19.20] Properly encode URL
+        //  Properly encode URL
         const link = document.createElement('a');
         link.href = `/enroll?id=${encodeURIComponent(String(course.id))}`;
         link.className = 'px-4 py-2 rounded-lg bg-slate-50 text-slate-700 font-semibold text-sm hover:bg-blue-600 hover:text-white transition-all transform hover:-translate-y-0.5';
@@ -549,7 +565,7 @@
             return;
         }
 
-        // [19.3] Validate courses array
+        //  Validate courses array
         if (!isValidArray(state.courses) || state.courses.length === 0) {
             grid.classList.add('hidden');
             if (errorEl) errorEl.classList.add('hidden');
@@ -571,7 +587,7 @@
             grid.appendChild(card);
         });
 
-        window.Logger.debug('Rendered courses:', state.courses.length);
+        Logger.debug('Rendered courses:', state.courses.length);
     }
 
     // =========================================================================
@@ -586,13 +602,13 @@
         const container = document.getElementById('enrollment-container');
         if (!container) return;
 
-        // [19.26] Safe URL parameter extraction
+        //  Safe URL parameter extraction
         let courseId = null;
         try {
             const urlParams = new URLSearchParams(window.location.search);
             courseId = urlParams.get('id');
         } catch {
-            window.Logger.error('Failed to parse URL parameters');
+            Logger.error('Failed to parse URL parameters');
         }
 
         // Show loading if courses not ready
@@ -601,7 +617,7 @@
             return;
         }
 
-        // [19.2] Validate courseId before use
+        //  Validate courseId before use
         if (!isValidCourseId(courseId)) {
             renderCourseNotFound(container, courseId);
             return;
@@ -620,7 +636,7 @@
 
     /**
      * Render course not found message
-     * [19.2] XSS prevention
+     *  XSS prevention
      * @param {HTMLElement} container - Container element
      * @param {string} courseId - Course ID
      */
@@ -645,7 +661,7 @@
 
     /**
      * Create enrollment action button
-     * [19.20] Safe redirect handling
+     *  Safe redirect handling
      * @param {object} course - Course object
      * @returns {string} HTML string
      */
@@ -654,7 +670,7 @@
         const isPending = arrayContainsId(window.__PENDING_COURSES__, course.id);
 
         if (!window.__AUTH_USER__) {
-            // [19.20] Safe redirect - only use pathname, not full URL
+            //  Safe redirect - only use pathname, not full URL
             const currentPath = window.location.pathname + window.location.search;
             const safeRedirect = encodeURIComponent(currentPath);
             return `
@@ -683,7 +699,7 @@
                 </p>`;
         }
 
-        // [19.19] Encode course ID in URL
+        //  Encode course ID in URL
         return `
             <a href="/checkout/${encodeURIComponent(String(course.id))}" class="w-full block text-center py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5 text-lg">
                 ${escapeHtml(STRINGS.ENROLL_NOW)} — ₹${escapeHtml(String(course.price))}
@@ -705,7 +721,7 @@
         // Build video/icon section
         let mediaSection = '';
         if (embedUrl) {
-            // [19.4] Only use validated HTTPS YouTube URL
+            //  Only use validated HTTPS YouTube URL
             mediaSection = `<div class="aspect-video w-full rounded-xl overflow-hidden mb-6 shadow-lg"><iframe class="w-full h-full" src="${escapeHtml(embedUrl)}" title="Course Demo Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe></div>`;
         } else {
             mediaSection = `<div class="aspect-video bg-${course.iconBg} w-full rounded-xl overflow-hidden flex items-center justify-center text-${course.iconColor} text-6xl mb-6">${escapeHtml(course.icon)}</div>`;
@@ -803,7 +819,7 @@
     async function initialize() {
         Logger.debug('Initializing courses.js');
 
-        // [19.22] Only render if elements exist
+        //  Only render if elements exist
         const hasGrid = document.getElementById('courses-grid');
         const hasEnrollment = document.getElementById('enrollment-container');
 

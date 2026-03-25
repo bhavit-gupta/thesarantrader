@@ -4,39 +4,39 @@
  * PURPOSE: Dynamic testimonials page loading and rendering
  * ============================================================================
  * 
- * ALL 30 ISSUES FIXED - See ERROR_TRACKING.txt [13.1]-[13.30]
+ * ALL 30 ISSUES FIXED - See ERROR_TRACKING.txt -
  * 
  * KEY FIXES:
- * [13.1] ✅ HTTP status check before JSON parsing
- * [13.2] ✅ Complete escapeHtml function with null check
- * [13.3] ✅ Rating validation (parseInt, range 1-5)
- * [13.4] ✅ Testimonial limit with pagination (initial 20, load more)
- * [13.5] ✅ userName null check with 'U' fallback
- * [13.6] ✅ Safe star generation via createElement
- * [13.7] ✅ Request timeout with AbortController (15s)
- * [13.8] ✅ Null checks on all DOM elements
- * [13.9] ✅ Content-Length awareness (logged if large)
- * [13.10] ✅ Testimonial structure validation
- * [13.11] ✅ Gradient arrays as module-level constants
- * [13.12] ✅ Loading timeout with "taking longer" message
- * [13.13] ✅ Detailed error messages by type
- * [13.14] ✅ Response structure validation
- * [13.15] ✅ "Load More" pagination
- * [13.16] ✅ Skeleton loading state
- * [13.17] ✅ ARIA labels on star ratings
- * [13.18] ✅ Keyboard navigation (tabindex, focus styles)
- * [13.19] ✅ Avatar fallback for edge cases
- * [13.20] ✅ Intersection Observer for lazy rendering
- * [13.21] ✅ Tailwind safelist comment for dynamic classes
- * [13.22] ✅ createElement for card content
- * [13.23] ✅ Scroll restoration via sessionStorage
- * [13.24] ✅ Focus states for keyboard users
- * [13.25] ✅ Malformed username handling
- * [13.26] ✅ Conditional logging (DEBUG mode only)
- * [13.27] ✅ Accessible color choices (WCAG compliant)
- * [13.28] ✅ I18N ready structure
- * [13.29] ✅ Analytics tracking hooks
- * [13.30] ✅ Responsive grid tested
+ *  ✅ HTTP status check before JSON parsing
+ *  ✅ Complete escapeHtml function with null check
+ *  ✅ Rating validation (parseInt, range 1-5)
+ *  ✅ Testimonial limit with pagination (initial 20, load more)
+ *  ✅ userName null check with 'U' fallback
+ *  ✅ Safe star generation via createElement
+ *  ✅ Request timeout with AbortController (15s)
+ *  ✅ Null checks on all DOM elements
+ *  ✅ Content-Length awareness (logged if large)
+ *  ✅ Testimonial structure validation
+ *  ✅ Gradient arrays as module-level constants
+ *  ✅ Loading timeout with "taking longer" message
+ *  ✅ Detailed error messages by type
+ *  ✅ Response structure validation
+ *  ✅ "Load More" pagination
+ *  ✅ Skeleton loading state
+ *  ✅ ARIA labels on star ratings
+ *  ✅ Keyboard navigation (tabindex, focus styles)
+ *  ✅ Avatar fallback for edge cases
+ *  ✅ Intersection Observer for lazy rendering
+ *  ✅ Tailwind safelist comment for dynamic classes
+ *  ✅ createElement for card content
+ *  ✅ Scroll restoration via sessionStorage
+ *  ✅ Focus states for keyboard users
+ *  ✅ Malformed username handling
+ *  ✅ Conditional logging (DEBUG mode only)
+ *  ✅ Accessible color choices (WCAG compliant)
+ *  ✅ I18N ready structure
+ *  ✅ Analytics tracking hooks
+ *  ✅ Responsive grid tested
  */
 
 (function () {
@@ -56,13 +56,19 @@
         SCROLL_RESTORE_KEY: 'testimonials-scroll-position'
     };
 
+    //  Conditional logging
+    const DEBUG = window.location.hostname === 'localhost' ||
+        window.location.search.includes('debug=true');
 
+    const Logger = {
+        log: (...args) => DEBUG && console.log('[Testimonials]', ...args),
+        warn: (...args) => DEBUG && console.warn('[Testimonials]', ...args),
+        error: (...args) => console.error('[Testimonials]', ...args)
+    };
 
-    // [Removed local Logger definition]
-
-    // [13.29] Analytics tracking hook
+    //  Analytics tracking hook
     function trackEvent(action, data = {}) {
-        window.Logger.log('Analytics:', action, data);
+        Logger.log('Analytics:', action, data);
         if (window.gtag) {
             window.gtag('event', action, {
                 event_category: 'Testimonials',
@@ -72,9 +78,9 @@
     }
 
     // =========================================================================
-    // [13.11] GRADIENT ARRAYS AS MODULE-LEVEL CONSTANTS
+    //  GRADIENT ARRAYS AS MODULE-LEVEL CONSTANTS
     // =========================================================================
-    // [13.21] Tailwind CSS safelist: These classes must be in safelist
+    //  Tailwind CSS safelist: These classes must be in safelist
     // safelist: ['from-blue-400', 'to-blue-600', 'from-purple-400', ...]
     const GRADIENTS = Object.freeze([
         'from-blue-400 to-blue-600',
@@ -100,7 +106,7 @@
         'from-emerald-500 to-green-500'
     ]);
 
-    // [13.28] I18N ready strings
+    //  I18N ready strings
     const STRINGS = {
         loadMore: 'Load More',
         loading: 'Loading...',
@@ -123,7 +129,7 @@
     };
 
     // =========================================================================
-    // [13.2] COMPLETE ESCAPE HTML FUNCTION
+    //  COMPLETE ESCAPE HTML FUNCTION
     // =========================================================================
     function escapeHtml(text) {
         if (text === null || text === undefined) return '';
@@ -154,7 +160,7 @@
     }
 
     /**
-     * [13.10] Validates testimonial structure
+     *  Validates testimonial structure
      * @param {Object} testimonial - Raw testimonial object
      * @returns {Object|null} Validated testimonial or null if invalid
      */
@@ -172,12 +178,12 @@
                 ? testimonial.userName.trim()
                 : 'Anonymous',
             userRole: typeof testimonial.userRole === 'string' ? testimonial.userRole : 'User',
-            isFeatured: !!testimonial.isFeatured
+            isFeatured: Boolean(testimonial.isFeatured)
         };
     }
 
     // =========================================================================
-    // [13.25] GET AVATAR INITIAL
+    //  GET AVATAR INITIAL
     // =========================================================================
     function getAvatarInitial(userName) {
         if (!userName || typeof userName !== 'string') return 'U';
@@ -200,7 +206,7 @@
     function createStarRating(rating, container) {
         const validRating = validateRating(rating);
 
-        // [13.17] ARIA label for accessibility
+        //  ARIA label for accessibility
         container.setAttribute('role', 'img');
         container.setAttribute('aria-label', STRINGS.ratingOf(validRating));
 
@@ -222,13 +228,13 @@
     }
 
     // =========================================================================
-    // [13.22] CREATE TESTIMONIAL CARD USING CREATEELEMENT
+    //  CREATE TESTIMONIAL CARD USING CREATEELEMENT
     // =========================================================================
     function createTestimonialCard(testimonial, index) {
         const gradientClass = GRADIENTS[index % GRADIENTS.length];
         const accentClass = ACCENT_GRADIENTS[index % ACCENT_GRADIENTS.length];
 
-        // [13.22] Use createElement instead of innerHTML for safety
+        //  Use createElement instead of innerHTML for safety
         const card = document.createElement('article');
         // [13.18, 13.24] Keyboard navigation and focus states
         card.className = 'bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 focus-within:shadow-xl focus-within:ring-2 focus-within:ring-blue-300 transition-all duration-300 group relative overflow-hidden';
@@ -257,7 +263,7 @@
 
         // Message - use textContent for safety
         const message = document.createElement('p');
-        // [13.27] Accessible colors - text-slate-700 has better contrast
+        //  Accessible colors - text-slate-700 has better contrast
         message.className = 'text-slate-700 leading-relaxed mb-6 italic';
         message.textContent = `"${testimonial.message}"`;
         card.appendChild(message);
@@ -282,7 +288,7 @@
         nameContainer.appendChild(name);
 
         const role = document.createElement('p');
-        role.className = 'text-xs text-slate-600'; // [13.27] Better contrast
+        role.className = 'text-xs text-slate-600'; //  Better contrast
         role.textContent = testimonial.userRole;
         nameContainer.appendChild(role);
 
@@ -293,7 +299,7 @@
     }
 
     // =========================================================================
-    // [13.16] SKELETON LOADING STATE
+    //  SKELETON LOADING STATE
     // =========================================================================
     function createSkeletonCards(count = 6) {
         const skeletons = [];
@@ -340,7 +346,7 @@
     }
 
     // =========================================================================
-    // [13.15] LOAD MORE BUTTON
+    //  LOAD MORE BUTTON
     // =========================================================================
     function createLoadMoreButton(onClick) {
         const container = document.createElement('div');
@@ -391,7 +397,7 @@
     }
 
     // =========================================================================
-    // [13.7] FETCH WITH TIMEOUT
+    //  FETCH WITH TIMEOUT
     // =========================================================================
     async function fetchWithTimeout(url, timeout = CONFIG.REQUEST_TIMEOUT_MS) {
         state.abortController = new AbortController();
@@ -417,31 +423,31 @@
     // MAIN LOAD FUNCTION
     // =========================================================================
     async function loadAllTestimonials() {
-        // [13.8] Get DOM elements with null checks
+        //  Get DOM elements with null checks
         const loading = document.getElementById('testimonials-loading');
         const grid = document.getElementById('all-testimonials-grid');
         const emptyState = document.getElementById('empty-state');
         const errorState = document.getElementById('error-state');
 
-        // [13.8] Validate critical elements exist
+        //  Validate critical elements exist
         if (!grid) {
-            window.Logger.error('Required element #all-testimonials-grid not found');
+            Logger.error('Required element #all-testimonials-grid not found');
             return;
         }
 
         if (state.isLoading) {
-            window.Logger.warn('Load already in progress');
+            Logger.warn('Load already in progress');
             return;
         }
 
         state.isLoading = true;
         const startTime = Date.now();
 
-        // [13.16] Show skeleton loading
+        //  Show skeleton loading
         if (loading) loading.classList.add('hidden');
         const skeletons = showSkeletonLoading(grid);
 
-        // [13.12] Show "taking longer" message after threshold
+        //  Show "taking longer" message after threshold
         const slowLoadTimeout = setTimeout(() => {
             if (state.isLoading) {
                 showNotification(STRINGS.takingLonger, 'warning');
@@ -451,10 +457,10 @@
         try {
             trackEvent('load_started');
 
-            // [13.7] Fetch with timeout
+            //  Fetch with timeout
             const response = await fetchWithTimeout('/api/testimonials/approved');
 
-            // [13.1] Check HTTP status before parsing
+            //  Check HTTP status before parsing
             if (!response.ok) {
                 if (response.status === 404) {
                     throw new Error('Testimonials API not found');
@@ -465,12 +471,12 @@
                 }
             }
 
-            // [13.9] Check response size
+            //  Check response size
             const contentLength = response.headers.get('content-length');
             if (contentLength) {
                 const sizeMB = parseInt(contentLength, 10) / (1024 * 1024);
                 if (sizeMB > CONFIG.MAX_RESPONSE_SIZE_MB) {
-                    window.Logger.warn(`Large response: ${sizeMB.toFixed(2)}MB`);
+                    Logger.warn(`Large response: ${sizeMB.toFixed(2)}MB`);
                 }
             }
 
@@ -482,7 +488,7 @@
 
             const data = await response.json();
 
-            // [13.14] Validate response structure
+            //  Validate response structure
             if (!data || typeof data !== 'object') {
                 throw new Error('Invalid response data');
             }
@@ -491,7 +497,7 @@
             removeSkeletons(grid);
 
             if (data.success && Array.isArray(data.testimonials) && data.testimonials.length > 0) {
-                // [13.10] Validate each testimonial
+                //  Validate each testimonial
                 state.allTestimonials = data.testimonials
                     .map(t => validateTestimonial(t))
                     .filter(t => t !== null && t.message); // Filter out invalid ones
@@ -503,10 +509,10 @@
                     return;
                 }
 
-                // [13.4] Render initial batch only
+                //  Render initial batch only
                 renderTestimonials(grid, state.allTestimonials, 0, CONFIG.INITIAL_LOAD_COUNT);
 
-                // [13.15] Add Load More button if more testimonials
+                //  Add Load More button if more testimonials
                 if (state.allTestimonials.length > CONFIG.INITIAL_LOAD_COUNT) {
                     const loadMoreBtn = createLoadMoreButton(() => {
                         const rendered = renderTestimonials(
@@ -520,7 +526,7 @@
                     grid.parentNode.appendChild(loadMoreBtn);
                 }
 
-                // [13.23] Restore scroll position
+                //  Restore scroll position
                 const savedScroll = sessionStorage.getItem(CONFIG.SCROLL_RESTORE_KEY);
                 if (savedScroll) {
                     setTimeout(() => window.scrollTo(0, parseInt(savedScroll, 10)), 100);
@@ -543,7 +549,7 @@
             removeSkeletons(grid);
             grid.classList.add('hidden');
 
-            // [13.13] Detailed error handling
+            //  Detailed error handling
             let errorMessage = STRINGS.errorLoading;
 
             if (error.name === 'AbortError') {
@@ -554,7 +560,7 @@
                 errorMessage = STRINGS.serverError;
             }
 
-            window.Logger.error('Load failed:', error.message);
+            Logger.error('Load failed:', error.message);
 
             if (errorState) {
                 const errorMsgEl = errorState.querySelector('p');
@@ -592,7 +598,7 @@
     }
 
     // =========================================================================
-    // [13.23] SCROLL SAVE ON UNLOAD
+    //  SCROLL SAVE ON UNLOAD
     // =========================================================================
     function setupScrollSave() {
         window.addEventListener('beforeunload', () => {

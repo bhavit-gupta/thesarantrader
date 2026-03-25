@@ -268,7 +268,7 @@ router.post('/api/admin/approve-payment', isAdmin, async (req, res) => {
     try {
         const { purchaseId } = req.body;
 
-        // [23.3] Validate purchaseId format
+        //  Validate purchaseId format
         if (!isValidObjectId(purchaseId)) {
             return res.status(400).json({ success: false, message: 'Invalid purchase ID format' });
         }
@@ -348,7 +348,7 @@ router.post('/api/admin/approve-payment', isAdmin, async (req, res) => {
         });
 
     } catch (error) {
-        // [23.12] Don't expose internal error details
+        //  Don't expose internal error details
         console.error('[Approve] Error');
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
@@ -365,7 +365,7 @@ router.post('/api/admin/reject-payment', isAdmin, async (req, res) => {
     try {
         const { purchaseId, reason } = req.body;
 
-        // [23.3] Validate purchaseId format
+        //  Validate purchaseId format
         if (!isValidObjectId(purchaseId)) {
             return res.status(400).json({ success: false, message: 'Invalid purchase ID format' });
         }
@@ -602,7 +602,7 @@ router.post('/api/admin/courses/:id/videos', isAdmin, async (req, res) => {
             const courseId = req.params.id;
             const { title, description, youtubeUrl } = req.body;
 
-            // [23.17] Validate courseId format
+            //  Validate courseId format
             if (!isValidObjectId(courseId)) {
                 return res.status(400).json({ success: false, message: 'Invalid course ID' });
             }
@@ -616,7 +616,7 @@ router.post('/api/admin/courses/:id/videos', isAdmin, async (req, res) => {
                 return res.status(400).json({ success: false, message: 'YouTube URL is required' });
             }
 
-            // [23.10] Proper YouTube URL validation
+            //  Proper YouTube URL validation
             if (!isValidYouTubeUrl(youtubeUrl)) {
                 return res.status(400).json({ success: false, message: 'Invalid YouTube URL' });
             }
@@ -703,7 +703,7 @@ router.post('/api/admin/courses/:id/videos/:videoId/update', isAdmin, async (req
                 return res.status(400).json({ success: false, message: 'YouTube URL is required' });
             }
 
-            // [23.10] Proper YouTube URL validation
+            //  Proper YouTube URL validation
             if (!isValidYouTubeUrl(youtubeUrl)) {
                 return res.status(400).json({ success: false, message: 'Invalid YouTube URL' });
             }
@@ -810,6 +810,76 @@ router.delete('/api/admin/courses/:courseId/videos/:videoId', isAdmin, async (re
         res.json({ success: true, message: 'Video deleted successfully' });
     } catch (error) {
         console.error('[Video] Delete error');
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+/* -------------------------------------------------------------------------- */
+/*                          SITE SETTINGS ROUTES                             */
+/* -------------------------------------------------------------------------- */
+
+const SETTINGS_UPLOAD_DIR = path.join(__dirname, '../public/uploads/settings');
+if (!fsSync.existsSync(SETTINGS_UPLOAD_DIR)) {
+    fsSync.mkdirSync(SETTINGS_UPLOAD_DIR, { recursive: true, mode: 0o755 });
+}
+
+const settingsStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, SETTINGS_UPLOAD_DIR),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, 'hero-image-' + Date.now() + ext);
+    }
+});
+
+const settingsUpload = multer({
+    storage: settingsStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (!CONFIG.ALLOWED_EXTENSIONS.includes(ext)) {
+            return cb(new Error('Only images (JPG, PNG, WebP) are allowed'));
+        }
+        cb(null, true);
+    }
+});
+
+/**
+ * Upload a new hero image for the home page.
+ */
+router.post('/api/admin/settings/hero-image', isAdmin, settingsUpload.single('heroImage'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        let finalFilename = req.file.filename;
+        try {
+            const compressedFilename = await compressImage(req.file, SETTINGS_UPLOAD_DIR, 'course');
+            if (compressedFilename) finalFilename = compressedFilename;
+        } catch (compErr) {
+            console.warn('[Settings] Compression failed:', compErr.message);
+        }
+
+        const imageUrl = `/uploads/settings/${finalFilename}`;
+        const oldSetting = await prisma.siteSetting.findUnique({ where: { key: 'hero_image' } });
+
+        await prisma.siteSetting.upsert({
+            where: { key: 'hero_image' },
+            update: { value: imageUrl },
+            create: { key: 'hero_image', value: imageUrl }
+        });
+
+        if (oldSetting && oldSetting.value && oldSetting.value.startsWith('/uploads/settings/')) {
+            const oldFilename = path.basename(oldSetting.value);
+            if (oldFilename !== finalFilename) {
+                await fs.unlink(path.join(SETTINGS_UPLOAD_DIR, oldFilename)).catch(() => { });
+                await fs.unlink(path.join(SETTINGS_UPLOAD_DIR, '.originals', oldFilename)).catch(() => { });
+            }
+        }
+
+        res.json({ success: true, message: 'Hero image updated successfully', imageUrl });
+    } catch (error) {
+        console.error('[Settings] Upload error:', error);
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
