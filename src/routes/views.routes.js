@@ -193,12 +193,12 @@ router.get('/refund-policy', authLimiter, (req, res) => res.render("layouts/refu
 // Login page
 // Using middleware for consistency
 router.get('/login', redirectIfAuthenticated, (req, res) => {
-    res.render("auth/login");
+    res.render("auth/login", { error: req.query.error });
 });
 
 // Signup/registration page
 router.get('/signup', redirectIfAuthenticated, (req, res) => {
-    res.render("auth/signup");
+    res.render("auth/signup", { error: req.query.error });
 });
 
 // Password reset request page

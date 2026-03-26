@@ -492,7 +492,7 @@ exports.loginUser = async (req, res) => {
         }
 
         if (!user) {
-            return res.render("auth/login", { error: "Invalid credentials" });
+            return res.redirect(`/login?error=${encodeURIComponent("Invalid credentials")}`);
         }
 
         let isMatch = false;
@@ -519,7 +519,7 @@ exports.loginUser = async (req, res) => {
         }
 
         if (!isMatch) {
-            return res.render("auth/login", { error: "Invalid credentials" });
+            return res.redirect(`/login?error=${encodeURIComponent("Invalid credentials")}`);
         }
 
         console.log(`✅ [Login Success] User: ${user.username}`);
@@ -527,7 +527,7 @@ exports.loginUser = async (req, res) => {
         req.session.regenerate(async (err) => {
             if (err) {
                 console.error('[AUTH ERROR] Session regeneration error:', err);
-                return res.render("auth/login", { error: "Login failed. Please try again." });
+                return res.redirect(`/login?error=${encodeURIComponent("Login failed. Please try again.")}`);
             }
 
             req.session.user = {
@@ -574,7 +574,7 @@ exports.loginUser = async (req, res) => {
         });
     } catch (err) {
         console.error("❌ [Login Controller Error]:", err);
-        res.render("auth/login", { error: "Login error. Please try again." });
+        res.redirect(`/login?error=${encodeURIComponent("Login error. Please try again.")}`);
     }
 };
 

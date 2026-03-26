@@ -367,9 +367,8 @@ app.use(session({
         }
     ),
     cookie: {
-        httpOnly: true,                                 // Prevent JavaScript access
-        // Always secure in production
-        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        secure: 'auto',
         sameSite: 'lax',                               // CSRF protection
         maxAge: 30 * 24 * 60 * 60 * 1000              // 30 days expiration
     }
