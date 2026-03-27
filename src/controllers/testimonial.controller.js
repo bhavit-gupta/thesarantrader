@@ -563,9 +563,9 @@ exports.rejectTestimonial = async (req, res) => {
         }
 
         // 4. Update status to 'rejected' with optional reason
-        // Update status to 'rejected' with optional reason
         const updateData = {
             status: 'REJECTED',
+            isFeatured: false,
             reviewedAt: new Date()
         };
 

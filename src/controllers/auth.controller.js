@@ -46,6 +46,23 @@ const crypto = require("crypto");
 const { sendOtpEmail } = require("../utils/mailer");
 const prisma = require("../utils/prisma");
 
+/**
+ * Helper to retry promises in case of transient DB failures.
+ * This ensures resilience against momentary database disconnections.
+ */
+async function withRetry(operation, retries = 3, delay = 1000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await operation();
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            console.error(`[DB Retry] Operation failed, retrying in ${delay * (i + 1)}ms... (${i + 1}/${retries})`);
+            await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+        }
+    }
+}
+
+
 // In-memory store for OTPs and rate limiting
 // Structure: { email: { otp: string, expires: timestamp, resendCount: number, lastResendTime: timestamp } }
 const otpStore = {};
@@ -197,13 +214,16 @@ function getOtpRateLimitStatus(identifier) {
  */
 exports.sendOtp = async (req, res) => {
     try {
-        const { identifier } = req.body; 
+        const { identifier, email } = req.body; 
+        const targetIdentifier = identifier || email;
 
-        if (!identifier || !identifier.includes('@')) {
+        if (!targetIdentifier || !targetIdentifier.includes('@')) {
             return res.status(400).json({ success: false, message: "Valid email is required" });
         }
 
-        const normalizedIdentifier = identifier.trim().toLowerCase();
+        const normalizedIdentifier = targetIdentifier.trim().toLowerCase();
+        
+        console.log(`✉️ [OTP] Request for: ${normalizedIdentifier}`);
 
         // 1. Check Rate Limiter [Requirement: 30s, 1m, 2m]
         const limitStatus = getOtpRateLimitStatus(normalizedIdentifier);
@@ -649,9 +669,10 @@ function getForgotPasswordRateLimitStatus(email) {
 }
 exports.forgotPassword = async (req, res) => {
     try {
-        const { email } = req.body; 
+        const { email, identifier } = req.body; 
+        const targetEmail = (email || identifier)?.trim().toLowerCase();
 
-        if (!email) {
+        if (!targetEmail) {
             return res.status(400).json({ success: false, message: "Email is required" });
         }
 
@@ -829,12 +850,12 @@ exports.verifyResetOTP = async (req, res) => {
  */
 exports.resetPassword = async (req, res) => {
     try {
-        const { identifier, otp, newPassword } = req.body;
+        const { identifier, otp, password } = req.body;
 
-        if (!identifier || !otp || !newPassword) {
+        if (!identifier || !otp || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Identifier, OTP, and new password are required"
+                message: "Identifier, OTP, and password are required"
             });
         }
 
@@ -862,7 +883,7 @@ exports.resetPassword = async (req, res) => {
         }
 
         // 3. Hash new password
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // 4. Update password in DB with retry (critical operation)
         await withRetry(

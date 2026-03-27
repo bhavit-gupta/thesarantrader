@@ -250,9 +250,10 @@ function validateLoginInput(req, res, next) {
  * Send OTP input validation middleware
  */
 function validateSendOtpInput(req, res, next) {
-    const { email } = req.body || {};
+    const { email, identifier } = req.body || {};
+    const targetEmail = email || identifier;
 
-    if (!email) {
+    if (!targetEmail) {
         return res.status(400).json({
             success: false,
             message: 'Email is required'
@@ -266,7 +267,7 @@ function validateSendOtpInput(req, res, next) {
         });
     }
 
-    req.body.email = email.trim().toLowerCase();
+    req.body.email = targetEmail.trim().toLowerCase();
     next();
 }
 
@@ -274,23 +275,24 @@ function validateSendOtpInput(req, res, next) {
  * Forgot password input validation middleware
  */
 function validateForgotPasswordInput(req, res, next) {
-    const { identifier, type } = req.body || {};
+    const { identifier, email } = req.body || {};
+    const target = identifier || email;
 
-    if (!identifier) {
+    if (!target) {
         return res.status(400).json({
             success: false,
-            message: 'Identifier (email or phone) is required'
+            message: 'Email or identifier is required'
         });
     }
 
-    if (!isValidEmail(identifier)) {
+    if (!isValidEmail(target)) {
         return res.status(400).json({
             success: false,
             message: STRINGS.INVALID_EMAIL
         });
     }
 
-    if (identifier) req.body.identifier = identifier.trim();
+    req.body.identifier = target.trim();
     next();
 }
 
@@ -351,12 +353,19 @@ function validateResetPasswordInput(req, res, next) {
  * Check existence input validation middleware
  */
 function validateCheckExistenceInput(req, res, next) {
-    const { email, phone } = req.body || {};
+    const { email, phone, field, value } = req.body || {};
 
-    if (!email && !phone) {
+    // Handle { field, value } format from frontend
+    if (field && value) {
+        if (field === 'email') req.body.email = value;
+        if (field === 'phone') req.body.phone = value;
+        if (field === 'username') req.body.username = value;
+    }
+
+    if (!req.body.email && !req.body.phone && !req.body.username && !field) {
         return res.status(400).json({
             success: false,
-            message: 'Email or phone is required'
+            message: 'Valid field and value are required'
         });
     }
 

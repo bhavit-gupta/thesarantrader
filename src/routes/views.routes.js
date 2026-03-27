@@ -184,6 +184,7 @@ router.get('/about', authLimiter, (req, res) => res.render("layouts/about"));
 // Legal Pages
 router.get('/privacy-policy', authLimiter, (req, res) => res.render("layouts/privacy"));
 router.get('/terms-and-conditions', authLimiter, (req, res) => res.render("layouts/terms"));
+router.get('/our-mission', authLimiter, (req, res) => res.render("layouts/mission"));
 router.get('/refund-policy', authLimiter, (req, res) => res.render("layouts/refund"));
 
 /* -------------------------------------------------------------------------- */

@@ -140,8 +140,8 @@
 
                                             <!-- Logout Button: Submits hidden form below -->
                                             <button type="submit" form="logout-form"
-                                                class="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer">
-                                                Logout
+                                                class="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer flex items-center">
+                                                <i class="fa-solid fa-arrow-right-from-bracket mr-1.5"></i> Logout
                                             </button>
 
                                             <!-- Guest User: Show Get Started CTA -->
@@ -198,9 +198,9 @@
 
                         <!-- Mobile Live Session Indicator / Enroll Now Button -->
                         <% if (typeof hasPurchasedCourses !=='undefined' && hasPurchasedCourses) { %>
-                            <div id="mobile-join-live-btn" class="join-live-btn block px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer
+                            <div id="mobile-join-live-btn" class="join-live-btn px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer flex items-center
                             <%= isAnyCourseLive ? 'text-green-600 bg-green-50' : 'text-slate-400 bg-slate-100' %>">
-                                <span class=" <%=isAnyCourseLive ? 'animate-pulse' : '' %>">≡ƒö┤</span>
+                                <span class="w-2.5 h-2.5 rounded-full mr-2 <%= isAnyCourseLive ? 'bg-green-600 animate-pulse' : 'bg-slate-400' %>"></span>
                                 <%= isAnyCourseLive ? 'Live Now' : 'Live Offline' %>
                             </div>
                             <% } else { %>
@@ -219,8 +219,8 @@
 
                                     <!-- Mobile Logout Button -->
                                     <button type="submit" form="logout-form"
-                                        class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-red-50 bg-transparent border-none cursor-pointer">
-                                        ≡ƒÜ¬ Logout
+                                        class="w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-red-50 bg-transparent border-none cursor-pointer flex items-center">
+                                        <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i> Logout
                                     </button>
 
                                     <!-- Guest: Get Started Button -->
@@ -230,7 +230,6 @@
                                             Started</a>
                                         <% } %>
         </div>
-    </div>
     </div>
 
     <!-- ========== HIDDEN LOGOUT FORM ========== -->
@@ -333,43 +332,6 @@
             if (mobileBtn) {
                 mobileBtn.addEventListener('click', handleLiveClick);
             }
-        });
-    </script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const menu = document.getElementById('mobile-menu');
-            const btn = document.getElementById('mobile-menu-btn');
-
-            // Toggle mobile menu (18.12 keyboard support)
-            function toggleMenu() {
-                const isHidden = menu.classList.toggle('hidden');
-                btn?.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
-            }
-
-            btn?.addEventListener('click', toggleMenu);
-            btn?.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleMenu();
-                }
-            });
-
-            // Close menu on Escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
-                    menu.classList.add('hidden');
-                    btn?.setAttribute('aria-expanded', 'false');
-                    btn?.focus();
-                }
-            });
-
-            document.querySelectorAll('#mobile-menu a').forEach(link => {
-                link.addEventListener('click', () => {
-                    menu.classList.add('hidden');
-                    btn?.setAttribute('aria-expanded', 'false');
-                });
-            });
         });
     </script>
 </nav>

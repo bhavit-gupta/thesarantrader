@@ -134,6 +134,12 @@
                         </a>
                     </li>
                     <li>
+                        <a href="<%= links.platform.ourMission %>"
+                            class="hover:text-brand-gold focus:outline-none focus:ring-2 focus:ring-brand-gold rounded">
+                            Our Mission
+                        </a>
+                    </li>
+                    <li>
                         <a href="<%= links.platform.features %>"
                             class="hover:text-brand-gold focus:outline-none focus:ring-2 focus:ring-brand-gold rounded">
                             Features
@@ -192,6 +198,7 @@
                                 Refund Policy
                             </a>
                         </li>
+
                         <li>
                             <a href="<%= links.contact.supportUrl %>"
                                 class="hover:text-brand-gold focus:outline-none focus:ring-2 focus:ring-brand-gold rounded">
@@ -205,7 +212,7 @@
         </div>
 
         <!-- Divider -->
-        <div class="mt-12 border-t border-slate-200 pt-6 text-center text-sm text-slate-500">
+        <div class="mt-12 border-t border-white/10 pt-6 text-center text-sm text-slate-500">
 
             <p>
                 © <%= new Date().getFullYear() %> The Saran Trader Inc. All rights reserved.
@@ -214,12 +221,12 @@
             <p class="mt-2">
                 Built for serious traders. Designed for performance.
             </p>
-            <!-- Back to Top -->
-                <a href="#top"
-                    class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-brand-gold hover:bg-brand-gold hover:text-brand-navy transition-all shadow-lg"
-                    aria-label="Back to top of page">
-                    <i class="fa-solid fa-arrow-up"></i>
-                </a>
+            <!-- Back to Top Button: Floating fixed position -->
+            <a href="#top" id="back-to-top"
+                class="fixed bottom-8 right-8 w-12 h-12 rounded-full bg-brand-gold text-brand-navy flex items-center justify-center shadow-2xl hover:bg-brand-accent transition-all transform hover:-translate-y-1 z-50 opacity-0 invisible"
+                aria-label="Back to top of page">
+                <i class="fa-solid fa-arrow-up"></i>
+            </a>
         </div>
     </div>
 </footer>

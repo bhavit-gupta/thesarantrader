@@ -24,8 +24,8 @@
         MAX_TESTIMONIALS: 6,
         MAX_RATING: 5,
         MIN_RATING: 1,
-        CACHE_KEY: 'testimonials_cache',
-        CACHE_EXPIRY_MS: 60 * 60 * 1000, //  1 hour cache
+        CACHE_KEY: 'testimonials_cache_v2',
+        CACHE_EXPIRY_MS: 5 * 60 * 1000, //  5 minute cache
         DEBUG: false,
         SELECTORS: Object.freeze({
             GRID: 'testimonials-grid'

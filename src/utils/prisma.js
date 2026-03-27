@@ -113,6 +113,45 @@ try {
     process.exit(1);
 }
 
+
+/* -------------------------------------------------------------------------- */
+/*                          RETRY & TIMEOUT HELPERS                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Execute a database operation with retry logic for transient failures.
+ */
+const withRetry = async (fn, maxRetries = MAX_RETRIES) => {
+    const RETRYABLE_CODES = ['P1001', 'P1002', 'P1008', 'P1017'];
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error) {
+            const isLastAttempt = attempt === maxRetries - 1;
+            const isRetryable = RETRYABLE_CODES.includes(error.code);
+            if (isLastAttempt || !isRetryable) throw error;
+            const delay = Math.pow(2, attempt) * RETRY_BASE_DELAY_MS;
+            console.warn(`⚠️ Database retry ${attempt + 1}/${maxRetries} in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+};
+
+/**
+ * Execute a database operation with timeout protection.
+ */
+const withTimeout = async (fn, timeoutMs = QUERY_TIMEOUT_MS) => {
+    return Promise.race([
+        fn(),
+        new Promise((_, reject) =>
+            setTimeout(
+                () => reject(new Error(`Query timeout after ${timeoutMs}ms`)),
+                timeoutMs
+            )
+        )
+    ]);
+};
+
 /* -------------------------------------------------------------------------- */
 /*                          CONNECTION VALIDATION                             */
 /* -------------------------------------------------------------------------- */
@@ -122,7 +161,13 @@ let connectionValidated = false;
 
 const validateConnection = async () => {
     try {
-        await prisma.$connect();
+        // Step 1: Establish low-level connection
+        // Use a 10-second timeout for the initial connection check
+        await withTimeout(() => prisma.$connect(), 10000);
+
+        // Step 2: Validate database access (catches "empty database name" errors)
+        await withTimeout(() => prisma.$runCommandRaw({ ping: 1 }), 5000);
+
         isConnected = true;
         connectionValidated = true;
         console.log('✓ Database connection verified');
@@ -248,67 +293,6 @@ const startHealthCheck = () => {
 if (currentEnv !== 'test') {
     startHealthCheck();
 }
-
-/* -------------------------------------------------------------------------- */
-/*                          RETRY LOGIC                                       */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Execute a database operation with retry logic for transient failures.
- * 
- * @param {Function} fn - Async function to execute
- * @param {number} maxRetries - Maximum retry attempts (default: 3)
- * @returns {Promise<any>} Result of the operation
- * 
- * @example
- * const users = await withRetry(() => prisma.user.findMany());
- */
-const withRetry = async (fn, maxRetries = MAX_RETRIES) => {
-    const RETRYABLE_CODES = ['P1001', 'P1002', 'P1008', 'P1017']; // Connection errors
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-            return await fn();
-        } catch (error) {
-            const isLastAttempt = attempt === maxRetries - 1;
-            const isRetryable = RETRYABLE_CODES.includes(error.code);
-
-            if (isLastAttempt || !isRetryable) {
-                throw error;
-            }
-
-            const delay = Math.pow(2, attempt) * RETRY_BASE_DELAY_MS;
-            console.warn(`⚠️ Database retry ${attempt + 1}/${maxRetries} in ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-    }
-};
-
-/* -------------------------------------------------------------------------- */
-/*                          TIMEOUT WRAPPER                                   */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Execute a database operation with timeout protection.
- * 
- * @param {Function} fn - Async function to execute
- * @param {number} timeoutMs - Timeout in milliseconds (default: 30000)
- * @returns {Promise<any>} Result of the operation
- * 
- * @example
- * const users = await withTimeout(() => prisma.user.findMany(), 5000);
- */
-const withTimeout = async (fn, timeoutMs = QUERY_TIMEOUT_MS) => {
-    return Promise.race([
-        fn(),
-        new Promise((_, reject) =>
-            setTimeout(
-                () => reject(new Error(`Query timeout after ${timeoutMs}ms`)),
-                timeoutMs
-            )
-        )
-    ]);
-};
 
 /* -------------------------------------------------------------------------- */
 /*                      PAGINATION HELPERS                                    */

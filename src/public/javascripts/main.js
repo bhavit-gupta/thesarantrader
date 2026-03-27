@@ -134,11 +134,39 @@
 
             // Create and store handler
             state.mobileMenuHandler = () => {
-                menu.classList.toggle(CONFIG.CSS_CLASSES.HIDDEN);
+                const isHidden = menu.classList.toggle(CONFIG.CSS_CLASSES.HIDDEN);
+                btn.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
             };
 
             btn.addEventListener('click', state.mobileMenuHandler);
-            Logger.debug('Mobile menu setup complete');
+
+            // [20.21] Keyboard support (Enter/Space)
+            btn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    state.mobileMenuHandler();
+                }
+            });
+
+            // [20.22] Close on Escape key
+            const handleEsc = (e) => {
+                if (e.key === 'Escape' && !menu.classList.contains(CONFIG.CSS_CLASSES.HIDDEN)) {
+                    menu.classList.add(CONFIG.CSS_CLASSES.HIDDEN);
+                    btn.setAttribute('aria-expanded', 'false');
+                    btn.focus();
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+
+            // [20.23] Close on link click
+            menu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    menu.classList.add(CONFIG.CSS_CLASSES.HIDDEN);
+                    btn.setAttribute('aria-expanded', 'false');
+                });
+            });
+
+            Logger.debug('Mobile menu setup complete with keyboard support');
         } catch (err) {
             //  Error boundary
             Logger.error('Error setting up mobile menu:', err);
@@ -473,6 +501,36 @@
     // =========================================================================
 
     /**
+     * Sets up the floating 'Back to Top' button
+     * [20.29] Scroll-based visibility
+     */
+    function setupBackToTop() {
+        const btn = document.getElementById('back-to-top');
+        if (!btn) return;
+
+        const handleScroll = () => {
+            if (window.scrollY > 300) {
+                btn.classList.remove('opacity-0', 'invisible');
+                btn.classList.add('opacity-100', 'visible');
+            } else {
+                btn.classList.add('opacity-0', 'invisible');
+                btn.classList.remove('opacity-100', 'visible');
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    // =========================================================================
+    // INITIALIZATION
+    // =========================================================================
+
+    /**
      * Initialize all functionality
      */
     function initialize() {
@@ -480,6 +538,7 @@
             Logger.debug('Initializing main.js');
 
             setupMobileMenu();
+            setupBackToTop();
             startPolling();
 
             Logger.debug('main.js initialization complete');

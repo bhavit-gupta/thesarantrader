@@ -373,13 +373,27 @@ async function refreshCourseCache(waitForRefresh = false) {
             // Run all queries in parallel
             const [allCourses, allEnrollments, liveCourses] = await withTimeout(
                 () => Promise.all([
-                    prisma.course.findMany({ orderBy: { startDate: 'asc' } }),
+                    prisma.course.findMany({ 
+                        where: {
+                            OR: [
+                                { deletedAt: null },
+                                { deletedAt: { isSet: false } }
+                            ]
+                        },
+                        orderBy: { startDate: 'asc' } 
+                    }),
                     prisma.user.findMany({
                         where: { purchasedCourseIds: { isEmpty: false } },
                         select: { purchasedCourseIds: true }
                     }),
                     prisma.course.findMany({
-                        where: { isLive: true },
+                        where: { 
+                            isLive: true, 
+                            OR: [
+                                { deletedAt: null },
+                                { deletedAt: { isSet: false } }
+                            ]
+                        },
                         select: { id: true, lastLiveStartedAt: true }
                     })
                 ]),

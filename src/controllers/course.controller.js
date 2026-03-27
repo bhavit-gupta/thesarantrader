@@ -44,8 +44,8 @@
 
 const prisma = require('../utils/prisma');
 const { withRetry, withTimeout } = require('../utils/prisma');
-const { getUserPurchasedCourses } = require('../utils/helpers');
-const { invalidateCourseCache } = require('../middleware/viewData.middleware');
+const { getUserPurchasedCourses, clearUserCourseCache } = require('../utils/helpers');
+const { invalidateCourseCache, invalidateUserCache } = require('../middleware/viewData.middleware');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
@@ -213,6 +213,11 @@ exports.getAllCourses = async (req, res) => {
                     OR: [
                         { endDate: { gte: now } },       // End date is in the future
                         { endDate: null }                 // No end date (ongoing)
+                    ],
+                    // [Fix] Handle both literal null and non-existent field in MongoDB
+                    OR: [
+                        { deletedAt: null },
+                        { deletedAt: { isSet: false } }
                     ]
                 },
                 orderBy: { startDate: 'asc' }
@@ -337,7 +342,8 @@ exports.addCourse = async (req, res) => {
         // 4. Log creation for monitoring
         console.log(`✅ [NEW COURSE] Added: ${title} (#${newCourse.id})`);
 
-        // 5. Redirect back to course management page
+        // 5. Invalidate cache and redirect
+        invalidateCourseCache();
         res.redirect('/admin/courses');
     } catch (e) {
         console.error("❌ Course Addition Error:", e);
@@ -413,7 +419,8 @@ exports.deleteCourse = async (req, res) => {
 
         // Note: Purchase records in the Purchase table are NOT deleted
         // This preserves financial history for accounting and refund tracking
-        console.log(`🗑️ [COURSE DELETED] ${courseId}. (Purchase records preserved for finance history)`);
+        // 4. Invalidate cache and redirect
+        invalidateCourseCache();
         res.redirect('/admin/courses');
     } catch (e) {
         console.error("❌ Course Deletion Error:", e);
@@ -485,6 +492,7 @@ exports.editCourse = async (req, res) => {
             2
         );
         console.log(`✏️ [COURSE UPDATED] ${courseId}`);
+        invalidateCourseCache();
         res.redirect('/admin/courses');
     } catch (e) {
         console.error("❌ Update Error:", e);
@@ -719,7 +727,15 @@ exports.enrollCourse = async (req, res) => {
 
         // 7. Log enrollment for monitoring
         console.log(`🎓 [ENROLLMENT] ${req.session.user.name} joined ${course.title}`);
-        res.json({ success: true, message: "Successfully enrolled!" });
+        // Invalidate caches immediately so user sees "Enrolled" and has access
+        try {
+            clearUserCourseCache(userId);
+            invalidateUserCache(userId);
+        } catch (cacheError) {
+            console.error('[Enroll] Cache invalidation failed:', cacheError.message);
+        }
+
+        res.json({ success: true, message: 'User enrolled successfully' });
 
     } catch (error) {
         if (error.message === 'DUPLICATE_PURCHASE') {

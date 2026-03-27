@@ -7,7 +7,7 @@ module.exports = {
     },
     contact: {
         email: "support@thesarantrader.com",
-        phone: "+91 XXXXX XXXXX", // Replace with real phone number
+        phone: "+91 95720 75842",
         supportUrl: "mailto:support@thesarantrader.com"
     },
     platform: {
@@ -24,10 +24,17 @@ module.exports = {
         forgetPassword: "/forgetPassword",
         privacyPolicy: "/privacy-policy",
         termsConditions: "/terms-and-conditions",
+        ourMission: "/our-mission",
         refundPolicy: "/refund-policy"
     },
     payment: {
-        upiId: 'example@upi', // Replace with real UPI ID
-        qrCode: '/images/qr-placeholder.png' // Replace with real QR code path
+        upiId: 'thesarantrader@dbs', 
+        qrCode: '/images/qr-placeholder.png',
+        bankDetails: {
+            name: "KUNDAN RAJ",
+            accountNumber: "881029827565",
+            bankName: "DBS Bank",
+            ifsc: "DBSS0IN0811"
+        }
     }
 };

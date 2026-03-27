@@ -33,6 +33,8 @@ const path = require('path');
 const { isAuthenticated, isAdmin } = require('../middleware/auth.middleware');
 const multer = require('multer');
 const { compressImage } = require('../utils/upload.utils');
+const { clearUserCourseCache } = require('../utils/helpers');
+const { invalidateUserCache } = require('../middleware/viewData.middleware');
 
 /* -------------------------------------------------------------------------- */
 /*                              CONFIGURATION                                */
@@ -338,6 +340,14 @@ router.post('/api/admin/approve-payment', isAdmin, async (req, res) => {
         // 4. Cleanup: Delete payment screenshot (no longer needed)
         if (purchase.screenshotUrl) {
             await deleteScreenshot(purchase.screenshotUrl);
+        }
+
+        // 5. Invalidate caches immediately so user sees "Enrolled" and has access
+        try {
+            clearUserCourseCache(purchase.userId);
+            invalidateUserCache(purchase.userId);
+        } catch (cacheError) {
+            console.error('[Approval] Cache invalidation failed:', cacheError.message);
         }
 
         res.json({

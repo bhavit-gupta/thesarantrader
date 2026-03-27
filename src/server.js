@@ -112,14 +112,8 @@ if (missingModules.length > 0) {
 /*                      ENVIRONMENT VALIDATION                                */
 /* -------------------------------------------------------------------------- */
 
-// Validate PORT
-const PORT = parseInt(process.env.PORT || '3000', 10);
-
-if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
-    console.error(`❌ Invalid PORT: ${process.env.PORT}`);
-    console.error('   PORT must be a number between 1 and 65535');
-    process.exit(1);
-}
+// Get PORT (can be a number or a string/pipe for Passenger/Hostinger)
+const PORT = process.env.PORT || 3000;
 
 // Validate NODE_ENV
 const VALID_ENVIRONMENTS = ['development', 'staging', 'production'];
@@ -190,10 +184,18 @@ function getMemoryUsage() {
 function sanitizeDbUrl(url) {
     if (!url) return 'NOT SET';
     try {
+        // Handle standard URLs first
         const parsed = new URL(url);
         return `${parsed.protocol}//{masked}@${parsed.host}/${parsed.pathname.slice(1)}`;
     } catch {
-        return 'INVALID URL';
+        // Fallback for complex multi-host MongoDB Replica Set strings
+        if (url.startsWith('mongodb://')) {
+            const atIndex = url.indexOf('@');
+            if (atIndex !== -1) {
+                return `mongodb://{masked}@${url.substring(atIndex + 1).split('?')[0]}`;
+            }
+        }
+        return 'INVALID URL FORMAT';
     }
 }
 

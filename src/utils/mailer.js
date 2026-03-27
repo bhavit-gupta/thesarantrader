@@ -10,12 +10,16 @@ const nodemailer = require('nodemailer');
 // Configuration for professional SMTP
 // These should be defined in your .env file
 const SMTP_CONFIG = {
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    host: process.env.EMAIL_HOST || 'smtp.hostinger.com',
     port: parseInt(process.env.EMAIL_PORT) || 465,
-    secure: process.env.EMAIL_SECURE === 'true' || true,
+    secure: true, // Should be true for port 465
     auth: {
-        user: process.env.EMAIL_USER || 'placeholder@domain.com',
-        pass: process.env.EMAIL_PASS || 'placeholder_pass'
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    // Addition: Fallback for local dev environments
+    tls: {
+        rejectUnauthorized: false
     }
 };
 
@@ -30,6 +34,20 @@ const transporter = nodemailer.createTransport(SMTP_CONFIG);
  * @returns {Promise<boolean>} Success status
  */
 async function sendEmail(to, subject, html) {
+    // Check if email service is enabled in .env
+    if (process.env.EMAIL_SERVICE_ENABLED !== 'true') {
+        console.warn('⚠️ [Email] Service is DISABLED. Skipping delivery to:', to);
+        
+        // Log to console in development as a fallback
+        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production') {
+            console.log('--- EMAIL CONTENT (DISABLED) ---');
+            console.log(`To: ${to}`);
+            console.log(`Subject: ${subject}`);
+            console.log('-------------------------------');
+        }
+        return true; // Return true to avoid blocking application flow in dev/test
+    }
+
     try {
         const info = await transporter.sendMail({
             from: `"The Saran Trader" <${SMTP_CONFIG.auth.user}>`,
@@ -41,7 +59,10 @@ async function sendEmail(to, subject, html) {
         console.log(`✉️ [Email] Message sent: ${info.messageId}`);
         return true;
     } catch (error) {
-        console.error('❌ [Email] Delivery failed:', error.message);
+        console.error('❌ [Email] Delivery failed!');
+        console.error('   Error Message:', error.message);
+        console.error('   Error Code:', error.code || 'N/A');
+        console.error('   Error Command:', error.command || 'N/A');
         // Fallback to console for development if needed
         if (process.env.NODE_ENV === 'development') {
             console.log('--- DEVELOPMENT MAIL FALLBACK ---');

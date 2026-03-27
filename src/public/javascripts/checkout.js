@@ -364,7 +364,6 @@
         state.previousOverflow = document.body.style.overflow;
 
         modal.classList.remove('hidden');
-        modal.classList.add('flex');
         document.body.style.overflow = 'hidden';
         state.modalOpen = true;
 
@@ -388,7 +387,6 @@
         if (!modal) return;
 
         modal.classList.add('hidden');
-        modal.classList.remove('flex');
 
         // Restore previous overflow state 
         document.body.style.overflow = state.previousOverflow || '';
@@ -752,11 +750,13 @@
             paymentForm.addEventListener('submit', submitPaymentProof);
         }
 
-        // Click outside modal to close
+        // Click outside modal to close (768px+ pattern)
         const modal = document.getElementById('payment-modal');
         if (modal) {
             modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
+                const backdrop = document.getElementById('payment-modal-backdrop');
+                const wrapper = document.getElementById('payment-modal-wrapper');
+                if (e.target === backdrop || e.target === wrapper) {
                     closePaymentModal();
                 }
             });

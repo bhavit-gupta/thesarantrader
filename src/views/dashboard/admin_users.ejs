@@ -159,7 +159,6 @@ JAVASCRIPT DEPENDENCIES:
                                             <th class="px-6 py-4">Name</th>
                                             <th class="px-6 py-4">Email</th>
                                             <th class="px-6 py-4">Phone</th>
-                                            <th class="px-6 py-4">Role</th>
                                             <th class="px-6 py-4">Joined</th>
                                             <th class="px-6 py-4">Courses</th>
                                             <th class="px-6 py-4 text-right">Actions</th>
@@ -219,18 +218,6 @@ JAVASCRIPT DEPENDENCIES:
                                                     <%= user.phone || 'N/A' %>
                                                 </td>
                                                 
-                                                <!-- Role badge (admin or user) -->
-                                                <td class="px-6 py-4">
-                                                    <% if (user.role?.toUpperCase()==='ADMIN' ) { %>
-                                                        <!-- Admin role badge (purple) -->
-                                                        <span
-                                                            class="px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold">Admin</span>
-                                                        <% } else { %>
-                                                            <!-- Regular user badge (gray) -->
-                                                            <span
-                                                                class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">User</span>
-                                                            <% } %>
-                                                </td>
                                                 
                                                 <!-- Registration date -->
                                                 <td class="px-6 py-4 text-slate-500 text-xs">

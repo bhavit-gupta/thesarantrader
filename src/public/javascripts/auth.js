@@ -834,7 +834,8 @@
                 body: JSON.stringify({
                     identifier: state.resetIdentifier,
                     otp,
-                    newPassword
+                    password: newPassword
+
                 })
             }, 'submit-password-reset');
 
