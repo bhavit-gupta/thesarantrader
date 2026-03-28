@@ -1,0 +1,19 @@
+<% 
+    // Dynamic top spacing logic:
+    // - Guests (navbar): Needs significant top padding (pt-20 to pt-32)
+    // - Logged-in (sidebar + mobile header): Needs minimal top padding on desktop (pt-8) and mobile header offset (pt-16) on mobile.
+    const standardTopPadding = user ? 'pt-20 lg:pt-10' : 'pt-24 lg:pt-32';
+%>
+<% if (typeof user !== 'undefined' && user) { %>
+    <div class="flex min-h-screen <%= typeof wrapperBg !== 'undefined' ? wrapperBg : 'bg-slate-50' %>">
+        <!-- Persistent Sidebar for Logged-in Users -->
+        <%- include('../partials/dashboard_sidebar') %>
+
+        <!-- Main Content Area with Indentation -->
+        <div class="flex-1 flex flex-col min-w-0 lg:ml-[288px]">
+            <!-- Responsive Mobile Header -->
+            <%- include('../partials/dashboard_mobile_header', { mobileTitle: typeof pageTitle !== 'undefined' ? pageTitle : 'The Saran Trader' }) %>
+<% } else { %>
+    <!-- Public Navbar for Guests -->
+    <%- include('../partials/navbar') %>
+<% } %>

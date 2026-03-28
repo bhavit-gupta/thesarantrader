@@ -77,12 +77,27 @@ YOUTUBE URL FORMATS SUPPORTED:
     <link rel="stylesheet" href="/stylesheets/output.css">
 </head>
 
-<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
-    <!-- Include global navigation bar -->
-    <%- include('../partials/navbar') %>
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen">
 
-        <main class="flex-grow pt-24 pb-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex min-h-screen">
+        <!-- Dashboard Sidebar -->
+        <%- include('../partials/dashboard_sidebar') %>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col min-w-0 lg:ml-[288px]">
+            <!-- Mobile Header -->
+            <header class="lg:hidden h-16 bg-brand-navy border-b border-white/10 flex items-center px-4 sticky top-0 z-40">
+                <button id="sidebar-toggle" class="p-2 text-slate-400 hover:text-white transition-colors" aria-label="Open sidebar">
+                    <i class="fa-solid fa-bars-staggered text-xl"></i>
+                </button>
+                <div class="ml-4 flex items-center gap-2">
+                    <img src="/images/logo.webp" alt="Logo" class="h-8 w-auto rounded-md">
+                    <span class="text-white font-bold text-sm tracking-tight uppercase">Dashboard</span>
+                </div>
+            </header>
+
+            <main class="flex-grow pb-12">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-10">
                 <!-- ========================================
                      PAGE HEADER SECTION
                      ======================================== -->
@@ -216,10 +231,12 @@ YOUTUBE URL FORMATS SUPPORTED:
                     referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             </div>
         </div>
+            </div>
+            <%- include('../partials/footer') %>
+        </div>
+    </div>
 
-        <!-- Include global footer -->
-        <%- include('../partials/footer') %>
-
+    <script src="/javascripts/main.js" defer></script>
             <script>
                 /* ========================================
                    VIDEO PLAYER FUNCTIONS

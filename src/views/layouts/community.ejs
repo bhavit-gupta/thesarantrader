@@ -94,9 +94,9 @@ GLOBAL JAVASCRIPT VARIABLES:
 
 <body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
 
-    <%- include('../partials/navbar') %>
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'Community', wrapperBg: 'bg-slate-50' }) %>
 
-        <main class="flex-grow pt-24 pb-12">
+        <main class="flex-grow <%= standardTopPadding %> pb-12">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
                 <!-- Header -->
@@ -186,9 +186,11 @@ GLOBAL JAVASCRIPT VARIABLES:
                             </div>
 
             </div>
-        </main>
+    </main>
 
-        <script>
+    <%- include('../partials/layout_wrapper_bottom') %>
+
+    <script>
             // Set current user ID for client-side use (Safe JSON encoding to prevent XSS)
             window.currentUserId = "<%= (locals.user && locals.user.id) ? locals.user.id : '' %>";
             window.isAdmin = <%= (locals.user && String(locals.user.role || '').toUpperCase() === 'ADMIN') ? true : false %>;

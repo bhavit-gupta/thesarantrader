@@ -1,0 +1,9 @@
+<!-- Site Footer -->
+<% if (typeof hideFooter === 'undefined' || !hideFooter) { %>
+    <%- include('../partials/footer') %>
+<% } %>
+
+<% if (typeof user !== 'undefined' && user) { %>
+        </div> <!-- End of flex-1 (Main Content Area) -->
+    </div> <!-- End of flex (Full Sidebar Layout) -->
+<% } %>

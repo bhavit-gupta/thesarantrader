@@ -536,6 +536,7 @@ function setDefaultLocals(req, res) {
     res.locals.hasPurchasedCourses = false;
     res.locals.pendingCourseIds = [];
     res.locals.rejectedPurchases = [];
+    res.locals.standardTopPadding = res.locals.user ? 'pt-20 lg:pt-10' : 'pt-24 lg:pt-32';
 }
 
 /* -------------------------------------------------------------------------- */
@@ -604,6 +605,7 @@ const viewDataMiddleware = async (req, res, next) => {
         res.locals.hasPurchasedCourses = purchaseData.hasPurchasedCourses;
         res.locals.pendingCourseIds = purchaseData.pendingCourseIds;
         res.locals.rejectedPurchases = purchaseData.rejectedPurchases;
+        res.locals.standardTopPadding = user ? 'pt-20 lg:pt-10' : 'pt-24 lg:pt-32';
 
         next();
 

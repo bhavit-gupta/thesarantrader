@@ -161,7 +161,7 @@ JAVASCRIPT DEPENDENCIES:
 
 <body class="font-sans antialiased text-slate-600 bg-white">
 
-    <%- include('../partials/navbar') %>
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'Features', wrapperBg: 'bg-white' }) %>
 
         <!-- Hero Section -->
         <section
@@ -388,7 +388,7 @@ JAVASCRIPT DEPENDENCIES:
             </div>
         </section>
 
-        <%- include('../partials/footer') %>
+        <%- include('../partials/layout_wrapper_bottom') %>
 
             <script src="/javascripts/main.js" defer></script>
 </body>

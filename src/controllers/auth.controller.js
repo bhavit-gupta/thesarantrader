@@ -388,7 +388,50 @@ exports.registerUser = async (req, res) => {
         // Clear OTP after successful registration
         delete otpStore[email];
 
-        res.redirect("/login");
+        // ---------------------------------------------------------
+        // AUTO-LOGIN: Establish session immediately after signup
+        // ---------------------------------------------------------
+        req.session.regenerate(async (err) => {
+            if (err) {
+                console.error('[AUTH ERROR] Session regeneration error after registration:', err);
+                return res.redirect("/login?message=Account created, please login.");
+            }
+
+            // Set session user data
+            req.session.user = {
+                id: newUser.id,
+                name: newUser.name || newUser.username,
+                username: newUser.username,
+                email: newUser.email,
+                role: "USER", // Fresh signups are always USERs
+                createdAt: newUser.createdAt
+            };
+
+            req.session.lastActivity = Date.now();
+
+            // Enforce single session (first session)
+            try {
+                await withRetry(
+                    () => prisma.user.update({
+                        where: { id: newUser.id },
+                        data: { currentSessionId: req.sessionID }
+                    }),
+                    2
+                );
+            } catch (error) {
+                console.error("❌ Error updating session ID in DB:", error);
+            }
+
+            // Save session and redirect
+            req.session.save((err) => {
+                if (err) {
+                    console.error("Session save error:", err);
+                    return res.redirect("/login");
+                }
+                res.redirect("/dashboard");
+            });
+        });
+
     } catch (err) {
         console.error("❌ [Register Controller Error]:", err);
         res.render("auth/signup", {

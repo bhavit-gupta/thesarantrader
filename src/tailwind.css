@@ -1,3 +1,49 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities;    
+@tailwind utilities;
+
+@layer components {
+    /* Dashboard Sidebar Styles */
+    #dashboard-sidebar.active {
+        transform: translateX(0) !important;
+    }
+
+    #sidebar-overlay {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
+    }
+
+    #sidebar-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+        display: block !important;
+    }
+
+    /* Custom scrollbar for sidebar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Premium Glow Utilities */
+    .shadow-glow-gold {
+        box-shadow: 0 0 15px -3px rgba(212, 175, 55, 0.4);
+    }
+
+    .shadow-glow-red {
+        box-shadow: 0 0 15px -3px rgba(239, 68, 68, 0.4);
+    }
+}    

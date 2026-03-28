@@ -20,18 +20,20 @@
     bg-blue-100 text-blue-700 bg-green-100 text-green-700 bg-purple-100 text-purple-700 bg-orange-100 text-orange-700
 -->
 
-<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen">
 
-    <%- include('../partials/navbar') %>
-        <% const liveSessions=typeof locals.liveSessions !=='undefined' ? locals.liveSessions : {}; %>
-            <% /* Defensive initialization to prevent crashes if backend data is missing */ const safeStats=typeof stats
-                !=='undefined' ? stats : { totalusers: 0, totalRevenue: 0, totalUsers: 0, totalPaidUsers: 0 }; const
-                safeOngoing=typeof ongoingCourses !=='undefined' ? ongoingCourses : []; const safeUpcoming=typeof
-                upcomingCourses !=='undefined' ? upcomingCourses : []; const safeExpired=typeof expiredCourses
-                !=='undefined' ? expiredCourses : []; const safeCourses=typeof courses !=='undefined' ? courses : []; %>
+    <% const liveSessions=typeof locals.liveSessions !=='undefined' ? locals.liveSessions : {}; %>
+    <% /* Defensive initialization to prevent crashes if backend data is missing */ const safeStats=typeof stats
+        !=='undefined' ? stats : { totalusers: 0, totalRevenue: 0, totalUsers: 0, totalPaidUsers: 0 }; const
+        safeOngoing=typeof ongoingCourses !=='undefined' ? ongoingCourses : []; const safeUpcoming=typeof
+        upcomingCourses !=='undefined' ? upcomingCourses : []; const safeExpired=typeof expiredCourses
+        !=='undefined' ? expiredCourses : []; const safeCourses=typeof courses !=='undefined' ? courses : []; %>
 
-                <main class="flex-grow pt-24 pb-12">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'Admin Panel' }) %>
+
+            <main class="flex-grow pb-12">
+                <!-- Top Navbar replacement/Spacer for Desktop if needed, but we'll use padding -->
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-10">
 
                         <!-- ---------------- ADMIN HEADER ---------------- -->
                         <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -683,8 +685,10 @@
                         </div>
                     </div>
                 </div>
-
-                <script src="/javascripts/main.js"></script>
+                </main>
+    <%- include('../partials/layout_wrapper_bottom', { hideFooter: true }) %>
+    
+    <script src="/javascripts/main.js"></script>
                 <div id="admin-data" data-live-sessions='<%- JSON.stringify(locals.liveSessions || {}) %>'
                     data-courses='<%- JSON.stringify(safeCourses) %>'></div>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>

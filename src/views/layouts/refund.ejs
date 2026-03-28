@@ -19,9 +19,9 @@
 
 <body class="bg-brand-navy text-white font-sans antialiased">
     <!-- Navbar -->
-    <%- include('../partials/navbar') %>
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'Refund Policy', wrapperBg: 'bg-brand-navy' }) %>
 
-    <main id="main-content" class="pt-32 pb-20">
+    <main id="main-content" class="<%= standardTopPadding %> pb-20">
         <section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16 animate-fade-in-up">
                 <h1 class="text-4xl md:text-5xl font-extrabold mb-6">
@@ -98,7 +98,7 @@
     </main>
 
     <!-- Footer -->
-    <%- include('../partials/footer') %>
+    <%- include('../partials/layout_wrapper_bottom') %>
 
     <script src="/javascripts/main.js" defer></script>
 </body>

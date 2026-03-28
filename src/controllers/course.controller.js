@@ -210,14 +210,19 @@ exports.getAllCourses = async (req, res) => {
         const courses = await withRetry(
             () => prisma.course.findMany({
                 where: {
-                    OR: [
-                        { endDate: { gte: now } },       // End date is in the future
-                        { endDate: null }                 // No end date (ongoing)
-                    ],
-                    // [Fix] Handle both literal null and non-existent field in MongoDB
-                    OR: [
-                        { deletedAt: null },
-                        { deletedAt: { isSet: false } }
+                    AND: [
+                        {
+                            OR: [
+                                { endDate: { gte: now } },       // End date is in the future
+                                { endDate: null }                 // No end date (ongoing)
+                            ]
+                        },
+                        {
+                            OR: [
+                                { deletedAt: null },
+                                { deletedAt: { isSet: false } }
+                            ]
+                        }
                     ]
                 },
                 orderBy: { startDate: 'asc' }

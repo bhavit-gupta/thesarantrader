@@ -173,6 +173,53 @@
         }
     }
 
+    /**
+     * Sets up dashboard sidebar toggle functionality
+     */
+    function setupDashboardSidebar() {
+        try {
+            const sidebar = document.getElementById('dashboard-sidebar');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            const closeBtn = document.getElementById('close-sidebar-btn');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            if (!sidebar) return;
+
+            const toggleSidebar = () => {
+                sidebar.classList.toggle('active');
+                if (overlay) overlay.classList.toggle('active');
+                
+                // Toggle accessibility attributes
+                const isActive = sidebar.classList.contains('active');
+                if (toggleBtn) toggleBtn.setAttribute('aria-expanded', isActive);
+            };
+
+            if (toggleBtn) toggleBtn.addEventListener('click', toggleSidebar);
+            if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
+            
+            if (overlay) {
+                overlay.addEventListener('click', () => {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                });
+            }
+
+            // Close on Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    if (overlay) overlay.classList.remove('active');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            Logger.debug('Dashboard sidebar setup complete');
+        } catch (err) {
+            Logger.error('Error setting up dashboard sidebar:', err);
+        }
+    }
+
     // =========================================================================
     // LIVE STATUS POLLING
     // =========================================================================
@@ -538,6 +585,7 @@
             Logger.debug('Initializing main.js');
 
             setupMobileMenu();
+            setupDashboardSidebar();
             setupBackToTop();
             startPolling();
 

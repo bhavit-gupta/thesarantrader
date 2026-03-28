@@ -104,9 +104,13 @@ function validateCourseId(req, res, next) {
     next();
 }
 
-// Redirect authenticated users away from auth pages
+// Redirect authenticated users away from auth pages (Strict Redirect)
 function redirectIfAuthenticated(req, res, next) {
     if (req.session && req.session.user) {
+        const role = String(req.session.user.role || "USER").toUpperCase();
+        if (role === 'ADMIN') {
+            return res.redirect(URLS.ADMIN_DASHBOARD);
+        }
         return res.redirect(URLS.DASHBOARD);
     }
     next();
@@ -368,14 +372,12 @@ router.get('/admin/dashboard',
                 totalPaidUsersResult,
                 pendingPurchasesResult,
                 totalUsersResult,
-                allEnrollmentsResult,
                 heroSettingResult
             ] = await Promise.allSettled([
                 prisma.course.findMany({ orderBy: { startDate: 'asc' } }),
                 prisma.user.count({ where: { purchasedCourseIds: { isEmpty: false } } }),
                 prisma.purchase.findMany({ where: { status: 'PENDING' }, orderBy: { date: 'desc' } }).catch(() => prisma.purchase.findMany({ where: { status: 'PENDING' } })), // Fallback if date sorting fails
                 prisma.user.count(),
-                prisma.user.findMany({ where: { purchasedCourseIds: { isEmpty: false } }, select: { purchasedCourseIds: true } }),
                 prisma.siteSetting.findUnique({ where: { key: 'hero_image' } })
             ]);
 
@@ -384,13 +386,11 @@ router.get('/admin/dashboard',
             const totalPaidUsers = totalPaidUsersResult.status === 'fulfilled' ? totalPaidUsersResult.value : 0;
             const pendingPurchases = pendingPurchasesResult.status === 'fulfilled' ? pendingPurchasesResult.value : [];
             const totalUsers = totalUsersResult.status === 'fulfilled' ? totalUsersResult.value : 0;
-            const allEnrollments = allEnrollmentsResult.status === 'fulfilled' ? allEnrollmentsResult.value : [];
             const heroSetting = heroSettingResult.status === 'fulfilled' ? heroSettingResult.value : null;
             const heroImage = heroSetting ? heroSetting.value : '/images/hero-image.png';
 
             if (totalPaidUsersResult.status === 'rejected') console.error('[Dashboard] totalPaidUsers failed:', totalPaidUsersResult.reason.message);
             if (pendingPurchasesResult.status === 'rejected') console.error('[Dashboard] pendingPurchases failed:', pendingPurchasesResult.reason.message);
-            if (allEnrollmentsResult.status === 'rejected') console.error('[Dashboard] allEnrollments failed:', allEnrollmentsResult.reason.message);
 
             const now = new Date();
             const ongoingCourses = [];

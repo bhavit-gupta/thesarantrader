@@ -73,12 +73,12 @@ JAVASCRIPT DEPENDENCIES:
     <link rel="stylesheet" href="/stylesheets/output.css">
 </head>
 
-<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen">
 
-    <%- include('../partials/navbar') %>
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'All Users' }) %>
 
-        <main class="flex-grow pt-24 pb-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <main class="flex-grow pb-12">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-10">
 
                 <!-- ========================================
                      PAGE HEADER SECTION
@@ -250,10 +250,12 @@ JAVASCRIPT DEPENDENCIES:
                             </div>
                             <% } %>
                 </div>
-            </div>
-        </main>
+            </main>
 
-        <script src="/javascripts/main.js" defer></script>
+            <%- include('../partials/footer') %>
+    <%- include('../partials/layout_wrapper_bottom', { hideFooter: true }) %>
+
+<script src="/javascripts/main.js" defer></script>
         <script>
             /* ========================================
                LIVE SEARCH FUNCTIONALITY

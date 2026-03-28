@@ -95,8 +95,9 @@ function isValidYouTubeUrl(url) {
 function validateScreenshotPath(screenshotUrl) {
     if (!screenshotUrl || typeof screenshotUrl !== 'string') return null;
 
-    // Normalize and check for traversal attempts
-    const normalized = path.normalize(screenshotUrl).replace(/^\/+/, '');
+    // Normalize slashes to forward slashes for cross-platform matching
+    // And remove leading slashes
+    const normalized = screenshotUrl.replace(/\\/g, '/').replace(/^\/+/, '');
 
     // Must start with allowed directory
     if (!normalized.startsWith(CONFIG.ALLOWED_UPLOAD_DIR)) return null;
@@ -337,9 +338,18 @@ router.post('/api/admin/approve-payment', isAdmin, async (req, res) => {
         // Audit log (console for now, should be database)
         console.log(`[Approval] User ${sanitizeForLog(purchase.userId)} enrolled in course ${sanitizeForLog(purchase.courseId)}`);
 
-        // 4. Cleanup: Delete payment screenshot (no longer needed)
+        // 4. Cleanup: Delete payment screenshot and clear URL in DB
         if (purchase.screenshotUrl) {
-            await deleteScreenshot(purchase.screenshotUrl);
+            try {
+                await deleteScreenshot(purchase.screenshotUrl);
+                // Also clear the URL from the database to be clean
+                await prisma.purchase.update({
+                    where: { id: purchaseId },
+                    data: { screenshotUrl: null }
+                });
+            } catch (cleanupErr) {
+                console.warn('[Approval] Screenshot cleanup failed:', cleanupErr.message);
+            }
         }
 
         // 5. Invalidate caches immediately so user sees "Enrolled" and has access
@@ -406,9 +416,18 @@ router.post('/api/admin/reject-payment', isAdmin, async (req, res) => {
             return res.status(500).json({ success: false, message: 'Failed to update purchase' });
         }
 
-        // 3. Cleanup: Delete the screenshot (user will resubmit new one)
+        // 3. Cleanup: Delete the screenshot and clear URL in DB
         if (purchase.screenshotUrl) {
-            await deleteScreenshot(purchase.screenshotUrl);
+            try {
+                await deleteScreenshot(purchase.screenshotUrl);
+                // Clear URL from database since proof is gone
+                await prisma.purchase.update({
+                    where: { id: purchaseId },
+                    data: { screenshotUrl: null }
+                });
+            } catch (cleanupErr) {
+                console.warn('[Rejection] Screenshot cleanup failed:', cleanupErr.message);
+            }
         }
 
         // Sanitize log output

@@ -1,0 +1,306 @@
+<!-- ========================================================================== -->
+<!--                        DASHBOARD SIDEBAR PARTIAL                           -->
+<!-- ========================================================================== -->
+<!--
+    Purpose: Left-side navigation for Admin and User dashboards
+    
+    Features:
+    - Responsive: Hidden on mobile (toggled via hamburger), fixed on desktop
+    - Role-based: Shows different links for ADMIN vs USER
+    - Active State: Highlights current page (implemented via client-side or server-side logic)
+-->
+
+<aside id="dashboard-sidebar" 
+    class="fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 border-r border-white/10 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none">
+    
+    <div class="h-full flex flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+        <!-- Logo Section -->
+        <div class="h-24 flex items-center px-6 mb-2">
+            <a href="/" class="flex items-center gap-3 group">
+                <div class="p-2 rounded-xl bg-brand-gold/10 border border-brand-gold/20 group-hover:border-brand-gold/40 transition-all duration-500">
+                    <img src="/images/logo.webp" alt="Logo" class="h-10 w-auto rounded-lg shadow-lg">
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-white font-black text-lg tracking-tight leading-none italic group-hover:text-brand-gold transition-colors">The Saran Trader</span>
+                    <span class="text-brand-gold text-[10px] font-black tracking-[0.25em] uppercase mt-1 opacity-80">Premium Academy</span>
+                </div>
+            </a>
+            <!-- Mobile Close Button -->
+            <button id="close-sidebar-btn" class="lg:hidden ml-auto p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-white transition-all hover:bg-white/10">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <!-- User Profile Card (Premium Glassmorphism) -->
+        <div class="px-4 mb-8">
+            <a href="/dashboard" class="relative group block">
+                <!-- Subtle glow effect -->
+                <div class="absolute inset-0 bg-brand-gold/5 blur-2xl rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                
+                <div class="relative bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-5 shadow-2xl overflow-hidden active:scale-95 transition-all">
+                    <!-- Dynamic corner light -->
+                    <div class="absolute -top-10 -right-10 w-24 h-24 bg-brand-gold/10 blur-2xl rounded-full"></div>
+                    
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="relative flex-shrink-0">
+                            <!-- Multi-layered avatar glow -->
+                            <div class="absolute -inset-1 bg-gradient-to-tr from-brand-gold to-brand-red rounded-2xl blur-sm opacity-30 group-hover:opacity-60 transition-opacity"></div>
+                            <div class="relative w-14 h-14 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-brand-gold font-black text-2xl shadow-inner overflow-hidden uppercase">
+                                <%= (typeof user !== 'undefined' && user?.name) ? user.name.charAt(0) : 'U' %>
+                            </div>
+                            <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-4 border-slate-900 shadow-xl"></div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-white font-black truncate text-sm tracking-tight uppercase"><%= (typeof user !== 'undefined' && user?.name) ? user.name : 'User' %></p>
+                            <p class="text-brand-gold/70 text-[10px] font-black tracking-[0.15em] uppercase mt-1 flex items-center gap-1.5 leading-none">
+                                <span class="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse"></span>
+                                <%= (typeof user !== 'undefined' && user?.role) ? (user.role === 'ADMIN' ? 'Strategic Admin' : 'Active Trader') : 'STUDENT' %>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
+            <% 
+                // Normalize paths by removing trailing slashes for consistent matching
+                const normalizePath = (p) => p === '/' ? p : p.replace(/\/$/, '');
+                const currentPath = normalizePath(typeof path !== 'undefined' ? path : '');
+                const isAdmin = typeof user !== 'undefined' && user?.role?.toUpperCase() === 'ADMIN';
+                
+                const navItemClass = (itemPath) => {
+                    const normalizedItemPath = normalizePath(itemPath);
+                    const isActive = currentPath === normalizedItemPath || 
+                                   (normalizedItemPath !== '/' && currentPath.startsWith(normalizedItemPath + '/'));
+                    
+                    return `flex items-center gap-4 px-4 py-4 rounded-[1.75rem] transition-all duration-300 group relative border border-transparent ${
+                        isActive 
+                        ? 'bg-brand-gold/10 text-brand-gold border-brand-gold/20 shadow-[0_0_25px_rgba(255,215,0,0.05)]' 
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                    }`;
+                };
+
+                const iconWrapperClass = (itemPath) => {
+                    const normalizedItemPath = normalizePath(itemPath);
+                    const isActive = currentPath === normalizedItemPath || 
+                                   (normalizedItemPath !== '/' && currentPath.startsWith(normalizedItemPath + '/'));
+                    return `w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg border ${
+                        isActive 
+                        ? 'bg-brand-gold text-black border-transparent scale-110' 
+                        : 'bg-slate-800/50 text-brand-gold/70 group-hover:bg-brand-gold group-hover:text-black border-white/5 group-hover:scale-110'
+                    }`;
+                };
+
+                const activeIndicator = (itemPath) => {
+                    const normalizedItemPath = normalizePath(itemPath);
+                    const isActive = currentPath === normalizedItemPath || 
+                                   (normalizedItemPath !== '/' && currentPath.startsWith(normalizedItemPath + '/'));
+                    return isActive ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-brand-gold rounded-r-full shadow-[0_0_15px_rgba(255,215,0,0.4)]"></div>' : '';
+                };
+            %>
+
+            <!-- Site Navigation -->
+            <div class="px-5 mb-4 mt-4">
+                <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500/80">Site Navigation</span>
+            </div>
+            
+            <a href="/" class="<%= navItemClass('/') %>">
+                <%- activeIndicator('/') %>
+                <div class="<%= iconWrapperClass('/') %>">
+                    <i class="fa-solid fa-house text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight uppercase">Home Page</span>
+            </a>
+
+            <a href="/courses" class="<%= navItemClass('/courses') %>">
+                <%- activeIndicator('/courses') %>
+                <div class="<%= iconWrapperClass('/courses') %>">
+                    <i class="fa-solid fa-book-open-reader text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight uppercase">Trading Hub</span>
+            </a>
+
+            <a href="/features" class="<%= navItemClass('/features') %>">
+                <%- activeIndicator('/features') %>
+                <div class="<%= iconWrapperClass('/features') %>">
+                    <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight uppercase">Features Explorer</span>
+            </a>
+
+            <!-- Command Center (Admin Only) -->
+            <% if (isAdmin) { %>
+                <div class="px-5 mb-4 mt-6">
+                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500/80">Command Center</span>
+                </div>
+                
+                <a href="/admin/dashboard" class="<%= navItemClass('/admin/dashboard') %>">
+                    <%- activeIndicator('/admin/dashboard') %>
+                    <div class="<%= iconWrapperClass('/admin/dashboard') %>">
+                        <i class="fa-solid fa-chart-pie text-lg"></i>
+                    </div>
+                    <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Metrics Control</span>
+                </a>
+
+                <a href="/admin/users" class="<%= navItemClass('/admin/users') %>">
+                    <%- activeIndicator('/admin/users') %>
+                    <div class="<%= iconWrapperClass('/admin/users') %>">
+                        <i class="fa-solid fa-users-viewfinder text-lg"></i>
+                    </div>
+                    <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">User Intelligence</span>
+                </a>
+
+                <a href="/admin/courses" class="<%= navItemClass('/admin/courses') %>">
+                    <%- activeIndicator('/admin/courses') %>
+                    <div class="<%= iconWrapperClass('/admin/courses') %>">
+                        <i class="fa-solid fa-graduation-cap text-lg"></i>
+                    </div>
+                    <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Academy Architect</span>
+                </a>
+
+                <a href="/admin/testimonials" class="<%= navItemClass('/admin/testimonials') %>">
+                    <%- activeIndicator('/admin/testimonials') %>
+                    <div class="<%= iconWrapperClass('/admin/testimonials') %>">
+                        <i class="fa-solid fa-star-half-stroke text-lg"></i>
+                    </div>
+                    <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Reputation Desk</span>
+                </a>
+
+                <div class="h-px bg-white/5 mx-5 my-8"></div>
+            <% } %>
+
+            <!-- Trader Workspace -->
+            <div class="px-5 mb-4 <%= isAdmin ? '' : 'mt-4' %>">
+                <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500/80">Trader Workspace</span>
+            </div>
+            
+            <a href="/dashboard" class="<%= navItemClass('/dashboard') %>">
+                <%- activeIndicator('/dashboard') %>
+                <div class="<%= iconWrapperClass('/dashboard') %>">
+                    <i class="fa-solid fa-gauge-high text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Main Control</span>
+            </a>
+
+            <!-- Social Ecosystem -->
+            <div class="px-5 mb-4 mt-8">
+                <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500/80">Social Ecosystem</span>
+            </div>
+
+            <a href="/chat" class="<%= navItemClass('/chat') %>">
+                <%- activeIndicator('/chat') %>
+                <div class="<%= iconWrapperClass('/chat') %>">
+                    <i class="fa-solid fa-comments text-lg"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform leading-tight">Traders Lounge</span>
+                    <span class="text-[10px] text-brand-gold/70 font-bold uppercase tracking-wider">Live Chatrooms</span>
+                </div>
+                <% if (currentPath.startsWith('/chat')) { %>
+                    <span class="absolute right-4 flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                <% } %>
+            </a>
+
+            <a href="/community" class="<%= navItemClass('/community') %>">
+                <%- activeIndicator('/community') %>
+                <div class="<%= iconWrapperClass('/community') %>">
+                    <i class="fa-solid fa-users text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Global Community</span>
+            </a>
+
+            <a href="/testimonials" class="<%= navItemClass('/testimonials') %>">
+                <%- activeIndicator('/testimonials') %>
+                <div class="<%= iconWrapperClass('/testimonials') %>">
+                    <i class="fa-solid fa-quote-left text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Trader Reviews</span>
+            </a>
+
+            <div class="h-px bg-white/5 mx-5 my-8"></div>
+
+            <div class="px-5 mb-4">
+                <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500/80">Legal & Resources</span>
+            </div>
+
+            <a href="/about" class="<%= navItemClass('/about') %>">
+                <%- activeIndicator('/about') %>
+                <div class="<%= iconWrapperClass('/about') %>">
+                    <i class="fa-solid fa-circle-info text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">About Us</span>
+            </a>
+
+            <a href="/our-mission" class="<%= navItemClass('/our-mission') %>">
+                <%- activeIndicator('/our-mission') %>
+                <div class="<%= iconWrapperClass('/our-mission') %>">
+                    <i class="fa-solid fa-bullseye text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Our Mission</span>
+            </a>
+
+            <a href="/privacy-policy" class="<%= navItemClass('/privacy-policy') %>">
+                <%- activeIndicator('/privacy-policy') %>
+                <div class="<%= iconWrapperClass('/privacy-policy') %>">
+                    <i class="fa-solid fa-shield-halved text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Privacy Policy</span>
+            </a>
+
+            <a href="/terms-and-conditions" class="<%= navItemClass('/terms-and-conditions') %>">
+                <%- activeIndicator('/terms-and-conditions') %>
+                <div class="<%= iconWrapperClass('/terms-and-conditions') %>">
+                    <i class="fa-solid fa-file-contract text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Terms & Conditions</span>
+            </a>
+
+            <a href="/refund-policy" class="<%= navItemClass('/refund-policy') %>">
+                <%- activeIndicator('/refund-policy') %>
+                <div class="<%= iconWrapperClass('/refund-policy') %>">
+                    <i class="fa-solid fa-money-bill-transfer text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Refund Policy</span>
+            </a>
+        </nav>
+
+        <!-- Sidebar Footer -->
+        <div class="p-6 border-t border-white/5 mt-auto bg-black/20">
+            <form id="logout-sidebar-form" action="/logout" method="POST" class="hidden">
+                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+            </form>
+            <button type="submit" onclick="event.preventDefault(); document.getElementById('logout-sidebar-form').submit();" 
+                class="flex items-center justify-center gap-3 w-full px-4 py-4 rounded-[1.75rem] text-brand-red bg-brand-red/5 border border-brand-red/20 hover:bg-brand-red hover:text-white transition-all duration-500 group relative overflow-hidden active:scale-95 shadow-lg hover:shadow-brand-red/20">
+                <div class="absolute inset-x-0 bottom-0 h-0.5 bg-brand-red/50 scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                <i class="fa-solid fa-power-off text-sm group-hover:rotate-180 transition-transform duration-700"></i>
+                <span class="font-black text-[10px] uppercase tracking-[0.2em]">Terminate Session</span>
+            </button>
+        </div>
+    </div>
+</aside>
+
+<!-- Sidebar Overlay (Mobile) -->
+<div id="sidebar-overlay" class="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-md lg:hidden transition-all duration-300"></div>
+
+<style>
+    /* Mobile Sidebar Toggle Support (Synced with main.js) */
+    #dashboard-sidebar.active {
+        transform: translateX(0) !important;
+    }
+    
+    #sidebar-overlay {
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    #sidebar-overlay.active {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+</style>
+

@@ -17,9 +17,9 @@
 </head>
 <body class="bg-brand-navy text-white min-h-screen flex flex-col">
     <!-- Navbar -->
-    <%- include('../partials/navbar') %>
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'Terms & Conditions', wrapperBg: 'bg-brand-navy' }) %>
 
-    <main id="main-content" class="flex-grow pt-32 pb-20 px-4">
+    <main id="main-content" class="flex-grow <%= standardTopPadding %> pb-20 px-4">
         <div class="max-w-4xl mx-auto">
             <h1 class="text-4xl font-bold text-brand-gold mb-8">Terms and Conditions</h1>
             
@@ -79,6 +79,6 @@
     </main>
 
     <!-- Footer -->
-    <%- include('../partials/footer') %>
+    <%- include('../partials/layout_wrapper_bottom') %>
 </body>
 </html>

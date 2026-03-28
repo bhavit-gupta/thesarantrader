@@ -72,11 +72,11 @@ JAVASCRIPT DEPENDENCIES:
 <body class="font-sans antialiased text-slate-600 bg-white flex flex-col min-h-screen">
 
     <!-- Navigation Bar -->
-    <%- include('../partials/navbar')%>
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'Academy', wrapperBg: 'bg-white' }) %>
 
     <main class="flex-grow">
         <!-- Page Header -->
-        <section class="pt-32 pb-12 bg-slate-50">
+        <section class="<%= standardTopPadding %> pb-12 bg-slate-50">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h1 class="text-4xl font-bold text-slate-800 mb-4">Explore Our Premium Courses</h1>
                 <p class="text-lg text-slate-600 max-w-2xl mx-auto">
@@ -147,7 +147,7 @@ JAVASCRIPT DEPENDENCIES:
     </main>
 
     <!-- Footer -->
-    <%- include('../partials/footer') %>
+    <%- include('../partials/layout_wrapper_bottom') %>
 
     <!-- JavaScript Dependencies -->
     <script src="/javascripts/main.js" defer></script>

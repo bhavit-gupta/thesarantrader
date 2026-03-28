@@ -162,11 +162,11 @@ let connectionValidated = false;
 const validateConnection = async () => {
     try {
         // Step 1: Establish low-level connection
-        // Use a 10-second timeout for the initial connection check
-        await withTimeout(() => prisma.$connect(), 10000);
+        // Use a 20-second timeout for the initial connection check
+        await withTimeout(() => prisma.$connect(), 20000);
 
         // Step 2: Validate database access (catches "empty database name" errors)
-        await withTimeout(() => prisma.$runCommandRaw({ ping: 1 }), 5000);
+        await withTimeout(() => prisma.$runCommandRaw({ ping: 1 }), 10000);
 
         isConnected = true;
         connectionValidated = true;

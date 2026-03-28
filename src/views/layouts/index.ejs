@@ -103,11 +103,11 @@
         </div>
     </noscript>
 
-    <%- include('../partials/navbar') %>
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'Home', wrapperBg: 'bg-white' }) %>
 
         <!-- ========== HERO SECTION ========== -->
         <!-- Main landing area with headline, CTA, and hero image -->
-        <section class="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden">
+        <section class="relative <%= standardTopPadding %> pb-20 lg:pb-28 overflow-hidden">
             <!-- Background Decor -->
 
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -188,15 +188,24 @@
         -->
         <section id="courses" class="py-20 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <!-- Section Header -->
-                <div class="flex justify-between items-end mb-12">
-                    <div>
-                        <span class="text-brand-gold font-semibold tracking-wider uppercase text-sm">Top Courses</span>
-                        <h2 class="mt-2 text-3xl font-bold text-slate-800 sm:text-4xl">Explore Popular Courses</h2>
-                    </div>
-                    <a href="/courses"
-                        class="hidden sm:flex items-center gap-2 text-brand-navy font-semibold hover:text-brand-gold transition-colors">
-                        View All Courses ➡️
+                <!-- Courses Status Messages -->
+                <!-- Error State -->
+                <div id="courses-error" class="hidden max-w-2xl mx-auto text-center py-12">
+                    <i class="fa-solid fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Failed to Load Courses</h3>
+                    <p class="text-slate-600 mb-6">We couldn't retrieve the courses. Please check your connection and try again.</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="courses-empty" class="hidden max-w-2xl mx-auto text-center py-16">
+                    <div class="text-6xl mb-4">📚</div>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-3">Upcoming Trading Courses</h3>
+                    <p class="text-slate-600 mb-8">
+                        We're refining our next high-impact trading curriculum. Check back soon for our latest enrollment window!
+                    </p>
+                    <a href="/features" 
+                       class="inline-flex items-center gap-2 px-6 py-3 bg-brand-navy text-white rounded-full font-semibold hover:bg-brand-gold hover:text-brand-navy transition-all">
+                        Explore Platform Features
                     </a>
                 </div>
 
@@ -261,7 +270,7 @@
             </div>
         </section>
 
-        <%- include('../partials/footer') %>
+        <%- include('../partials/layout_wrapper_bottom') %>
 
             <!-- ========== JAVASCRIPT DEPENDENCIES ========== -->
             <!-- 

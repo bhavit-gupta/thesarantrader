@@ -124,12 +124,12 @@ STYLING:
     bg-blue-100 text-blue-700 bg-green-100 text-green-700 bg-purple-100 text-purple-700 bg-orange-100 text-orange-700
 -->
 
-<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen flex flex-col">
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen">
 
-    <%- include('../partials/navbar') %>
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'User Dashboard' }) %>
 
-        <main class="flex-grow pt-24 pb-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <main class="flex-grow pb-12">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-10">
 
                 <!-- ---------------- WELCOME HEADER ---------------- -->
                 <div class="mb-8">
@@ -540,11 +540,11 @@ STYLING:
                                                                                     @<%= user.username %>
                                                                                 </p>
                                                                             </div>
-                                                                            <div>
+                                                                            <div class="sm:col-span-2">
                                                                                 <label
                                                                                     class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Email</label>
                                                                                 <p
-                                                                                    class="text-slate-800 font-medium text-lg">
+                                                                                    class="text-slate-800 font-medium text-lg break-all">
                                                                                     <%= user.email %>
                                                                                 </p>
                                                                             </div>
@@ -657,9 +657,10 @@ STYLING:
                                                                     </div>
                                                                 </div>
                                                             </div>
-        </main>
+                        </div>
+                    </main>
 
-        <%- include('../partials/footer') %>
+    <%- include('../partials/layout_wrapper_bottom') %>
 
             <script src="/javascripts/main.js" defer></script>
             <script src="/javascripts/user-dashboard.js" defer></script>
