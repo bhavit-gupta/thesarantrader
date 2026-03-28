@@ -32,27 +32,29 @@
         </div>
 
         <!-- User Profile Card (Premium Glassmorphism) -->
-        <div class="px-4 mb-8">
+        <div class="px-4 mb-5">
             <a href="/dashboard" class="relative group block">
                 <!-- Subtle glow effect -->
                 <div class="absolute inset-0 bg-brand-gold/5 blur-2xl rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                 
-                <div class="relative bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-5 shadow-2xl overflow-hidden active:scale-95 transition-all">
+                <div class="relative bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-3.5 shadow-2xl overflow-hidden active:scale-95 transition-all">
                     <!-- Dynamic corner light -->
                     <div class="absolute -top-10 -right-10 w-24 h-24 bg-brand-gold/10 blur-2xl rounded-full"></div>
                     
-                    <div class="flex items-center gap-4 relative z-10">
+                    <div class="flex items-center gap-3 relative z-10">
                         <div class="relative flex-shrink-0">
                             <!-- Multi-layered avatar glow -->
-                            <div class="absolute -inset-1 bg-gradient-to-tr from-brand-gold to-brand-red rounded-2xl blur-sm opacity-30 group-hover:opacity-60 transition-opacity"></div>
-                            <div class="relative w-14 h-14 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-brand-gold font-black text-2xl shadow-inner overflow-hidden uppercase">
+                            <div class="absolute -inset-1 bg-gradient-to-tr from-brand-gold to-brand-red rounded-xl blur-sm opacity-30 group-hover:opacity-60 transition-opacity"></div>
+                            <div class="relative w-12 h-12 rounded-xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-brand-gold font-black text-xl shadow-inner overflow-hidden uppercase">
                                 <%= (typeof user !== 'undefined' && user?.name) ? user.name.charAt(0) : 'U' %>
                             </div>
-                            <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-4 border-slate-900 shadow-xl"></div>
+                            <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-slate-900 shadow-xl"></div>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-white font-black truncate text-sm tracking-tight uppercase"><%= (typeof user !== 'undefined' && user?.name) ? user.name : 'User' %></p>
-                            <p class="text-brand-gold/70 text-[10px] font-black tracking-[0.15em] uppercase mt-1 flex items-center gap-1.5 leading-none">
+                            <p class="text-white font-black truncate text-[13.5px] tracking-tight uppercase leading-none" title="<%= (typeof user !== 'undefined' && user?.name) ? user.name : 'User' %>">
+                                <%= (typeof user !== 'undefined' && user?.name) ? user.name : 'User' %>
+                            </p>
+                            <p class="text-brand-gold/70 text-[9px] font-black tracking-[0.1em] uppercase mt-1.5 flex items-center gap-1.5 leading-none">
                                 <span class="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse"></span>
                                 <%= (typeof user !== 'undefined' && user?.role) ? (user.role === 'ADMIN' ? 'Strategic Admin' : 'Active Trader') : 'STUDENT' %>
                             </p>
@@ -75,7 +77,7 @@
                     const isActive = currentPath === normalizedItemPath || 
                                    (normalizedItemPath !== '/' && currentPath.startsWith(normalizedItemPath + '/'));
                     
-                    return `flex items-center gap-4 px-4 py-4 rounded-[1.75rem] transition-all duration-300 group relative border border-transparent ${
+                    return `flex items-center gap-3 px-4 py-2.5 rounded-[1.25rem] transition-all duration-300 group relative border border-transparent ${
                         isActive 
                         ? 'bg-brand-gold/10 text-brand-gold border-brand-gold/20 shadow-[0_0_25px_rgba(255,215,0,0.05)]' 
                         : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -86,7 +88,7 @@
                     const normalizedItemPath = normalizePath(itemPath);
                     const isActive = currentPath === normalizedItemPath || 
                                    (normalizedItemPath !== '/' && currentPath.startsWith(normalizedItemPath + '/'));
-                    return `w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg border ${
+                    return `w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg border ${
                         isActive 
                         ? 'bg-brand-gold text-black border-transparent scale-110' 
                         : 'bg-slate-800/50 text-brand-gold/70 group-hover:bg-brand-gold group-hover:text-black border-white/5 group-hover:scale-110'
@@ -120,6 +122,31 @@
                     <i class="fa-solid fa-book-open-reader text-lg"></i>
                 </div>
                 <span class="font-black text-sm tracking-tight uppercase">Trading Hub</span>
+            </a>
+
+            <a href="/community" class="<%= navItemClass('/community') %>">
+                <%- activeIndicator('/community') %>
+                <div class="<%= iconWrapperClass('/community') %>">
+                    <i class="fa-solid fa-users text-lg"></i>
+                </div>
+                <span class="font-black text-sm tracking-tight uppercase">Global Community</span>
+            </a>
+
+            <a href="/chat" class="<%= navItemClass('/chat') %>">
+                <%- activeIndicator('/chat') %>
+                <div class="<%= iconWrapperClass('/chat') %>">
+                    <i class="fa-solid fa-comments text-lg"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-black text-sm tracking-tight leading-tight uppercase">Traders Lounge</span>
+                    <span class="text-[10px] text-brand-gold/70 font-bold uppercase tracking-wider">Live Chatrooms</span>
+                </div>
+                <% if (currentPath.startsWith('/chat')) { %>
+                    <span class="absolute right-4 flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                <% } %>
             </a>
 
             <a href="/features" class="<%= navItemClass('/features') %>">
@@ -181,45 +208,20 @@
                 <div class="<%= iconWrapperClass('/dashboard') %>">
                     <i class="fa-solid fa-gauge-high text-lg"></i>
                 </div>
-                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Main Control</span>
+                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform uppercase">Main Control</span>
             </a>
 
-            <!-- Social Ecosystem -->
+            <!-- User Resources -->
             <div class="px-5 mb-4 mt-8">
-                <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500/80">Social Ecosystem</span>
+                <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500/80">User Resources</span>
             </div>
-
-            <a href="/chat" class="<%= navItemClass('/chat') %>">
-                <%- activeIndicator('/chat') %>
-                <div class="<%= iconWrapperClass('/chat') %>">
-                    <i class="fa-solid fa-comments text-lg"></i>
-                </div>
-                <div class="flex flex-col">
-                    <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform leading-tight">Traders Lounge</span>
-                    <span class="text-[10px] text-brand-gold/70 font-bold uppercase tracking-wider">Live Chatrooms</span>
-                </div>
-                <% if (currentPath.startsWith('/chat')) { %>
-                    <span class="absolute right-4 flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
-                <% } %>
-            </a>
-
-            <a href="/community" class="<%= navItemClass('/community') %>">
-                <%- activeIndicator('/community') %>
-                <div class="<%= iconWrapperClass('/community') %>">
-                    <i class="fa-solid fa-users text-lg"></i>
-                </div>
-                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Global Community</span>
-            </a>
 
             <a href="/testimonials" class="<%= navItemClass('/testimonials') %>">
                 <%- activeIndicator('/testimonials') %>
                 <div class="<%= iconWrapperClass('/testimonials') %>">
                     <i class="fa-solid fa-quote-left text-lg"></i>
                 </div>
-                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform">Trader Reviews</span>
+                <span class="font-black text-sm tracking-tight group-hover:translate-x-1 transition-transform uppercase">Trader Reviews</span>
             </a>
 
             <div class="h-px bg-white/5 mx-5 my-8"></div>
@@ -275,7 +277,7 @@
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
             </form>
             <button type="submit" onclick="event.preventDefault(); document.getElementById('logout-sidebar-form').submit();" 
-                class="flex items-center justify-center gap-3 w-full px-4 py-4 rounded-[1.75rem] text-brand-red bg-brand-red/5 border border-brand-red/20 hover:bg-brand-red hover:text-white transition-all duration-500 group relative overflow-hidden active:scale-95 shadow-lg hover:shadow-brand-red/20">
+                class="flex items-center justify-center gap-3 w-full px-4 py-3 rounded-[1.25rem] text-brand-red bg-brand-red/5 border border-brand-red/20 hover:bg-brand-red hover:text-white transition-all duration-500 group relative overflow-hidden active:scale-95 shadow-lg hover:shadow-brand-red/20">
                 <div class="absolute inset-x-0 bottom-0 h-0.5 bg-brand-red/50 scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
                 <i class="fa-solid fa-power-off text-sm group-hover:rotate-180 transition-transform duration-700"></i>
                 <span class="font-black text-[10px] uppercase tracking-[0.2em]">Terminate Session</span>
@@ -291,6 +293,11 @@
     /* Mobile Sidebar Toggle Support (Synced with main.js) */
     #dashboard-sidebar.active {
         transform: translateX(0) !important;
+    }
+
+    #sidebar-overlay.active {
+        opacity: 1 !important;
+        pointer-events: auto !important;
     }
     
     #sidebar-overlay {

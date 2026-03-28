@@ -318,7 +318,7 @@ function prependPost(post) {
 // Create post card HTML
 function createPostCard(post) {
     const card = document.createElement('div');
-    card.className = 'bg-white rounded-2xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-all';
+    card.className = 'bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 hover:shadow-md transition-all';
     card.dataset.postId = post.id;
 
     // Generate gradient color based on user name
@@ -366,16 +366,18 @@ function createPostCard(post) {
             ` : ''}
         </div>
 
-        ${post.title ? `<h3 class="text-lg font-bold text-slate-800 mb-2">${escapeHtml(post.title)}</h3>` : ''}
-        <p class="text-slate-600 leading-relaxed mb-4 whitespace-pre-wrap">${escapeHtml(post.content)}</p>
+        ${post.title ? `<h3 class="text-lg font-bold text-slate-800 mb-2 break-words">${escapeHtml(post.title)}</h3>` : ''}
+        <p class="text-slate-600 leading-relaxed mb-4 whitespace-pre-wrap break-words">${escapeHtml(post.content)}</p>
 
         ${post.imageUrl ? `
-            <div class="mb-4 rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
-                <img src="${post.imageUrl}" alt="Post image" class="max-w-full h-auto cursor-pointer" onclick="window.open('${post.imageUrl}', '_blank')">
+            <div class="mb-4 flex justify-start items-center">
+                <img src="${post.imageUrl}" alt="Post image" 
+                    class="max-w-full max-h-[320px] rounded-xl object-contain cursor-pointer transition-all hover:brightness-110" 
+                    onclick="window.open('${post.imageUrl}', '_blank')">
             </div>
         ` : ''}
 
-        <div class="flex items-center gap-4 mb-4 pt-4 border-t border-slate-100">
+        <div class="flex items-center gap-2 sm:gap-4 mb-4 pt-4 border-t border-slate-100">
             ${isLoggedIn ? `
                 <button onclick="toggleLike('${post.id}')" class="like-btn flex items-center gap-2 px-4 py-2 rounded-lg ${isLiked ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-600'} hover:bg-blue-100 transition-colors">
                     <i class="fa-${isLiked ? 'solid' : 'regular'} fa-heart"></i>

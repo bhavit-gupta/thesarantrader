@@ -201,6 +201,9 @@ async function loadMessages() {
 
         if (data.success) {
             if (data.messages.length > 0) {
+                // Determine if this is the very first load of the chat room
+                const isInitialLoad = lastMessageTimestamp === 0;
+
                 // Update timestamp from the latest message (last in the array)
                 // This ensures next poll only gets messages after this one
                 const latestMsg = data.messages[data.messages.length - 1];
@@ -208,6 +211,13 @@ async function loadMessages() {
 
                 // Render new messages (append to existing list)
                 displayMessages(data.messages, true); // true = append mode
+                
+                // If this was the first load, ensure we scroll to the absolute bottom
+                if (isInitialLoad) {
+                    setTimeout(scrollToBottom, 100);
+                    // Also scroll again after a longer delay to account for images
+                    setTimeout(scrollToBottom, 500);
+                }
             } else if (lastMessageTimestamp === 0) {
                 // First load, but no messages exist in the channel yet
                 displayMessages([], false);
@@ -268,8 +278,14 @@ function displayMessages(messages, append = false) {
         listEl.appendChild(messageEl);
     });
 
-    // Scroll to bottom to show latest message
-    scrollToBottom();
+    // Smart Scroll: Only auto-scroll if it's the initial load OR if the user is already near the bottom
+    // This prevents annoying jumps while the user is reading older messages
+    const container = document.getElementById('messages-container');
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+    
+    if (!append || isNearBottom) {
+        scrollToBottom();
+    }
 }
 
 /**
@@ -304,7 +320,7 @@ function createMessageElement(msg) {
 
     // Build message HTML
     messageDiv.innerHTML = `
-        <div class="max-w-md ${isOwnMessage ? 'ml-auto' : 'mr-auto'}">
+        <div class="max-w-[85%] sm:max-w-md ${isOwnMessage ? 'ml-auto' : 'mr-auto'}">
             <div class="flex items-start gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}">
                 <!-- Avatar with User Initial -->
                 <div class="w-10 h-10 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold flex-shrink-0">
@@ -328,7 +344,7 @@ function createMessageElement(msg) {
                                 </a>
                             </div>
                         ` : ''}
-                        <p class="text-sm whitespace-pre-wrap">${escapeHtml(msg.message || '')}</p>
+                        <p class="text-sm whitespace-pre-wrap break-words">${escapeHtml(msg.message || '')}</p>
                     </div>
                 </div>
             </div>

@@ -183,10 +183,15 @@ class CourseCache {
         for (const course of coursesWithCounts) {
             const startTime = course.startDate ? new Date(course.startDate).getTime() : null;
             const endTime = course.endDate ? new Date(course.endDate).getTime() : null;
+            
+            // Enrollment deadline takes priority for "expiry" check.
+            // Both are extended to the very end of the day (23:59:59.999).
+            const enrollmentDeadline = course.enrollmentDeadline ? new Date(course.enrollmentDeadline).setHours(23, 59, 59, 999) : null;
+            const effectiveExpiryTime = enrollmentDeadline || (endTime ? new Date(endTime).setHours(23, 59, 59, 999) : null);
 
             if (startTime && startTime > currentTime) {
                 categorized.upcoming.push(course);
-            } else if (endTime && endTime < currentTime) {
+            } else if (effectiveExpiryTime && effectiveExpiryTime < currentTime) {
                 categorized.expired.push(course);
             } else {
                 categorized.ongoing.push(course);

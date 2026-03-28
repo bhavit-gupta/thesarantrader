@@ -146,7 +146,7 @@
 
                                             <!-- Guest User: Show Get Started CTA -->
                                             <% } else { %>
-                                                <a href="<%= links.platform.login %>"
+                                                <a href="<%= links.platform.login %>" target="_blank"
                                                     class="px-6 py-2.5 rounded-full bg-brand-accent text-brand-navy font-bold shadow-lg shadow-brand-accent/20 hover:bg-brand-gold hover:shadow-brand-gold/30 transition-all transform hover:-translate-y-0.5">
                                                     Get Started
                                                 </a>
@@ -157,7 +157,7 @@
                 <div class="lg:hidden flex items-center gap-4">
                     <!-- Mobile CTA Button (Guest Only) -->
                     <% if (typeof user === 'undefined' || !user) { %>
-                        <a href="<%= links.platform.login %>" 
+                        <a href="<%= links.platform.login %>" target="_blank"
                            class="px-4 py-2 rounded-full bg-brand-accent text-brand-navy text-xs font-bold shadow-lg shadow-brand-accent/20">
                            Get Started
                         </a>
@@ -165,7 +165,7 @@
 
                     <button id="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false"
                         aria-controls="mobile-menu"
-                        class="text-slate-300 hover:text-brand-gold focus:outline-none focus:ring-2 focus:ring-brand-gold h-10 w-10 flex items-center justify-center rounded-lg bg-white/5 border border-white/10">
+                        class="text-slate-300 hover:text-brand-gold focus:outline-none focus:ring-2 focus:ring-brand-gold h-10 w-10 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 relative z-[70]">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 6h16M4 12h16M4 18h16" />
@@ -176,7 +176,7 @@
     </div>
 
     <!-- ========== MOBILE SLIDE-DOWN MENU ========== -->
-    <div id="mobile-menu" class="hidden lg:hidden fixed inset-x-0 top-20 bottom-0 bg-brand-navy/98 backdrop-blur-xl z-[60] overflow-y-auto">
+    <div id="mobile-menu" class="lg:hidden fixed inset-x-0 top-20 bottom-0 bg-brand-navy z-[200] overflow-y-auto">
         <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <a href="<%= links.platform.home %>"
                 class="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-brand-gold hover:bg-white/5">Home</a>
@@ -217,7 +217,7 @@
                                 <% } %>
 
                                     <!-- Dashboard Link -->
-                                    <a href="<%= user.role?.toUpperCase() === 'ADMIN' ? links.platform.adminDashboard : links.platform.dashboard %>"
+                                    <a href="<%= user?.role?.toUpperCase() === 'ADMIN' ? links.platform.adminDashboard : links.platform.dashboard %>"
                                         class="block px-3 py-2 rounded-md text-base font-medium text-brand-gold hover:bg-brand-gold/10">📊
                                         <%= user.role?.toUpperCase() === 'ADMIN' ? 'Admin Dashboard'
                                             : 'Dashboard' %>
@@ -231,12 +231,12 @@
 
                                     <!-- Guest: Get Started Button -->
                                     <% } else { %>
-                                        <a href="<%= links.platform.login %>"
+                                        <a href="<%= links.platform.login %>" target="_blank"
                                             class="block px-3 py-2 rounded-md text-base font-medium text-brand-navy bg-brand-gold hover:bg-brand-accent">Get
                                             Started</a>
                                         <% } %>
-        </div>
-    </div>
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu-overlay" class="fixed inset-0 z-[150] bg-brand-navy/60 backdrop-blur-sm lg:hidden transition-all duration-300 pointer-events-none opacity-0"></div>
 
     <!-- ========== HIDDEN LOGOUT FORM ========== -->
     <!-- 
@@ -246,8 +246,7 @@
     -->
     <!-- Logout Form: Unified to top-level /logout -->
     <form id="logout-form" action="/logout" method="POST" style="display: none;">
-        <% if (!csrfToken) { throw new Error('CSRF token missing in navbar'); } %>
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
     </form>
 
     <!-- ========== SERVER-SIDE DATA EMBEDDING ========== -->
@@ -340,5 +339,31 @@
             }
         });
     </script>
+
+    <style>
+        #mobile-menu {
+            display: none;
+        }
+
+        #mobile-menu.open {
+            display: block !important;
+        }
+
+        #mobile-menu-overlay.active {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </nav>
 

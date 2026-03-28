@@ -28,7 +28,7 @@
         BACKOFF_MULTIPLIER: 2,             //  Exponential backoff
         MAX_CONSECUTIVE_FAILURES: 5,
         REQUEST_TIMEOUT_MS: 10000,
-        DEBUG: false,
+        DEBUG: true,
         SELECTORS: Object.freeze({
             MOBILE_MENU_BTN: 'mobile-menu-btn',
             MOBILE_MENU: 'mobile-menu',
@@ -124,6 +124,7 @@
         try {
             const btn = document.getElementById(CONFIG.SELECTORS.MOBILE_MENU_BTN);
             const menu = document.getElementById(CONFIG.SELECTORS.MOBILE_MENU);
+            const overlay = document.getElementById('mobile-menu-overlay');
 
             if (!btn || !menu) return;
 
@@ -132,10 +133,11 @@
                 btn.removeEventListener('click', state.mobileMenuHandler);
             }
 
-            // Create and store handler
             state.mobileMenuHandler = () => {
-                const isHidden = menu.classList.toggle(CONFIG.CSS_CLASSES.HIDDEN);
-                btn.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+                const isOpen = menu.classList.toggle('open');
+                if (overlay) overlay.classList.toggle('active', isOpen);
+                btn.setAttribute('aria-expanded', isOpen);
+                document.body.classList.toggle('overflow-hidden', isOpen);
             };
 
             btn.addEventListener('click', state.mobileMenuHandler);
@@ -150,23 +152,36 @@
 
             // [20.22] Close on Escape key
             const handleEsc = (e) => {
-                if (e.key === 'Escape' && !menu.classList.contains(CONFIG.CSS_CLASSES.HIDDEN)) {
-                    menu.classList.add(CONFIG.CSS_CLASSES.HIDDEN);
+                if (e.key === 'Escape' && menu.classList.contains('open')) {
+                    menu.classList.remove('open');
+                    if (overlay) overlay.classList.remove('active');
                     btn.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('overflow-hidden');
                     btn.focus();
                 }
             };
             document.addEventListener('keydown', handleEsc);
 
-            // [20.23] Close on link click
-            menu.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', () => {
-                    menu.classList.add(CONFIG.CSS_CLASSES.HIDDEN);
+            if (overlay) {
+                overlay.addEventListener('click', () => {
+                    menu.classList.remove('open');
+                    overlay.classList.remove('active');
                     btn.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('overflow-hidden');
+                });
+            }
+
+            // Close menu when clicking any link
+            menu.querySelectorAll('a, button').forEach(item => {
+                item.addEventListener('click', () => {
+                    menu.classList.remove('open');
+                    if (overlay) overlay.classList.remove('active');
+                    btn.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('overflow-hidden');
                 });
             });
 
-            Logger.debug('Mobile menu setup complete with keyboard support');
+            Logger.debug('Mobile menu setup complete with keyboard and overlay support');
         } catch (err) {
             //  Error boundary
             Logger.error('Error setting up mobile menu:', err);
@@ -179,42 +194,54 @@
     function setupDashboardSidebar() {
         try {
             const sidebar = document.getElementById('dashboard-sidebar');
-            const toggleBtn = document.getElementById('sidebar-toggle');
+            // Support both desktop (sidebar-toggle) and mobile (sidebar-toggle-mobile) buttons
+            const toggleBtns = [
+                document.getElementById('sidebar-toggle'),
+                document.getElementById('sidebar-toggle-mobile')
+            ].filter(btn => btn !== null);
+            
             const closeBtn = document.getElementById('close-sidebar-btn');
             const overlay = document.getElementById('sidebar-overlay');
 
             if (!sidebar) return;
 
-            const toggleSidebar = () => {
-                sidebar.classList.toggle('active');
-                if (overlay) overlay.classList.toggle('active');
-                
-                // Toggle accessibility attributes
-                const isActive = sidebar.classList.contains('active');
-                if (toggleBtn) toggleBtn.setAttribute('aria-expanded', isActive);
+            const updateAria = (isActive) => {
+                toggleBtns.forEach(btn => btn.setAttribute('aria-expanded', isActive));
             };
 
-            if (toggleBtn) toggleBtn.addEventListener('click', toggleSidebar);
+            const toggleSidebar = () => {
+                const isActive = sidebar.classList.toggle('active');
+                if (overlay) overlay.classList.toggle('active');
+                
+                // Toggle body scroll for mobile UX
+                document.body.classList.toggle('overflow-hidden', isActive);
+                
+                updateAria(isActive);
+            };
+
+            toggleBtns.forEach(btn => btn.addEventListener('click', toggleSidebar));
             if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
             
             if (overlay) {
                 overlay.addEventListener('click', () => {
                     sidebar.classList.remove('active');
                     overlay.classList.remove('active');
-                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('overflow-hidden');
+                    updateAria(false);
                 });
             }
 
-            // Close on Escape
+            // Close on Escape key
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && sidebar.classList.contains('active')) {
                     sidebar.classList.remove('active');
                     if (overlay) overlay.classList.remove('active');
-                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('overflow-hidden');
+                    updateAria(false);
                 }
             });
 
-            Logger.debug('Dashboard sidebar setup complete');
+            Logger.debug('Dashboard sidebar setup complete with mobile support');
         } catch (err) {
             Logger.error('Error setting up dashboard sidebar:', err);
         }

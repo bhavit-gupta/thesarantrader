@@ -1,12 +1,12 @@
 <!-- Mobile Header Component -->
 <header class="lg:hidden h-16 bg-brand-navy border-b border-white/10 flex items-center px-4 sticky top-0 z-40">
-    <button id="sidebar-toggle-mobile" class="p-2 text-slate-400 hover:text-white transition-colors" aria-label="Open sidebar">
-        <i class="fa-solid fa-bars-staggered text-xl"></i>
+    <button id="sidebar-toggle-mobile" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all shadow-lg active:scale-95" aria-label="Open sidebar">
+        <i class="fa-solid fa-bars-staggered text-lg"></i>
     </button>
     <div class="ml-4 flex items-center gap-2">
         <a href="/" class="flex items-center gap-2">
             <img src="/images/logo.webp" alt="Logo" class="h-8 w-auto rounded-md">
-            <span class="text-white font-bold text-sm tracking-tight uppercase">
+            <span class="text-white font-bold text-sm tracking-tight uppercase truncate max-w-[180px]">
                 <%= typeof mobileTitle !== 'undefined' ? mobileTitle : 'The Saran Trader' %>
             </span>
         </a>
@@ -20,19 +20,4 @@
     </div>
 </header>
 
-<script>
-    // Logic for sidebar toggle on mobile
-    document.addEventListener('DOMContentLoaded', () => {
-        const toggleBtn = document.getElementById('sidebar-toggle-mobile');
-        const sidebar = document.getElementById('dashboard-sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-
-        if (toggleBtn && sidebar && overlay) {
-            toggleBtn.addEventListener('click', () => {
-                sidebar.classList.remove('-translate-x-full');
-                overlay.classList.remove('opacity-0', 'pointer-events-none');
-                document.body.classList.add('overflow-hidden');
-            });
-        }
-    });
-</script>
+<%# Removed inline script - handled by main.js %>

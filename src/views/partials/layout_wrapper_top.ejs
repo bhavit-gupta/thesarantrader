@@ -10,7 +10,7 @@
         <%- include('../partials/dashboard_sidebar') %>
 
         <!-- Main Content Area with Indentation -->
-        <div class="flex-1 flex flex-col min-w-0 lg:ml-[288px]">
+        <div class="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden lg:ml-[288px]">
             <!-- Responsive Mobile Header -->
             <%- include('../partials/dashboard_mobile_header', { mobileTitle: typeof pageTitle !== 'undefined' ? pageTitle : 'The Saran Trader' }) %>
 <% } else { %>

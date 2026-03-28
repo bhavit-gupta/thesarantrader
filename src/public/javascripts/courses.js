@@ -202,7 +202,12 @@
     function isEnrollmentClosed(deadline) {
         const deadlineDate = safeDate(deadline);
         if (!deadlineDate) return false;
-        return new Date() > deadlineDate;
+        
+        // Ensure the deadline includes the entire day
+        const endOfDeadlineDay = new Date(deadlineDate);
+        endOfDeadlineDay.setHours(23, 59, 59, 999);
+        
+        return new Date() > endOfDeadlineDay;
     }
 
     /**
@@ -674,7 +679,7 @@
             const currentPath = window.location.pathname + window.location.search;
             const safeRedirect = encodeURIComponent(currentPath);
             return `
-                <a href="/login?redirect=${safeRedirect}" class="w-full block text-center py-4 bg-slate-800 text-white font-bold rounded-xl shadow-lg hover:bg-slate-900 transition-all transform hover:-translate-y-0.5 text-lg">
+                <a href="/login?redirect=${safeRedirect}" target="_blank" class="w-full block text-center py-4 bg-slate-800 text-white font-bold rounded-xl shadow-lg hover:bg-slate-900 transition-all transform hover:-translate-y-0.5 text-lg">
                     ${escapeHtml(STRINGS.LOGIN_TO_ENROLL)}
                 </a>`;
         }
