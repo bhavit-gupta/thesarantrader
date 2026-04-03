@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <title>Live Session - TheSaranTrader</title>
+
+    <!-- Zoom Component SDK CSS -->
+    <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.5.0/css/bootstrap.css" />
+    <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.5.0/css/react-select.css" />
+    
+    <!-- Custom Theme -->
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="apple-touch-icon" href="/images/favicon.jpg">
+    
+    <style>
+        /* Zoom Component Override to fit Dashboard */
+        #meetingSDKElement {
+            width: 100%;
+            height: 100%;
+            min-height: 600px;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: #0f172a;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        
+        /* Ensure the Zoom component doesn't break the layout */
+        .zoom-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            min-height: 600px;
+        }
+
+        @media (max-width: 1024px) {
+            .zoom-container {
+                height: 500px;
+                min-height: 500px;
+            }
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen">
+
+    <div class="flex min-h-screen">
+        <!-- Dashboard Sidebar -->
+        <%- include('../partials/dashboard_sidebar') %>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col min-w-0 lg:ml-[288px]">
+            <!-- Header -->
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-40">
+                <div class="flex items-center gap-4">
+                    <button id="sidebar-toggle" class="lg:hidden p-2 text-slate-500">
+                        <i class="fa-solid fa-bars-staggered"></i>
+                    </button>
+                    <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        Live Training Room
+                    </h1>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <a href="/dashboard" class="text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Exit Session
+                    </a>
+                </div>
+            </header>
+
+            <main class="p-6 lg:p-8 flex-grow">
+                <div class="max-w-6xl mx-auto">
+                    
+                    <!-- Session Header Info -->
+                    <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800 tracking-tight">Interactive Classroom</h2>
+                            <p class="text-slate-500 text-sm">Session ID: <span class="font-mono font-bold text-blue-600"><%= meetingNumber %></span></p>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 bg-green-50 px-4 py-2 rounded-xl border border-green-100">
+                            <i class="fa-solid fa-lock text-green-600"></i>
+                            <span class="text-sm font-bold text-green-700">Secure Live Stream</span>
+                        </div>
+                    </div>
+
+                    <!-- The Embedded Classroom (Zoom Component) -->
+                    <div class="zoom-container rounded-2xl overflow-hidden bg-slate-900 shadow-2xl ring-1 ring-white/10">
+                        <div id="meetingSDKElement"></div>
+                    </div>
+
+                    <!-- Classroom Guidelines -->
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+                                <i class="fa-solid fa-hand"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-800 mb-1">Participation</h4>
+                            <p class="text-xs text-slate-500">Use the 'Raise Hand' feature for questions during the live session.</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center mb-4">
+                                <i class="fa-solid fa-comments"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-800 mb-1">Live Chat</h4>
+                            <p class="text-xs text-slate-500">Join the discussion in the sidebar chat. Be respectful to fellow traders.</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="w-10 h-10 rounded-xl bg-brand-gold/10 text-brand-gold flex items-center justify-center mb-4">
+                                <i class="fa-solid fa-circle-question"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-800 mb-1">Technical Support</h4>
+                            <p class="text-xs text-slate-500">If the stream hangs, try refreshing the page to reconnect to the studio.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Zoom SDK Dependencies -->
+    <script src="https://source.zoom.us/3.5.0/lib/vendor/react.min.js"></script>
+    <script src="https://source.zoom.us/3.5.0/lib/vendor/react-dom.min.js"></script>
+    <script src="https://source.zoom.us/3.5.0/lib/vendor/redux.min.js"></script>
+    <script src="https://source.zoom.us/3.5.0/lib/vendor/redux-thunk.min.js"></script>
+    <script src="https://source.zoom.us/3.5.0/lib/vendor/lodash.min.js"></script>
+    
+    <!-- Zoom Component SDK -->
+    <script src="https://source.zoom.us/zoom-meeting-embedded-3.5.0.min.js"></script>
+
+    <script>
+        const sdkKey = "<%= sdkKey %>";
+        const signature = "<%= signature %>";
+        const meetingNumber = "<%= meetingNumber %>";
+        const password = "<%= password %>";
+        const userName = "<%= userName %>";
+        const userEmail = "<%= userEmail %>";
+        const zoomRole = <%= role %>;
+
+        const client = ZoomMtgEmbedded.createClient();
+
+        async function startMeeting() {
+            let meetingSDKElement = document.getElementById('meetingSDKElement');
+            
+            try {
+                await client.init({
+                    zoomAppRoot: meetingSDKElement,
+                    language: 'en-US',
+                    patchJsMedia: true,
+                    leaveUrl: window.location.origin + '/dashboard',
+                    debug: true
+                });
+
+                await client.join({
+                    sdkKey: sdkKey,
+                    signature: signature,
+                    meetingNumber: meetingNumber,
+                    password: password,
+                    userName: userName,
+                    userEmail: userEmail,
+                });
+                
+                console.log('🚀 Connected to Classroom');
+            } catch (error) {
+                console.error('❌ Classroom Connection Error:', error);
+                alert('Session Connection Failed. Please try refreshing or check your connection.');
+            }
+        }
+
+        // Auto-start when page loads
+        document.addEventListener('DOMContentLoaded', startMeeting);
+    </script>
+</body>
+
+</html>

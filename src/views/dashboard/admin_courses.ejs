@@ -146,17 +146,44 @@ JAVASCRIPT DEPENDENCIES:
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Live Class Link
-                                        (Zoom/Meet)</label>
-                                    <div class="relative">
-                                        <div
-                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <i class="fa-solid fa-link text-slate-400"></i>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Zoom Meeting Details</label>
+                                    <div class="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Setup</span>
+                                            <button type="button" onclick="showAddLinkHelper()" 
+                                                class="text-[10px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
+                                                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-fill from Link
+                                            </button>
                                         </div>
-                                        <input type="url" name="liveLink" placeholder="https://zoom.us/j/..."
-                                            class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+
+                                        <div id="add-link-helper-container" class="hidden mb-3 animate-fade-in">
+                                            <input type="text" id="add-zoom-link-helper" 
+                                                placeholder="Paste Zoom link here..."
+                                                oninput="autoFillAddZoomDetails(this.value)"
+                                                class="w-full px-3 py-2 text-xs rounded-lg border-2 border-dashed border-blue-200 focus:border-blue-400 outline-none bg-blue-50/50">
+                                        </div>
+
+                                        <div class="grid grid-cols-1 gap-3">
+                                            <div class="relative">
+                                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <i class="fa-solid fa-hashtag text-slate-400 text-xs"></i>
+                                                </div>
+                                                <input type="text" name="zoomMeetingId" id="add-zoomMeetingId" placeholder="Meeting ID"
+                                                    class="w-full pl-8 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                                            </div>
+                                            <div class="relative group">
+                                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <i class="fa-solid fa-key text-slate-400 text-xs"></i>
+                                                </div>
+                                                <input type="text" name="zoomPassword" id="add-zoomPassword" placeholder="Passcode (Numeric)"
+                                                    class="w-full pl-8 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                                <div id="add-pwd-warning" class="hidden absolute left-0 -bottom-5 w-full text-[9px] font-bold text-orange-500 animate-pulse px-1">
+                                                    ⚠️ Link Hash detected! Use numeric passcode.
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <p class="text-xs text-slate-400 mt-1">Leave empty if not applicable</p>
+                                    <p class="text-[10px] text-slate-400 mt-2 italic px-1">Tip: Use the Magic Auto-fill to save time!</p>
                                 </div>
 
                                 <div>
@@ -472,13 +499,42 @@ JAVASCRIPT DEPENDENCIES:
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Live Class Link</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fa-solid fa-link text-slate-400"></i>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Zoom Meeting Details</label>
+                        <div class="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Setup</span>
+                                <button type="button" onclick="showEditLinkHelper()" 
+                                    class="text-[10px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-fill from Link
+                                </button>
                             </div>
-                            <input type="url" name="liveLink" id="edit-liveLink" placeholder="https://zoom.us/j/..."
-                                class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+
+                            <div id="edit-link-helper-container" class="hidden mb-3 animate-fade-in">
+                                <input type="text" id="edit-zoom-link-helper" 
+                                    placeholder="Paste Zoom link here..."
+                                    oninput="autoFillEditZoomDetails(this.value)"
+                                    class="w-full px-3 py-2 text-xs rounded-lg border-2 border-dashed border-blue-200 focus:border-blue-400 outline-none bg-blue-50/50">
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-3">
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fa-solid fa-hashtag text-slate-400 text-xs"></i>
+                                    </div>
+                                    <input type="text" name="zoomMeetingId" id="edit-zoomMeetingId" placeholder="Meeting ID"
+                                        class="w-full pl-8 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                                <div class="relative group">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fa-solid fa-key text-slate-400 text-xs"></i>
+                                    </div>
+                                    <input type="text" name="zoomPassword" id="edit-zoomPassword" placeholder="Passcode (Numeric)"
+                                        class="w-full pl-8 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                    <div id="edit-pwd-warning" class="hidden absolute left-0 -bottom-5 w-full text-[9px] font-bold text-orange-500 animate-pulse px-1">
+                                        ⚠️ Link Hash detected! Use numeric passcode.
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -667,7 +723,69 @@ JAVASCRIPT DEPENDENCIES:
     </div>
 
     <script src="/javascripts/main.js" defer></script>
-        <script src="/javascripts/admin.js" defer></script>
+    <script src="/javascripts/admin.js" defer></script>
+
+    <script>
+        function showAddLinkHelper() {
+            const container = document.getElementById('add-link-helper-container');
+            container.classList.toggle('hidden');
+            if (!container.classList.contains('hidden')) {
+                document.getElementById('add-zoom-link-helper').focus();
+            }
+        }
+
+        function showEditLinkHelper() {
+            const container = document.getElementById('edit-link-helper-container');
+            container.classList.toggle('hidden');
+            if (!container.classList.contains('hidden')) {
+                document.getElementById('edit-zoom-link-helper').focus();
+            }
+        }
+
+        function autoFillAddZoomDetails(url) {
+            if (!url) return;
+            const idMatch = url.match(/\/j\/(\d+)/);
+            if (idMatch && idMatch[1]) document.getElementById('add-zoomMeetingId').value = idMatch[1];
+            
+            const pwdMatch = url.match(/pwd=([^&]+)/);
+            const pwdInput = document.getElementById('add-zoomPassword');
+            const warning = document.getElementById('add-pwd-warning');
+            
+            if (pwdMatch && pwdMatch[1]) {
+                pwdInput.value = pwdMatch[1];
+                // Show warning if it looks like a long hash
+                if (pwdMatch[1].length > 15) {
+                    warning.classList.remove('hidden');
+                    pwdInput.classList.add('border-orange-300', 'bg-orange-50/30');
+                } else {
+                    warning.classList.add('hidden');
+                    pwdInput.classList.remove('border-orange-300', 'bg-orange-50/30');
+                }
+            }
+        }
+
+        function autoFillEditZoomDetails(url) {
+            if (!url) return;
+            const idMatch = url.match(/\/j\/(\d+)/);
+            if (idMatch && idMatch[1]) document.getElementById('edit-zoomMeetingId').value = idMatch[1];
+            
+            const pwdMatch = url.match(/pwd=([^&]+)/);
+            const pwdInput = document.getElementById('edit-zoomPassword');
+            const warning = document.getElementById('edit-pwd-warning');
+            
+            if (pwdMatch && pwdMatch[1]) {
+                pwdInput.value = pwdMatch[1];
+                // Show warning if it looks like a long hash
+                if (pwdMatch[1].length > 15) {
+                    warning.classList.remove('hidden');
+                    pwdInput.classList.add('border-orange-300', 'bg-orange-50/30');
+                } else {
+                    warning.classList.add('hidden');
+                    pwdInput.classList.remove('border-orange-300', 'bg-orange-50/30');
+                }
+            }
+        }
+    </script>
 </body>
 
 </html>

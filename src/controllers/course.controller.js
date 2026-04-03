@@ -127,7 +127,7 @@ function validateCourseDates(startDate, endDate, enrollmentDeadline) {
  * @returns {string|null} - Error message or null if valid
  */
 function validateCourseInput(data) {
-    const { title, description, price, originalPrice, colorTheme, liveLink, demoVideoUrl, startDate, endDate, enrollmentDeadline, icon, badge, badgeColor } = data;
+    const { title, description, price, originalPrice, colorTheme, zoomMeetingId, zoomPassword, demoVideoUrl, startDate, endDate, enrollmentDeadline, icon, badge, badgeColor } = data;
 
 
     // Title validation
@@ -162,13 +162,15 @@ function validateCourseInput(data) {
         return 'Icon must be a single emoji';
     }
 
-    // URL validations
-    if (!isValidUrl(liveLink)) {
-        return 'Invalid live link URL';
+    // Zoom Meeting ID validation (numeric string)
+    if (zoomMeetingId && !/^\d+$/.test(zoomMeetingId.replace(/\s/g, ''))) {
+        return 'Invalid Zoom Meeting ID (should be numbers only)';
     }
+
     if (!isValidUrl(demoVideoUrl)) {
         return 'Invalid demo video URL';
     }
+
 
     // Date logic validation
     const start = startDate ? new Date(startDate) : null;
@@ -306,7 +308,8 @@ exports.addCourse = async (req, res) => {
         return res.status(403).json({ success: false, message: 'Admin access only' });
     }
 
-    const { title, description, price, originalPrice, icon, colorTheme, liveLink, demoVideoUrl, startDate, endDate, enrollmentDeadline } = req.body;
+    const { title, description, price, originalPrice, icon, colorTheme, zoomMeetingId, zoomPassword, demoVideoUrl, startDate, endDate, enrollmentDeadline } = req.body;
+
 
     // 2. Comprehensive validation
     const validationError = validateCourseInput(req.body);
@@ -334,8 +337,10 @@ exports.addCourse = async (req, res) => {
                     badge: badge || "New",                                // Custom badge selection
                     badgeColor: badgeColor || "green",                    // Custom badge color
                     demoVideoUrl: demoVideoUrl || "",
-                    liveLink: liveLink || "",
+                    zoomMeetingId: zoomMeetingId || "",
+                    zoomPassword: zoomPassword || "",
                     startDate: startDate ? new Date(startDate) : null,
+
                     endDate: endDate ? new Date(endDate) : null,
                     enrollmentDeadline: enrollmentDeadline ? new Date(enrollmentDeadline) : null
                 }
@@ -456,7 +461,8 @@ exports.editCourse = async (req, res) => {
     }
 
     const courseId = req.params.id;
-    const { title, description, price, originalPrice, icon, colorTheme, liveLink, demoVideoUrl, startDate, endDate, enrollmentDeadline, badge, badgeColor } = req.body;
+    const { title, description, price, originalPrice, icon, colorTheme, zoomMeetingId, zoomPassword, demoVideoUrl, startDate, endDate, enrollmentDeadline, badge, badgeColor } = req.body;
+
 
     // 2. Comprehensive validation [, 4.2, 4.5, 4.6, 4.7, 4.16]
     const validationError = validateCourseInput(req.body);
@@ -474,8 +480,10 @@ exports.editCourse = async (req, res) => {
         price: parsedPrice,
         originalPrice: parsedOriginalPrice,
         demoVideoUrl: demoVideoUrl || "",
-        liveLink: liveLink || "",
+        zoomMeetingId: zoomMeetingId || "",
+        zoomPassword: zoomPassword || "",
         startDate: startDate ? new Date(startDate) : null,
+
         endDate: endDate ? new Date(endDate) : null,
         enrollmentDeadline: enrollmentDeadline ? new Date(enrollmentDeadline) : null,
         badge: badge || null, // Update badge

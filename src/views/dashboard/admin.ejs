@@ -177,16 +177,16 @@
                                                                 null
                                                                 };
                                                                 const isLive = session.isLive;
-                                                                const hasLink = course.liveLink &&
-                                                                course.liveLink.trim().length >
+                                                                const hasLink = course.zoomMeetingId &&
+                                                                course.zoomMeetingId.trim().length >
                                                                 0;
                                                                 %>
                                                                 <div id="course-meta-<%= course.id %>"
                                                                     onclick="if (!event.target.closest('button')) window.location.href='/admin/courses/<%= course.id %>/videos'"
-                                                                    class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center justify-between gap-6 cursor-pointer group/card">
+                                                                    class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col xl:flex-row items-center justify-between gap-6 cursor-pointer group/card">
                                                                     <div class="flex items-center gap-4 flex-1">
                                                                         <div
-                                                                            class="hidden sm:flex w-12 h-12 rounded-lg bg-<%= course.iconBg %> text-<%= course.iconColor %> items-center justify-center text-2xl shrink-0 group-hover/card:scale-110 transition-transform">
+                                                                            class="flex w-12 h-12 rounded-lg bg-<%= course.iconBg %> text-<%= course.iconColor %> items-center justify-center text-2xl shrink-0 group-hover/card:scale-110 transition-transform">
                                                                             <%= course.icon %>
                                                                         </div>
                                                                         <div>
@@ -217,39 +217,23 @@
                                                                             </div>
                                                                         </div>
                                                                     </div>
+                                                                    <div class="flex flex-wrap gap-2 shrink-0 w-full xl:w-auto xl:justify-end">
 
-                                                                    <div class="flex gap-2">
-
-
-                                                                        <button data-course-id="<%= course.id %>" <% if
-                                                                            (!hasLink) { %>
-                                                                            disabled title="Add a live link first" <% }
-                                                                                %>
-                                                                                class="toggle-live-btn relative px-6
-                                                                                py-2.5
-                                                                                rounded-full
-                                                                                font-bold text-sm transition-all
-                                                                                focus:outline-none
-                                                                                shrink-0
-                                                                                w-32
-                                                                                <%= isLive
-                                                                                    ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                                                                                    : (hasLink
-                                                                                    ? 'bg-brand-navy text-white hover:bg-brand-navy/90 border border-white/10 shadow-lg shadow-brand-navy/20'
-                                                                                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                                                                                    ) %>
-                                                                                    ">
-
-                                                                                    <% if (isLive) { %>
-                                                                                        <i
-                                                                                            class="fa-solid fa-stop mr-2"></i>End
-                                                                                        Live
-                                                                                        <% } else { %>
-                                                                                            <i
-                                                                                                class="fa-solid fa-satellite-dish mr-2"></i>Go
-                                                                                            Live
-                                                                                            <% } %>
+                                                                        <button data-course-id="<%= course.id %>" <% if (!hasLink) { %> disabled title="Add Zoom details first" <% } %>
+                                                                                class="toggle-live-btn relative px-4 py-2 rounded-full font-bold text-sm transition-all focus:outline-none shrink-0 flex-1 xl:flex-none <%= isLive ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : (hasLink ? 'bg-brand-navy text-white hover:bg-brand-navy/90 border border-white/10 shadow-lg shadow-brand-navy/20' : 'bg-slate-300 text-slate-500 cursor-not-allowed') %>">
+                                                                            <% if (isLive) { %>
+                                                                                <i class="fa-solid fa-stop mr-1.5"></i>End Live
+                                                                            <% } else { %>
+                                                                                <i class="fa-solid fa-satellite-dish mr-1.5"></i>Go Live
+                                                                            <% } %>
                                                                         </button>
+                                                                        <% if (hasLink) { %>
+                                                                        <a href="/live-meeting?id=<%= course.zoomMeetingId %>&pwd=<%= course.zoomPassword %>" 
+                                                                           class="px-4 py-2 rounded-full bg-brand-gold text-brand-navy font-bold text-xs text-center hover:bg-brand-gold/90 transition-all shadow-lg shadow-brand-gold/20 flex items-center justify-center gap-1 shrink-0 flex-1 xl:flex-none">
+                                                                            <i class="fa-solid fa-desktop"></i> Launch Console
+                                                                        </a>
+                                                                        <% } %>
+
                                                                     </div>
                                                                 </div>
                                                                 <% }); %>
@@ -288,10 +272,10 @@
                                                                 }
                                                                 %>
                                                                 <div onclick="if (!event.target.closest('button')) window.location.href='/admin/courses/<%= course.id %>/videos'"
-                                                                    class="bg-slate-50 rounded-xl p-6 border border-slate-200 transition-all flex flex-col sm:flex-row items-center justify-between gap-6 opacity-90 hover:opacity-100 cursor-pointer group/card">
+                                                                    class="bg-slate-50 rounded-xl p-6 border border-slate-200 transition-all flex flex-col xl:flex-row items-center justify-between gap-6 opacity-90 hover:opacity-100 cursor-pointer group/card">
                                                                     <div class="flex items-center gap-4 flex-1">
                                                                         <div
-                                                                            class="hidden sm:flex w-12 h-12 rounded-lg bg-white border border-slate-100 text-slate-400 items-center justify-center text-2xl shrink-0 grayscale opacity-70 group-hover/card:scale-110 group-hover/card:grayscale-0 group-hover/card:opacity-100 transition-all">
+                                                                            class="flex w-12 h-12 rounded-lg bg-white border border-slate-100 text-slate-400 items-center justify-center text-2xl shrink-0 grayscale opacity-70 group-hover/card:scale-110 group-hover/card:grayscale-0 group-hover/card:opacity-100 transition-all">
                                                                             <%= course.icon %>
                                                                         </div>
                                                                         <div>
@@ -316,10 +300,10 @@
                                                                         </div>
                                                                     </div>
 
-                                                                    <div class="flex gap-2">
+                                                                    <div class="flex gap-2 w-full xl:w-auto xl:justify-end">
 
                                                                         <button disabled
-                                                                            class="px-6 py-2.5 rounded-full font-bold text-sm bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shrink-0 w-32 flex items-center justify-center">
+                                                                            class="px-6 py-2.5 rounded-full font-bold text-sm bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shrink-0 flex-1 xl:flex-none flex items-center justify-center">
                                                                             <i class="fa-solid fa-clock mr-2"></i>Wait
                                                                         </button>
                                                                     </div>
@@ -474,18 +458,43 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Live Class
-                                        Link</label>
-                                    <div class="relative">
-                                        <div
-                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <i class="fa-solid fa-link text-slate-400"></i>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-sm font-semibold text-slate-700">Zoom Meeting Details</label>
+                                        <button type="button" onclick="showLinkHelper()" 
+                                                class="text-[10px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
+                                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-fill from Link
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Hidden Helper Input -->
+                                    <div id="link-helper-container" class="hidden mb-3">
+                                        <input type="text" id="zoom-link-helper" 
+                                               placeholder="Paste full Zoom URL here..."
+                                               oninput="autoFillZoomDetails(this.value)"
+                                               class="w-full px-4 py-1.5 text-xs rounded-lg border border-blue-200 bg-blue-50 focus:ring-1 focus:ring-blue-500 outline-none transition-all italic">
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <i class="fa-solid fa-hashtag text-slate-400"></i>
+                                            </div>
+                                            <input type="text" name="zoomMeetingId" id="edit-zoomMeetingId"
+                                                placeholder="Meeting ID"
+                                                class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                                         </div>
-                                        <input type="url" name="liveLink" id="edit-liveLink"
-                                            placeholder="https://zoom.us/j/..."
-                                            class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <i class="fa-solid fa-key text-slate-400"></i>
+                                            </div>
+                                            <input type="text" name="zoomPassword" id="edit-zoomPassword"
+                                                placeholder="Password"
+                                                class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                        </div>
                                     </div>
                                 </div>
+
+
 
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
@@ -693,6 +702,41 @@
                     data-courses='<%- JSON.stringify(safeCourses) %>'></div>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
                 <script src="/javascripts/admin.js"></script>
+    <!-- Custom Scripts for Zoom Management -->
+    <script>
+        function showLinkHelper() {
+            const container = document.getElementById('link-helper-container');
+            container.classList.toggle('hidden');
+            if (!container.classList.contains('hidden')) {
+                document.getElementById('zoom-link-helper').focus();
+            }
+        }
+
+        function autoFillZoomDetails(url) {
+            if (!url) return;
+            
+            // Extract ID: looks for /j/ followed by numbers
+            const idMatch = url.match(/\/j\/(\d+)/);
+            if (idMatch && idMatch[1]) {
+                document.getElementById('edit-zoomMeetingId').value = idMatch[1];
+            }
+
+            // Extract Password: looks for pwd= followed by non-ampersand chars
+            const pwdMatch = url.match(/pwd=([^&]+)/);
+            if (pwdMatch && pwdMatch[1]) {
+                document.getElementById('edit-zoomPassword').value = pwdMatch[1];
+            }
+
+            // Optional: Auto-hide helper and clear it if both found
+            if (idMatch && pwdMatch) {
+                setTimeout(() => {
+                    document.getElementById('link-helper-container').classList.add('hidden');
+                    document.getElementById('zoom-link-helper').value = '';
+                }, 800);
+            }
+        }
+    </script>
 </body>
+
 
 </html>

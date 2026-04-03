@@ -14,7 +14,9 @@ const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
 const os = require('os');
-const diskusage = require('diskusage');
+let diskusage = null;
+try { diskusage = require('diskusage'); } catch (e) { console.warn('[Upload] diskusage not available, disk checks skipped'); }
+
 const lockfile = require('proper-lockfile');
 
 /* -------------------------------------------------------------------------- */
@@ -112,12 +114,14 @@ async function compressImage(file, destinationDir, preset = 'chat') {
         }
 
         // 3. Disk space validation
-        try {
-            const usage = await diskusage.check(destinationDir);
-            if (usage.available < MIN_DISK_SPACE) throw new Error('Insufficient disk space');
-        } catch (e) {
-            if (e.message !== 'Insufficient disk space') console.warn('Disk check failed:', e.message);
-            else throw e;
+        if (diskusage) {
+            try {
+                const usage = await diskusage.check(destinationDir);
+                if (usage.available < MIN_DISK_SPACE) throw new Error('Insufficient disk space');
+            } catch (e) {
+                if (e.message !== 'Insufficient disk space') console.warn('Disk check failed:', e.message);
+                else throw e;
+            }
         }
 
         // 4. Sanitize and Resolve Paths

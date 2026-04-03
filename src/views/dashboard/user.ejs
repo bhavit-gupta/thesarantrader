@@ -167,12 +167,15 @@ STYLING:
                                             </h3>
                                             <p class="text-sm text-slate-500 mt-1">Live session is ongoing!</p>
                                         </div>
-                                        <!-- Right: Join Button -->
-                                        <a href="<%= course.liveLink %>" target="_blank"
-                                            class="flex-shrink-0 px-5 py-2.5 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors animate-pulse">
-                                            Join Now
+                                        <!-- Right: Join Button (1-Click) -->
+                                        <a href="/live-meeting?id=<%= course.zoomMeetingId %>&pwd=<%= course.zoomPassword %>" 
+                                           class="join-live-btn flex-shrink-0 px-5 py-2.5 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors animate-pulse shadow-lg shadow-green-500/20">
+                                            <i class="fa-solid fa-video mr-2"></i> Join Live Session
                                         </a>
                                     </div>
+
+
+
                                     <% } }); %>
                                         <% } else { %>
                                             <div
@@ -357,11 +360,22 @@ STYLING:
 
                                                             <% if (liveSessions[course.id] &&
                                                                 liveSessions[course.id].isLive) { %>
+                                                                <% 
+                                                                    let cmId = '', cmPwd = '';
+                                                                    if (course.liveLink) {
+                                                                        const cmatchId = course.liveLink.match(/\/j\/(\d+)/);
+                                                                        if (cmatchId) cmId = cmatchId[1];
+                                                                        const cmatchPwd = course.liveLink.match(/pwd=([^&]+)/);
+                                                                        if (cmatchPwd) cmPwd = cmatchPwd[1];
+                                                                    }
+                                                                %>
                                                                 <a onclick="event.stopPropagation()"
-                                                                    href="<%= course.liveLink %>" target="_blank"
-                                                                    class="block w-full sm:w-fit sm:ml-auto px-6 text-center py-2 rounded-lg bg-green-600 text-white font-semibold text-sm hover:bg-green-700 transition-colors mb-2 animate-pulse">
-                                                                    Join Live Session Now
+                                                                    href="/live-meeting?id=<%= cmId %>&pwd=<%= cmPwd %>"
+                                                                    class="block w-full sm:w-fit sm:ml-auto px-6 text-center py-2 rounded-lg bg-green-600 text-white font-semibold text-sm hover:bg-green-700 transition-colors mb-2 animate-pulse shadow-lg shadow-green-500/20">
+                                                                    <i class="fa-solid fa-video mr-1"></i> Join Live Session Now
                                                                 </a>
+
+
                                                                 <% } else { %>
                                                                     <button disabled
                                                                         class="block w-full text-center py-2 rounded-lg bg-slate-100 text-slate-400 font-semibold text-sm cursor-not-allowed mb-2">

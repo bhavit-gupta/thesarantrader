@@ -164,18 +164,25 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             // Still need unsafe-inline for existing templates, but document for future refactoring
-            scriptSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "blob:", "cdnjs.cloudflare.com", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
             // Note: Keep unsafe-inline for now due to existing inline handlers
             // TODO: Refactor templates to remove inline handlers
             scriptSrcAttr: ["'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com"],
-            fontSrc: ["'self'", "cdnjs.cloudflare.com", "fonts.gstatic.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
+            fontSrc: ["'self'", "data:", "cdnjs.cloudflare.com", "fonts.gstatic.com", "https://source.zoom.us", "https://*.cloudfront.net"],
             // Restricted image sources - add specific CDNs as needed
-            imgSrc: ["'self'", "data:", "https://i.imgur.com", "https://res.cloudinary.com"],
-            frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com", "https://www.youtube-nocookie.com"],
+            imgSrc: ["'self'", "data:", "https://i.imgur.com", "https://res.cloudinary.com", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
+            connectSrc: ["'self'", "blob:", "*.zoom.us", "zoom.us", "https://source.zoom.us", "wss://*.zoom.us", "https://*.cloudfront.net"],
+            frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com", "https://www.youtube-nocookie.com", "*.zoom.us", "zoom.us"],
+            workerSrc: ["'self'", "blob:", "https://source.zoom.us", "https://*.cloudfront.net"],
+            childSrc: ["'self'", "blob:", "https://source.zoom.us", "https://*.cloudfront.net"],
+
+
+
         },
     },
-    crossOriginEmbedderPolicy: false, // Allow YouTube embeds
+    crossOriginEmbedderPolicy: false, // Allow YouTube and Zoom embeds
+
     // HSTS - Force HTTPS
     hsts: {
         maxAge: 31536000,        // 1 year

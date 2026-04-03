@@ -30,6 +30,8 @@ const { withTimeout } = require('../utils/prisma');
 const { getUserPurchasedCourses } = require('../utils/helpers');
 const csrfProtection = require('../middleware/csrfProtection');
 const { authLimiter } = require('../middleware/rateLimiter');
+const { generateSignature, getZAKToken } = require('../utils/zoom');
+
 
 /* -------------------------------------------------------------------------- */
 /*                              CONFIGURATION                                */
@@ -343,6 +345,66 @@ router.get('/dashboard',
         }
     }
 );
+
+/**
+ * Live Meeting Page - Renders the Zoom SDK interface.
+ * 
+ * @route GET /live-meeting
+ * @access Private (authenticated users)
+ */
+router.get('/live-meeting',
+    authLimiter,
+    async (req, res) => {
+        if (!isValidSession(req.session)) {
+            return res.redirect(URLS.LOGIN);
+        }
+
+        try {
+            // Get meeting details from query params
+            const meetingNumber = req.query.id || '';
+            const password = req.query.pwd || '';
+            
+            // Default to Participant (Role 0) for the browser console to avoid 
+            // errorCode: 1 conflicts with the Zoom Desktop App.
+            // Identify Role: Admin = 1 (Host), Student = 0 (Attendee)
+            const isAdmin = req.session.user.role === 'ADMIN';
+            const role = isAdmin ? 1 : 0;
+            
+            const signature = generateSignature(meetingNumber, role);
+
+            // Fetch ZAK token for admin hosts (required since March 2026)
+            // Pass the admin's Zoom email so the ZAK token is for the correct host user.
+            let zakToken = '';
+            if (isAdmin) {
+                const hostEmail = req.session.user.email || process.env.ZOOM_HOST_EMAIL || '';
+                zakToken = await getZAKToken(hostEmail);
+                if (zakToken) {
+                    console.log('[Live Meeting] ZAK token fetched successfully for host:', hostEmail);
+                } else {
+                    console.warn('[Live Meeting] ZAK token unavailable, host join may fail');
+                }
+            }
+
+            // Render integrated dashboard view
+            const viewPath = isAdmin ? 'dashboard/admin_live_studio' : 'dashboard/user_live_room';
+
+            res.render(viewPath, {
+                sdkKey: process.env.ZOOM_SDK_KEY,
+                signature: signature,
+                meetingNumber: meetingNumber,
+                password: password,
+                userName: req.session.user.name || 'Trader',
+                userEmail: req.session.user.email || '',
+                role: role,
+                zakToken: zakToken
+            });
+        } catch (error) {
+            console.error('[Live Meeting] Error:', error.message);
+            res.status(500).send('Error initializing meeting session.');
+        }
+    }
+);
+
 
 /* -------------------------------------------------------------------------- */
 /*                           ADMIN DASHBOARD                                 */

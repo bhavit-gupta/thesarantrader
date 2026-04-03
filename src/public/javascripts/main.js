@@ -199,7 +199,7 @@
                 document.getElementById('sidebar-toggle'),
                 document.getElementById('sidebar-toggle-mobile')
             ].filter(btn => btn !== null);
-            
+
             const closeBtn = document.getElementById('close-sidebar-btn');
             const overlay = document.getElementById('sidebar-overlay');
 
@@ -212,16 +212,16 @@
             const toggleSidebar = () => {
                 const isActive = sidebar.classList.toggle('active');
                 if (overlay) overlay.classList.toggle('active');
-                
+
                 // Toggle body scroll for mobile UX
                 document.body.classList.toggle('overflow-hidden', isActive);
-                
+
                 updateAria(isActive);
             };
 
             toggleBtns.forEach(btn => btn.addEventListener('click', toggleSidebar));
             if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
-            
+
             if (overlay) {
                 overlay.addEventListener('click', () => {
                     sidebar.classList.remove('active');

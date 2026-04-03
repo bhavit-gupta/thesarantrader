@@ -88,12 +88,16 @@ function updateLiveStatus(courseId, isLive, startTime = null) {
     // 1. Update Buttons
     const btn = card.querySelector('.toggle-live-btn');
     if (btn) {
+        // ESSENTIAL: Re-enable the button after the spinner is done!
+        btn.disabled = false;
+
         if (isLive) {
-            btn.className = 'toggle-live-btn relative px-6 py-2.5 rounded-full font-bold text-sm transition-all focus:outline-none shrink-0 w-32 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200';
-            btn.innerHTML = '<i class="fa-solid fa-stop mr-2"></i>End Live';
+            btn.className = 'toggle-live-btn relative px-4 py-2 rounded-full font-bold text-sm transition-all focus:outline-none shrink-0 flex-1 xl:flex-none bg-red-50 text-red-600 hover:bg-red-100 border border-red-200';
+            btn.innerHTML = '<i class="fa-solid fa-stop mr-1.5"></i>End Live';
         } else {
-            btn.className = 'toggle-live-btn relative px-6 py-2.5 rounded-full font-bold text-sm transition-all focus:outline-none shrink-0 w-32 bg-slate-800 text-white hover:bg-slate-900 border border-slate-200 shadow-lg shadow-slate-500/20';
-            btn.innerHTML = '<i class="fa-solid fa-satellite-dish mr-2"></i>Go Live';
+            // Note: We check if it had a link via data attributes or just default back
+            btn.className = 'toggle-live-btn relative px-4 py-2 rounded-full font-bold text-sm transition-all focus:outline-none shrink-0 flex-1 xl:flex-none bg-brand-navy text-white hover:bg-brand-navy/90 border border-white/10 shadow-lg shadow-brand-navy/20';
+            btn.innerHTML = '<i class="fa-solid fa-satellite-dish mr-1.5"></i>Go Live';
         }
     }
 
@@ -444,10 +448,12 @@ window.openEditModal = function (course) {
 
         setVal('edit-title', course.title);
         setVal('edit-description', course.description);
-        setVal('edit-liveLink', course.liveLink);
+        setVal('edit-zoomMeetingId', course.zoomMeetingId);
+        setVal('edit-zoomPassword', course.zoomPassword);
         setVal('edit-demoVideoUrl', course.demoVideoUrl);
         setVal('edit-price', course.price);
         setVal('edit-originalPrice', course.originalPrice);
+
 
         const formatDate = (dateString) => {
             if (!dateString) return '';

@@ -205,8 +205,10 @@ model User {
  * - iconBg: Background color for icon container
  * - iconColor: Icon text color
  * - demoVideoUrl: YouTube link for course preview video
- * - liveLink: Live session URL (classroom/meeting link)
+ * - zoomMeetingId: Zoom Meeting ID (numeric string)
+ * - zoomPassword: Zoom Meeting Password/Passcode
  * - isLive: Boolean flag - is the course currently broadcasting live?
+
  * - lastLiveStartedAt: Timestamp when last live session started
  * - startDate: When course content becomes available
  * - endDate: When course access expires
@@ -234,7 +236,8 @@ model Course {
   iconBg             String? // Tailwind bg color class
   iconColor          String? // Tailwind text color class
   demoVideoUrl       String? // YouTube link for preview
-  liveLink           String? // Zoom/Meet/classroom link
+  zoomMeetingId      String? // Zoom Meeting ID
+  zoomPassword       String? // Zoom Meeting Password
   isLive             Boolean   @default(false) // Currently broadcasting?
   lastLiveStartedAt  DateTime? // When did current live session start?
   startDate          DateTime? // Course availability start

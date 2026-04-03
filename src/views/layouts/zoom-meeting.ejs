@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Meeting - TheSaranTrader</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="apple-touch-icon" href="/images/favicon.jpg">
+    
+    <!-- Zoom Meeting SDK CSS -->
+    <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.5.0/css/bootstrap.css" />
+    <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.5.0/css/react-select.css" />
+    
+    <!-- Custom Styles for Zoom Overlay -->
+    <style>
+        body {
+            background-color: #0f172a;
+            color: white;
+        }
+        #zmmtg-root {
+            display: none; /* Hidden until Zoom loads */
+        }
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-container">
+        <div class="spinner"></div>
+        <h2>Initializing Live Session...</h2>
+        <p>Connecting you to the secure trading room.</p>
+    </div>
+
+    <!-- Zoom Root Container -->
+    <div id="zmmtg-root"></div>
+
+    <!-- Zoom SDK Dependencies -->
+    <script src="https://source.zoom.us/3.1.0/lib/vendor/react.min.js"></script>
+    <script src="https://source.zoom.us/3.1.0/lib/vendor/react-dom.min.js"></script>
+    <script src="https://source.zoom.us/3.1.0/lib/vendor/redux.min.js"></script>
+    <script src="https://source.zoom.us/3.1.0/lib/vendor/redux-thunk.min.js"></script>
+    <script src="https://source.zoom.us/3.1.0/lib/vendor/lodash.min.js"></script>
+    
+    <!-- Zoom SDK -->
+    <script src="https://source.zoom.us/zoom-meeting-3.1.0.min.js"></script>
+
+    <script>
+        // Zoom SDK Configuration
+        const sdkKey = "<%= sdkKey %>";
+        const signature = "<%= signature %>";
+        const meetingNumber = "<%= meetingNumber %>";
+        const password = "<%= password %>";
+        const userName = "<%= userName %>";
+        const userEmail = "<%= userEmail %>";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Setup Zoom Library with absolute paths to prevent hangs
+            ZoomMtg.setZoomJSLib('https://source.zoom.us/3.1.0/lib', '/av');
+            
+            // Preload assets
+            ZoomMtg.preLoadWasm();
+            ZoomMtg.prepareWebSDK();
+            
+            // Initialize SDK
+            ZoomMtg.init({
+                leaveUrl: window.location.origin + '/dashboard',
+                patchJsMedia: true,
+                success: (success) => {
+                    console.log('✅ Zoom SDK Initialized');
+                    
+                    // Show Root and Hide Loading once initialized
+                    document.getElementById('zmmtg-root').style.display = 'block';
+                    document.getElementById('loading-screen').style.display = 'none';
+
+                    ZoomMtg.join({
+                        meetingNumber: meetingNumber,
+                        signature: signature,
+                        sdkKey: sdkKey,
+                        userName: userName,
+                        userEmail: userEmail,
+                        passWord: password,
+                        tk: '', 
+                        success: (success) => {
+                            console.log('🚀 Successfully joined the meeting');
+                        },
+                        error: (error) => {
+                            console.error('❌ Error joining meeting:', error);
+                            let msg = error.errorMessage || 'Check meeting ID/Pwd';
+                            if (error.errorCode === 1) {
+                                msg = 'Fail to join (Code 1). If you started this in the Zoom App, the browser must join as a Monitor. Try refreshing or check your role.';
+                            }
+                            alert('Meeting Join Failed: ' + msg);
+                            window.location.href = '/dashboard';
+                        }
+                    });
+                },
+                error: (error) => {
+                    console.error('❌ Error initializing Zoom SDK:', error);
+                    document.getElementById('loading-screen').innerHTML = `
+                        <h2 style="color: #ef4444">Connection Failed</h2>
+                        <p>${error.errorMessage || 'Please ensure you are using a modern browser (Chrome/Edge).'}</p>
+                        <a href="/dashboard" style="color: #2563eb; text-decoration: underline; margin-top: 20px; display: block;">Return to Dashboard</a>
+                    `;
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
