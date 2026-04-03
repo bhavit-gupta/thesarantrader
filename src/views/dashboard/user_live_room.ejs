@@ -157,11 +157,15 @@
                     debug: true
                 });
 
+                // Ensure inputs are stripped of spaces/noise for the SDK
+                const cleanMeetingNumber = String(meetingNumber || '').replace(/\s/gi, '');
+                const cleanPassword = String(password || '').replace(/\s/gi, '');
+
                 await client.join({
                     sdkKey: sdkKey,
                     signature: signature,
-                    meetingNumber: meetingNumber,
-                    password: password,
+                    meetingNumber: cleanMeetingNumber,
+                    password: cleanPassword,
                     userName: userName,
                     userEmail: userEmail,
                 });

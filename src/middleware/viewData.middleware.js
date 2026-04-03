@@ -471,7 +471,8 @@ async function getUserPurchaseData(user, req) {
     if (user.purchasedCourseIds && Array.isArray(user.purchasedCourseIds)) {
         purchasedCourseIds = user.purchasedCourseIds;
     } else {
-        purchasedCourseIds = await getUserPurchasedCourses(userId);
+        const idsSet = await getUserPurchasedCourses(userId);
+        purchasedCourseIds = Array.from(idsSet);
         // Update session for next request
         if (req.session && req.session.user) {
             req.session.user.purchasedCourseIds = purchasedCourseIds;

@@ -321,23 +321,15 @@ router.get('/dashboard',
         }
 
         try {
-            const userId = req.session.user.id;
-
-            const [userDb, pendingPurchases, rejectedPurchases] = await Promise.all([
-                prisma.user.findUnique({ where: { id: userId }, select: { purchasedCourseIds: true } }),
-                prisma.purchase.findMany({ where: { userId, status: 'PENDING' } }),
-                prisma.purchase.findMany({ where: { userId, status: 'REJECTED' } })
-            ]);
-
-            const purchasedCourseIds = userDb?.purchasedCourseIds || [];
-            const pendingCourseIds = pendingPurchases.map(p => p.courseId);
-
+            // All necessary data (liveSessions, courses, purchasedCourseIds, etc.)
+            // is already populated in res.locals by the viewData middleware.
             res.render("dashboard/user", {
+                // Pass locals explicitly if needed, though they are available automatically
                 liveSessions: res.locals.liveSessions,
                 courses: res.locals.courses,
-                purchasedCourseIds,
-                pendingCourseIds,
-                rejectedPurchases
+                purchasedCourseIds: res.locals.purchasedCourseIds,
+                pendingCourseIds: res.locals.pendingCourseIds,
+                rejectedPurchases: res.locals.rejectedPurchases
             });
         } catch (error) {
             console.error('[User Dashboard] Error:', error.message);
@@ -360,9 +352,9 @@ router.get('/live-meeting',
         }
 
         try {
-            // Get meeting details from query params
-            const meetingNumber = req.query.id || '';
-            const password = req.query.pwd || '';
+            // Get meeting details from query params and clean them
+            const meetingNumber = (req.query.id || '').replace(/\s/g, '');
+            const password = (req.query.pwd || '').replace(/\s/g, '');
             
             // Default to Participant (Role 0) for the browser console to avoid 
             // errorCode: 1 conflicts with the Zoom Desktop App.
@@ -375,11 +367,13 @@ router.get('/live-meeting',
             // Fetch ZAK token for admin hosts (required since March 2026)
             // Pass the admin's Zoom email so the ZAK token is for the correct host user.
             let zakToken = '';
+            let hostEmailForZAK = req.session.user.email || '';
+            
             if (isAdmin) {
-                const hostEmail = req.session.user.email || process.env.ZOOM_HOST_EMAIL || '';
-                zakToken = await getZAKToken(hostEmail);
+                hostEmailForZAK = process.env.ZOOM_HOST_EMAIL || req.session.user.email || '';
+                zakToken = await getZAKToken(hostEmailForZAK);
                 if (zakToken) {
-                    console.log('[Live Meeting] ZAK token fetched successfully for host:', hostEmail);
+                    console.log('[Live Meeting] ZAK token fetched successfully for host:', hostEmailForZAK);
                 } else {
                     console.warn('[Live Meeting] ZAK token unavailable, host join may fail');
                 }
@@ -393,8 +387,9 @@ router.get('/live-meeting',
                 signature: signature,
                 meetingNumber: meetingNumber,
                 password: password,
-                userName: req.session.user.name || 'Trader',
-                userEmail: req.session.user.email || '',
+                userName: req.session.user.name || 'Trader Admin',
+                // CRITICAL FIX: The userEmail provided to the SDK MUST match the owner of the ZAK token
+                userEmail: isAdmin ? hostEmailForZAK : (req.session.user.email || ''),
                 role: role,
                 zakToken: zakToken
             });

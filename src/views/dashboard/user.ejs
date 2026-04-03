@@ -352,36 +352,31 @@ STYLING:
                                                                         class="font-bold text-slate-800 line-clamp-1 group-hover/card:text-blue-600 transition-colors">
                                                                         <%= course.title %>
                                                                     </h3>
-                                                                    <span
-                                                                        class="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">In
-                                                                        Progress</span>
+                                                                    <% if (liveSessions[course.id] && liveSessions[course.id].isLive) { %>
+                                                                        <span class="text-xs font-semibold text-white bg-green-600 px-2 py-0.5 rounded-full animate-pulse flex items-center gap-1">
+                                                                            <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                                                                            Live Now
+                                                                        </span>
+                                                                    <% } else { %>
+                                                                        <span class="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                                                                            In Progress
+                                                                        </span>
+                                                                    <% } %>
                                                                 </div>
                                                             </div>
 
-                                                            <% if (liveSessions[course.id] &&
-                                                                liveSessions[course.id].isLive) { %>
-                                                                <% 
-                                                                    let cmId = '', cmPwd = '';
-                                                                    if (course.liveLink) {
-                                                                        const cmatchId = course.liveLink.match(/\/j\/(\d+)/);
-                                                                        if (cmatchId) cmId = cmatchId[1];
-                                                                        const cmatchPwd = course.liveLink.match(/pwd=([^&]+)/);
-                                                                        if (cmatchPwd) cmPwd = cmatchPwd[1];
-                                                                    }
-                                                                %>
+                                                            <% if (liveSessions[course.id] && liveSessions[course.id].isLive) { %>
                                                                 <a onclick="event.stopPropagation()"
-                                                                    href="/live-meeting?id=<%= cmId %>&pwd=<%= cmPwd %>"
+                                                                    href="/live-meeting?id=<%= course.zoomMeetingId %>&pwd=<%= course.zoomPassword %>"
                                                                     class="block w-full sm:w-fit sm:ml-auto px-6 text-center py-2 rounded-lg bg-green-600 text-white font-semibold text-sm hover:bg-green-700 transition-colors mb-2 animate-pulse shadow-lg shadow-green-500/20">
                                                                     <i class="fa-solid fa-video mr-1"></i> Join Live Session Now
                                                                 </a>
-
-
-                                                                <% } else { %>
-                                                                    <button disabled
-                                                                        class="block w-full text-center py-2 rounded-lg bg-slate-100 text-slate-400 font-semibold text-sm cursor-not-allowed mb-2">
-                                                                        No Live Session
-                                                                    </button>
-                                                                    <% } %>
+                                                            <% } else { %>
+                                                                <button disabled
+                                                                    class="block w-full text-center py-2 rounded-lg bg-slate-100 text-slate-400 font-semibold text-sm cursor-not-allowed mb-2">
+                                                                    No Live Session
+                                                                </button>
+                                                            <% } %>
 
                                                                         <div
                                                                             class="flex flex-col sm:flex-row gap-2 mb-2">

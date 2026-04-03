@@ -9,20 +9,45 @@ const https = require('https');
  * @returns {string} The SDK signature
  */
 function generateSignature(meetingNumber, role) {
-  const iat = Math.round(new Date().getTime() / 1000) - 30;
-  const exp = iat + 60 * 60 * 2;
+  const sdkKey = (process.env.ZOOM_SDK_KEY || '').trim();
+  const sdkSecret = (process.env.ZOOM_SDK_SECRET || '').trim();
+  
+  if (!sdkKey || !sdkSecret) {
+    console.error('[Zoom] CRITICAL: Missing SDK Key or Secret for signature generation');
+    return '';
+  }
+
+  // Ensure Role is an integer (0 for attendee, 1 for host)
+  const roleValue = parseInt(role, 10);
+  // Ensure Meeting Number is an integer string with no noise
+  const mn = parseInt(String(meetingNumber).replace(/\D/g, ''), 10);
+  
+  // Precise timestamping for 3.5.0 security
+  const iat = Math.floor(Date.now() / 1000) - 60; // 1 min buffer for clock drift
+  const exp = iat + 7200; // 2 hour expiration (standard)
 
   const payload = {
-    sdkKey: process.env.ZOOM_SDK_KEY,
-    mn: meetingNumber,
-    role: role,
+    sdkKey: sdkKey,
+    mn: mn,
+    role: roleValue,
     iat: iat,
     exp: exp,
-    appKey: process.env.ZOOM_SDK_KEY,
-    tokenExp: iat + 60 * 60 * 2,
+    appKey: sdkKey, // for compatibility
+    tokenExp: exp 
   };
 
-  return jwt.sign(payload, process.env.ZOOM_SDK_SECRET, { algorithm: 'HS256' });
+  console.log(`[Zoom] 🔑 Generating signature for Meeting: ${mn}, Role: ${roleValue}`);
+  
+  try {
+    // Zoom strictly requires typ: 'JWT' in the header
+    return jwt.sign(payload, sdkSecret, { 
+      algorithm: 'HS256',
+      header: { typ: 'JWT' }
+    });
+  } catch (error) {
+    console.error('[Zoom] Signature generation failed:', error.message);
+    return '';
+  }
 }
 
 /**

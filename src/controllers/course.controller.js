@@ -543,8 +543,17 @@ exports.getLiveStatus = async (req, res) => {
 
         // 3. Build response object mapping courseId to status
         const liveSessions = {};
+        
+        // Helper to check enrollment that works for both Array and Set
+        const checkEnrollment = (courseId) => {
+            if (!purchasedCourseIds) return false;
+            if (Array.isArray(purchasedCourseIds)) return purchasedCourseIds.includes(courseId);
+            if (purchasedCourseIds instanceof Set) return purchasedCourseIds.has(courseId);
+            return false;
+        };
+
         liveCourses.forEach(c => {
-            if (isAdmin || purchasedCourseIds.includes(c.id)) {
+            if (isAdmin || checkEnrollment(c.id)) {
                 liveSessions[c.id] = {
                     isLive: true,
                     startTime: c.lastLiveStartedAt ? c.lastLiveStartedAt.getTime() : null
