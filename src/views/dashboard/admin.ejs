@@ -229,7 +229,7 @@
                                                                             <% } %>
                                                                         </button>
                                                                         <% if (hasLink) { %>
-                                                                        <a href="/live-meeting?id=<%= course.zoomMeetingId %>&pwd=<%= course.zoomPassword %>" 
+                                                                        <a href="/live-meeting?id=<%= (course.zoomMeetingId || '').trim() %>&pwd=<%= (course.zoomPassword || '').trim() %>" 
                                                                            class="px-4 py-2 rounded-full bg-brand-gold text-brand-navy font-bold text-xs text-center hover:bg-brand-gold/90 transition-all shadow-lg shadow-brand-gold/20 flex items-center justify-center gap-1 shrink-0 flex-1 xl:flex-none">
                                                                             <i class="fa-solid fa-desktop"></i> Launch Console
                                                                         </a>

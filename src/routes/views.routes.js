@@ -352,12 +352,13 @@ router.get('/live-meeting',
         }
 
         try {
-            // Get meeting details from query params and clean them
-            const meetingNumber = (req.query.id || '').replace(/\s/g, '');
-            const password = (req.query.pwd || '').replace(/\s/g, '');
+            const rawId = (req.query.id || '').trim();
+            const rawPwd = (req.query.pwd || '').trim();
             
-            // Default to Participant (Role 0) for the browser console to avoid 
-            // errorCode: 1 conflicts with the Zoom Desktop App.
+            // Zoom Meeting IDs are strictly numeric (strip spaces, extra trailing chars from user typos)
+            const meetingNumber = rawId.replace(/\D/g, ''); 
+            const password = rawPwd; 
+            
             // Identify Role: Admin = 1 (Host), Student = 0 (Attendee)
             const isAdmin = req.session.user.role === 'ADMIN';
             const role = isAdmin ? 1 : 0;

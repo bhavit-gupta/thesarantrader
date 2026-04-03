@@ -168,7 +168,7 @@ STYLING:
                                             <p class="text-sm text-slate-500 mt-1">Live session is ongoing!</p>
                                         </div>
                                         <!-- Right: Join Button (1-Click) -->
-                                        <a href="/live-meeting?id=<%= course.zoomMeetingId %>&pwd=<%= course.zoomPassword %>" 
+                                        <a href="/live-meeting?id=<%= (course.zoomMeetingId || '').trim() %>&pwd=<%= (course.zoomPassword || '').trim() %>" 
                                            class="join-live-btn flex-shrink-0 px-5 py-2.5 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors animate-pulse shadow-lg shadow-green-500/20">
                                             <i class="fa-solid fa-video mr-2"></i> Join Live Session
                                         </a>
