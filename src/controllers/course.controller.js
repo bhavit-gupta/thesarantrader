@@ -58,8 +58,8 @@ const THUMBNAIL_DIR = path.join(__dirname, '../public/uploads/thumbnails');
 /* -------------------------------------------------------------------------- */
 
 // Content limits
-const MAX_TITLE_LENGTH = 200;
-const MAX_DESCRIPTION_LENGTH = 3000;
+const MAX_TITLE_LENGTH = 500;
+const MAX_DESCRIPTION_LENGTH = 10000;
 
 // Allowed Tailwind color themes
 const ALLOWED_COLOR_THEMES = ['red', 'blue', 'green', 'yellow', 'purple', 'pink', 'indigo', 'orange', 'teal', 'cyan', 'gray'];
@@ -175,28 +175,46 @@ function validateCourseInput(data) {
     }
 
 
-    // Date logic validation
+    // Date logic validation (Conditional based on "No Deadline" flags)
+    const { noEndDate, noEnrollmentDeadline } = data;
+
+    // Start date is always required for sorting/timeline
     if (!startDate) return 'Start date is required';
-    if (!endDate) return 'End date is required';
-    if (!enrollmentDeadline) return 'Enrollment deadline is required';
-
     const start = new Date(startDate);
-    const end = new Date(endDate);
-    const deadline = new Date(enrollmentDeadline);
-
     if (isNaN(start.getTime())) return 'Invalid start date format';
-    if (isNaN(end.getTime())) return 'Invalid end date format';
-    if (isNaN(deadline.getTime())) return 'Invalid enrollment deadline format';
 
-    const dateError = validateCourseDates(start, end, deadline);
-    if (dateError) {
-        return dateError;
+    // End date validation (only if not "Unlimited")
+    let end = null;
+    if (noEndDate !== 'true' && noEndDate !== true && endDate) {
+        end = new Date(endDate);
+        if (isNaN(end.getTime())) return 'Invalid end date format';
+    }
+
+    // Enrollment deadline validation (only if not "Unlimited")
+    let deadline = null;
+    if (noEnrollmentDeadline !== 'true' && noEnrollmentDeadline !== true && enrollmentDeadline) {
+        deadline = new Date(enrollmentDeadline);
+        if (isNaN(deadline.getTime())) return 'Invalid enrollment deadline format';
+    }
+
+    // Logical cross-date validation
+    if (start && end && start >= end) {
+        return 'Start date must be before end date';
     }
 
     // Level validation
     const ALLOWED_LEVELS = ['Learn Step 1', 'Nifty Zoom Live Session', 'Nifty+Zoom+Commodity'];
     if (level && !ALLOWED_LEVELS.includes(level)) {
         return 'Invalid course level selected';
+    }
+
+    // Publish Validation: Cannot publish if expired
+    if (data.isPublished === 'on' || data.isPublished === true) {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        if (end && end < now) {
+            return 'Cannot publish a course that has already ended. Please extend the End Date first.';
+        }
     }
 
     return null;
@@ -224,26 +242,41 @@ function validateCourseInput(data) {
 exports.getAllCourses = async (req, res) => {
     try {
         const now = new Date();
-        // For visibility checks, we compare against the start of today to ensure 
-        // courses with today's deadline/end-date remain visible all day.
         const startOfToday = new Date(now);
         startOfToday.setHours(0, 0, 0, 0);
 
-        // Fetch only active courses (not ended) with retry
+        // --- Just-In-Time Unpublishing Hook ---
+        // Automatically unpublish courses where the end date has passed.
+        // This ensures the database accurately reflects the course state.
+        try {
+            await prisma.course.updateMany({
+                where: {
+                    isPublished: true,
+                    endDate: { lt: startOfToday },
+                    NOT: { endDate: null }
+                },
+                data: { isPublished: false }
+            });
+        } catch (unpublishErr) {
+            console.warn("⚠️ [JIT Unpublish] Failed to auto-unpublish expired courses:", unpublishErr.message);
+        }
+
+        // Fetch only active, published courses for students
         const courses = await withRetry(
             () => prisma.course.findMany({
                 where: {
                     AND: [
+                        { isPublished: true },                    // Must be published
                         {
                             OR: [
-                                { endDate: { gte: startOfToday } },       // End date is in the future
-                                { endDate: null }                 // No end date (ongoing)
+                                { endDate: { gte: startOfToday } }, // End date in future
+                                { endDate: null }                   // No end date
                             ]
                         },
                         {
                             OR: [
-                                { enrollmentDeadline: { gte: startOfToday } }, // Enrollment deadline in future
-                                { enrollmentDeadline: null }          // No enrollment deadline
+                                { enrollmentDeadline: { gte: startOfToday } }, // Enrollment open
+                                { enrollmentDeadline: null }                   // No deadline
                             ]
                         },
                         {
@@ -401,12 +434,11 @@ exports.addCourse = async (req, res) => {
                     demoVideoUrl: demoVideoUrl || "",
                     thumbnailUrl,
                     isPublished: req.body.isPublished === 'on',
-                    isPromoted: req.body.isPromoted === 'on',
                     zoomMeetingId: zoomMeetingId || "",
                     zoomPassword: zoomPassword || "",
                     startDate: startDate ? new Date(startDate) : null,
-                    endDate: endDate ? new Date(endDate) : null,
-                    enrollmentDeadline: enrollmentDeadline ? new Date(enrollmentDeadline) : null,
+                    endDate: req.body.noEndDate === 'true' ? null : (endDate ? new Date(endDate) : null),
+                    enrollmentDeadline: req.body.noEnrollmentDeadline === 'true' ? null : (enrollmentDeadline ? new Date(enrollmentDeadline) : null),
                     level: level || null,
                     dailyLiveTime: dailyLiveTime || null
                 }
@@ -480,10 +512,10 @@ exports.deleteCourse = async (req, res) => {
         // If any step fails, all changes are rolled back
         await withRetry(
             () => prisma.$transaction(async (tx) => {
-                // 3a. Delete all chat messages for this course
-                await tx.chatMessage.deleteMany({ where: { courseId } });
-
-                // 3b. Revoke access: Remove course from all users' enrollment lists
+                // [SOFT DELETE] We stop deleting chat messages and the course record
+                // to preserve history for analytics as requested.
+                
+                // 3a. Revoke access: Remove course from all users' enrollment lists
                 const usersWithCourse = await tx.user.findMany({
                     where: { purchasedCourseIds: { has: courseId } },
                     select: { id: true, purchasedCourseIds: true }
@@ -498,21 +530,45 @@ exports.deleteCourse = async (req, res) => {
                     });
                 }
 
-                // 3c. Delete the course record itself
-                await tx.course.delete({ where: { id: courseId } });
+                // 3b. Soft delete the course record
+                await tx.course.update({ 
+                    where: { id: courseId },
+                    data: { 
+                        deletedAt: new Date(),
+                        isPublished: false,
+                        isLive: false,
+                        isPromoted: false 
+                    }
+                });
             }),
             3 // Critical operation: 3 retries
         );
 
         // Note: Purchase records in the Purchase table are NOT deleted
         // This preserves financial history for accounting and refund tracking
-        // 4. Invalidate cache and redirect
+        // 4. Invalidate cache and respond
         invalidateCourseCache();
+
+        // AJAX response check (Safe header check)
+        if (req.xhr || (req.headers && req.headers.accept && req.headers.accept.includes('json'))) {
+            return res.json({ 
+                success: true, 
+                message: 'Course deleted successfully!' 
+            });
+        }
+
         const referer = req.get('Referer');
         res.redirect(referer ? referer : '/admin/courses');
     } catch (e) {
         console.error("❌ Course Deletion Error:", e);
-        res.status(500).json({ success: false, message: 'Error deleting course: ' + e.message });
+        
+        // Return JSON error for AJAX, redirect for forms
+        if (req.xhr || (req.headers && req.headers.accept && req.headers.accept.includes('json'))) {
+            return res.status(500).json({ success: false, message: 'Error deleting course: ' + e.message });
+        }
+        
+        const referer = req.get('Referer');
+        res.redirect(referer ? referer + '?error=' + encodeURIComponent(e.message) : '/admin/courses?error=deletion_failed');
     }
 };
 
@@ -568,8 +624,11 @@ exports.editCourse = async (req, res) => {
         level: level || null,
         dailyLiveTime: dailyLiveTime || null,
         isPublished: req.body.isPublished === 'on',
-        isPromoted: req.body.isPromoted === 'on'
     };
+
+    // Correctly handle nulls for dates if Unlimited is selected
+    updateData.endDate = req.body.noEndDate === 'true' ? null : (endDate ? new Date(endDate) : null);
+    updateData.enrollmentDeadline = req.body.noEnrollmentDeadline === 'true' ? null : (enrollmentDeadline ? new Date(enrollmentDeadline) : null);
 
     // 3.5 Handle Thumbnail replacement
     if (req.file) {
@@ -964,6 +1023,13 @@ exports.renderMyCourses = async (req, res) => {
         const isAdmin = String(req.session.user.role).toUpperCase() === 'ADMIN';
 
         const now = new Date();
+        
+        // --- Just-In-Time Unpublishing Hook ---
+        try {
+            await exports.cleanupExpiredCourses();
+        } catch (cleanupErr) {
+            console.warn("⚠️ [JIT Unpublish] Cleanup failed during renderMyCourses:", cleanupErr.message);
+        }
 
         if (isAdmin) {
             // Admin sees all non-deleted courses

@@ -488,6 +488,20 @@ model ChatMessage {
   @@index([userId]) //  Fast user's messages lookup
 }
 
+/**
+ * ChatReadStatus Model - Tracks when a user last viewed a specific course chat
+ * Used to calculate unread message counts in the chat directory.
+ */
+model ChatReadStatus {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  courseId   String   @db.ObjectId
+  lastReadAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([userId])
+}
+
 // ============================================================================
 // COMMERCE & PAYMENTS MODELS
 // ============================================================================

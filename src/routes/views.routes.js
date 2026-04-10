@@ -1108,7 +1108,7 @@ router.get('/admin/analytics/engagement', verifyAdminInDatabase, async (req, res
             prisma.testimonial.findMany({ orderBy: { submittedAt: 'desc' } }),
             prisma.chatMessage.count({ where: { imageUrl: { not: null } } }),
             prisma.chatMessage.count(),
-            prisma.course.count({ where: { deletedAt: null } })
+            prisma.course.count() // Total historical rooms
         ]);
 
         const g = (r, fb) => r.status === 'fulfilled' ? r.value : fb;
@@ -1148,7 +1148,10 @@ router.get('/admin/analytics/engagement', verifyAdminInDatabase, async (req, res
 
         // Enrich chat groups with course names
         const chatCourseIds = chatGroups.map(g => g.courseId);
-        const chatCourses = await prisma.course.findMany({ where: { id: { in: chatCourseIds } }, select: { id: true, title: true, icon: true } });
+        const chatCourses = await prisma.course.findMany({
+            where: { id: { in: chatCourseIds } },
+            select: { id: true, title: true, icon: true, deletedAt: true }
+        });
         const chatCourseMap = chatCourses.reduce((a, c) => ({ ...a, [c.id]: c }), {});
         const enrichedChatGroups = chatGroups.map(g => ({
             courseId: g.courseId,

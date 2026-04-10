@@ -279,6 +279,82 @@ window.toggleCourseLive = async function(courseId, targetState) {
     }
 };
 
+/**
+ * Deletes a course after user confirmation.
+ * Centralized logic for the admin courses dashboard.
+ */
+window.deleteCourse = async function (courseId, btn) {
+    // 1. Ensure we have the button element
+    if (!btn) btn = event?.currentTarget || document.activeElement;
+    if (!btn || btn.disabled) return;
+
+    const isConfirming = btn.getAttribute('data-confirming') === 'true';
+
+    // 2. First Click: Prime the button
+    if (!isConfirming) {
+        const originalHTML = btn.innerHTML;
+        const originalClass = btn.className;
+
+        btn.setAttribute('data-confirming', 'true');
+        btn.innerHTML = '<i class="fa-solid fa-question text-[10px]"></i>';
+        btn.classList.add('bg-red-600', 'text-white', 'ring-4', 'ring-red-100');
+        btn.classList.remove('bg-white', 'text-red-500');
+        btn.title = 'Click again to confirm delete';
+
+        showToast('Click again to confirm deletion', 'info');
+
+        // Reset after 3 seconds if not confirmed
+        setTimeout(() => {
+            if (btn.getAttribute('data-confirming') === 'true') {
+                btn.setAttribute('data-confirming', 'false');
+                btn.innerHTML = originalHTML;
+                btn.className = originalClass;
+                btn.title = 'Remove';
+            }
+        }, 3000);
+
+        return;
+    }
+
+    // 3. Second Click: Trigger actual deletion
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        const response = await fetch(`/admin/courses/delete/${courseId}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': getCsrfToken(),
+                'Accept': 'application/json'
+            }
+        });
+
+        // Check for non-JSON response or error status
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error (${response.status})`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Course deleted successfully!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            throw new Error(data.message || 'Deletion failed');
+        }
+    } catch (error) {
+        console.error('[Admin:Course] Deletion Error:', error);
+        showToast(error.message || 'Failed to delete course.', 'error');
+        
+        // REVERT STATE on error
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+        btn.setAttribute('data-confirming', 'false');
+        btn.className = 'w-10 h-10 rounded-xl bg-white text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all transform scale-90 delay-75 group-hover:scale-100 shadow-xl relative z-50 text-xs';
+    }
+};
+
 /* ---------------- EVENT LISTENERS ---------------- */
 function setupEventListeners() {
     // Prevent multiple registrations of delegated listeners

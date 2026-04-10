@@ -160,6 +160,53 @@ async function attachLastActivity(courses) {
 }
 
 /**
+ * Attaches unreadCount to each course object for a specific user.
+ * @param {string} userId - ID of the user to check unread messages for
+ * @param {Array} courses - Array of course objects to mutate (must have .id and .lastActivityAt)
+ */
+async function attachUnreadCounts(userId, courses) {
+    if (!userId || courses.length === 0) return;
+
+    // 1. Fetch all read status records for this user in one query
+    const courseIds = courses.map(c => c.id).filter(Boolean);
+    const readStatuses = await prisma.chatReadStatus.findMany({
+        where: {
+            userId,
+            courseId: { in: courseIds }
+        }
+    });
+
+    // Lookup map: courseId → lastReadAt
+    const readMap = new Map(readStatuses.map(rs => [rs.courseId, rs.lastReadAt]));
+
+    // 2. Count unread messages for each course
+    await Promise.all(courses.map(async (course) => {
+        const lastReadAt = readMap.get(course.id);
+        
+        // If course has no activity, unread is 0
+        if (!course.lastActivityAt) {
+            course.unreadCount = 0;
+            return;
+        }
+
+        // If user never read this chat, all messages are unread (capped at 50 for performance)
+        // Or if last message is after last read
+        const lastActivityDate = new Date(course.lastActivityAt);
+        if (!lastReadAt || lastActivityDate > lastReadAt) {
+            const count = await prisma.chatMessage.count({
+                where: {
+                    courseId: course.id,
+                    timestamp: { gt: lastReadAt || new Date(0) }
+                }
+            });
+            course.unreadCount = count;
+        } else {
+            course.unreadCount = 0;
+        }
+    }));
+}
+
+/**
  * Renders the chat rooms page for authenticated users.
  * 
  * Behavior:
@@ -185,8 +232,9 @@ exports.getChatRooms = async (req, res) => {
             const hasGlobal = courses.some(c => c.id === GLOBAL_CHAT_ID);
             const displayCourses = hasGlobal ? courses : [GLOBAL_CHAT_DEFAULTS, ...courses];
 
-            // Attach last activity timestamp to each course
+            // Attach metadata
             await attachLastActivity(displayCourses);
+            await attachUnreadCounts(req.session.user.id, displayCourses);
 
             res.render('layouts/chat-rooms', {
                 user: req.session.user,
@@ -220,8 +268,9 @@ exports.getChatRooms = async (req, res) => {
             purchasedCourses.unshift(GLOBAL_CHAT_DEFAULTS);
         }
 
-        // Attach last activity timestamp to each course
+        // Attach metadata
         await attachLastActivity(purchasedCourses);
+        await attachUnreadCounts(req.session.user.id, purchasedCourses);
 
         // 7. Render chat rooms page with user's purchased courses + Global Chat
         res.render('layouts/chat-rooms', {
@@ -298,7 +347,30 @@ exports.getCourseChat = async (req, res) => {
             }
         }
 
-        // 3. Render chat room interface
+        // 3. Mark all messages as read for this user
+        if (req.session.user.id) {
+            try {
+                // Upsert read status: Create if not exists, update if it does
+                await prisma.chatReadStatus.upsert({
+                    where: {
+                        userId_courseId: {
+                            userId: req.session.user.id,
+                            courseId: course.id
+                        }
+                    },
+                    update: { lastReadAt: new Date() },
+                    create: {
+                        userId: req.session.user.id,
+                        courseId: course.id,
+                        lastReadAt: new Date()
+                    }
+                });
+            } catch (readErr) {
+                console.warn(`⚠️ [ChatReadStatus] Failed to update for ${req.session.user.id}/${course.id}:`, readErr.message);
+            }
+        }
+
+        // 4. Render chat room interface
         res.render('layouts/chat-room', {
             user: req.session.user,
             course,

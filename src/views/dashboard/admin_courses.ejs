@@ -200,27 +200,16 @@ JAVASCRIPT DEPENDENCIES:
                                         </div>
                                     <% } %>
 
-                                    <!-- Status Overlays -->
-                                    <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                                        <% if (!course.isPublished) { %>
-                                            <span class="px-2.5 py-1 bg-slate-900/90 text-[8px] font-black text-white uppercase tracking-wider rounded border border-white/10 backdrop-blur-sm">Offline</span>
-                                        <% } %>
-                                        <% if (course.isPromoted) { %>
-                                            <span class="px-2.5 py-1 bg-amber-400 text-[8px] font-black text-[#0a0f1e] uppercase tracking-wider rounded border border-amber-500/10 shadow-sm shadow-amber-400/20">Trending</span>
-                                        <% } %>
-                                    </div>
+
 
                                     <!-- Quick Actions Floating Layer (MUST have highest z-index) -->
                                     <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-300 flex items-center justify-center gap-2 z-50 backdrop-blur-[2px]">
                                         <button onclick="openAdminCoursesEditModal('<%= course.id %>')" class="w-10 h-10 rounded-xl bg-amber-400 text-[#0a0f1e] flex items-center justify-center hover:bg-amber-500 transition-all transform scale-90 group-hover:scale-100 shadow-xl relative z-50" title="Configure">
                                             <i class="fa-solid fa-wrench text-xs pointer-events-none"></i>
                                         </button>
-                                        <form action="/admin/courses/delete/<%= course.id %>" method="POST" class="inline relative z-50">
-                                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                            <button type="submit" class="w-10 h-10 rounded-xl bg-white text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all transform scale-90 delay-75 group-hover:scale-100 shadow-xl" title="Remove">
-                                                <i class="fa-solid fa-trash-can text-xs pointer-events-none"></i>
-                                            </button>
-                                        </form>
+                                        <button onclick="deleteCourse('<%= course.id %>', this)" class="w-10 h-10 rounded-xl bg-white text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all transform scale-90 delay-75 group-hover:scale-100 shadow-xl relative z-50 text-xs" title="Remove">
+                                            <i class="fa-solid fa-trash-can pointer-events-none"></i>
+                                        </button>
                                     </div>
                                 </div>
 
@@ -363,13 +352,7 @@ JAVASCRIPT DEPENDENCIES:
                                         <span class="text-[10px] font-medium text-slate-400">Make it visible to all prospective students</span>
                                     </div>
                                 </label>
-                                <label class="flex items-center gap-3 p-4 rounded-2xl border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors group">
-                                    <input type="checkbox" name="isPromoted" id="form-isPromoted" class="w-5 h-5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500/20">
-                                    <div class="flex flex-col">
-                                        <span class="text-sm font-bold text-slate-900">Promote Course</span>
-                                        <span class="text-[10px] font-medium text-slate-400">Highlight with a green badge on the grid</span>
-                                    </div>
-                                </label>
+
                             </div>
                         </div>
                         <div class="space-y-6">
@@ -460,7 +443,6 @@ JAVASCRIPT DEPENDENCIES:
                         </div>
                     </div>
 
-                    <!-- Timings & Schedule -->
                     <div class="space-y-6">
                         <div class="flex items-center gap-3 pb-2 border-b border-slate-50">
                             <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center text-xs"><i class="fa-solid fa-calendar-alt"></i></span>
@@ -472,15 +454,29 @@ JAVASCRIPT DEPENDENCIES:
                                 <input type="date" name="startDate" id="form-startDate" required
                                     class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium">
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">End Date</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between ml-1">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">End Date</label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer group">
+                                        <input type="checkbox" id="noEndDateToggle" class="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500/20">
+                                        <span class="text-[9px] font-black text-slate-400 group-hover:text-amber-500 transition-colors uppercase tracking-tight">Unlimited</span>
+                                    </label>
+                                </div>
                                 <input type="date" name="endDate" id="form-endDate" required
-                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium">
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium disabled:opacity-50 disabled:bg-slate-50 disabled:cursor-not-allowed">
+                                <input type="hidden" name="noEndDate" id="form-noEndDate" value="false">
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Enrollment Deadline</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between ml-1">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Enrollment Deadline</label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer group">
+                                        <input type="checkbox" id="noEnrollmentDeadlineToggle" class="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500/20">
+                                        <span class="text-[9px] font-black text-slate-400 group-hover:text-amber-500 transition-colors uppercase tracking-tight">Unlimited</span>
+                                    </label>
+                                </div>
                                 <input type="date" name="enrollmentDeadline" id="form-enrollmentDeadline" required
-                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium">
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium disabled:opacity-50 disabled:bg-slate-50 disabled:cursor-not-allowed">
+                                <input type="hidden" name="noEnrollmentDeadline" id="form-noEnrollmentDeadline" value="false">
                             </div>
                         </div>
                     </div>
@@ -540,6 +536,16 @@ JAVASCRIPT DEPENDENCIES:
             document.getElementById('form-endDate').value = '';
             document.getElementById('form-enrollmentDeadline').value = '';
 
+            // Reset Unlimited Toggles
+            document.getElementById('noEndDateToggle').checked = false;
+            document.getElementById('noEnrollmentDeadlineToggle').checked = false;
+            document.getElementById('form-endDate').disabled = false;
+            document.getElementById('form-endDate').required = true;
+            document.getElementById('form-enrollmentDeadline').disabled = false;
+            document.getElementById('form-enrollmentDeadline').required = true;
+            document.getElementById('form-noEndDate').value = "false";
+            document.getElementById('form-noEnrollmentDeadline').value = "false";
+
             modal.classList.remove('hidden');
         }
 
@@ -574,12 +580,25 @@ JAVASCRIPT DEPENDENCIES:
 
                     // Date population
                     document.getElementById('form-startDate').value = formatToDateInput(course.startDate);
+                    
+                    // Handle End Date & Unlimited Toggle
+                    const noEndDate = !course.endDate;
                     document.getElementById('form-endDate').value = formatToDateInput(course.endDate);
+                    document.getElementById('noEndDateToggle').checked = noEndDate;
+                    document.getElementById('form-endDate').disabled = noEndDate;
+                    document.getElementById('form-endDate').required = !noEndDate;
+                    document.getElementById('form-noEndDate').value = noEndDate ? "true" : "false";
+
+                    // Handle Enrollment Deadline & Unlimited Toggle
+                    const noEnrollmentDeadline = !course.enrollmentDeadline;
                     document.getElementById('form-enrollmentDeadline').value = formatToDateInput(course.enrollmentDeadline);
+                    document.getElementById('noEnrollmentDeadlineToggle').checked = noEnrollmentDeadline;
+                    document.getElementById('form-enrollmentDeadline').disabled = noEnrollmentDeadline;
+                    document.getElementById('form-enrollmentDeadline').required = !noEnrollmentDeadline;
+                    document.getElementById('form-noEnrollmentDeadline').value = noEnrollmentDeadline ? "true" : "false";
                     
                     // Boolean logic for checkboxes
                     document.getElementById('form-isPublished').checked = course.isPublished !== false;
-                    document.getElementById('form-isPromoted').checked = course.isPromoted === true;
 
                     // Handle Thumbnail Preview
                     const thumbnailPreview = document.getElementById('thumbnailPreview');
@@ -722,6 +741,25 @@ JAVASCRIPT DEPENDENCIES:
 
         if (searchInput) searchInput.addEventListener('input', filterAndSort);
         if (sortSelect) sortSelect.addEventListener('change', filterAndSort);
+
+        // --- Unlimited Deadline Toggle Logic ---
+        function setupDeadlineToggle(checkboxId, inputId, hiddenId) {
+            const checkbox = document.getElementById(checkboxId);
+            const input = document.getElementById(inputId);
+            const hidden = document.getElementById(hiddenId);
+
+            if (checkbox && input) {
+                checkbox.addEventListener('change', function() {
+                    input.disabled = this.checked;
+                    input.required = !this.checked;
+                    if (this.checked) input.value = '';
+                    if (hidden) hidden.value = this.checked ? "true" : "false";
+                });
+            }
+        }
+
+        setupDeadlineToggle('noEndDateToggle', 'form-endDate', 'form-noEndDate');
+        setupDeadlineToggle('noEnrollmentDeadlineToggle', 'form-enrollmentDeadline', 'form-noEnrollmentDeadline');
     </script>
 
     <script src="/javascripts/main.js" defer></script>
