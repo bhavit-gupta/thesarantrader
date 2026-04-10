@@ -28,6 +28,7 @@
 
 const prisma = require('./prisma');
 const { withRetry } = require('./prisma');
+const { GLOBAL_CHAT_ID } = require('./constants');
 
 /* -------------------------------------------------------------------------- */
 /*                           VALIDATION UTILITIES                             */
@@ -322,6 +323,13 @@ function requireCoursePurchase(courseIdParam = 'courseId') {
             console.error(`[${timestamp}] Route config error: param '${courseIdParam}' (and fallbacks) not found in ${req.originalUrl}`);
             return res.status(500).json({ success: false, message: 'Server configuration error' });
         }
+
+        // --- BYPASS FOR GLOBAL CHAT ---
+        if (courseId === GLOBAL_CHAT_ID) {
+            accessMetrics.accessGranted++;
+            return next();
+        }
+        // ------------------------------
 
         // Validate courseId format
         if (!isValidObjectId(courseId)) {

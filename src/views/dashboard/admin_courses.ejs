@@ -53,7 +53,7 @@ JAVASCRIPT DEPENDENCIES:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">
-    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <meta name="csrf-token" content="<%= locals.csrfToken || '' %>">
     <title>Manage Courses - Admin Dashboard</title>
 
     <!-- Favicon -->
@@ -114,678 +114,617 @@ JAVASCRIPT DEPENDENCIES:
                 </div>
             </header>
 
-            <main class="flex-grow pb-12">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-10">
+            <main class="flex-grow pb-12 bg-[#f8fafc]">
+                <div class="max-w-[1600px] mx-auto px-8 lg:px-12 pt-12">
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                <!-- Left Column: Add New Course Form -->
-                <div class="lg:col-span-1">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 sticky top-24">
-                        <div class="p-6 border-b border-slate-100">
-                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <i class="fa-solid fa-plus-circle text-blue-600"></i> Add New Course
-                            </h2>
-                        </div>
-                        <div class="p-6">
-                            <form action="/admin/courses/add" method="POST" class="space-y-4 pb-12">
-                                <input type="hidden" name="_csrf"
-                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Course Title</label>
-                                    <input type="text" name="title" required
-                                        placeholder="e.g. Advanced Options Strategy"
-                                        class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Description</label>
-                                    <textarea name="description" required rows="3"
-                                        placeholder="Brief summary of the course..."
-                                        class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"></textarea>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Zoom Meeting Details</label>
-                                    <div class="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Setup</span>
-                                            <button type="button" onclick="showAddLinkHelper()" 
-                                                class="text-[10px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
-                                                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-fill from Link
-                                            </button>
-                                        </div>
-
-                                        <div id="add-link-helper-container" class="hidden mb-3 animate-fade-in">
-                                            <input type="text" id="add-zoom-link-helper" 
-                                                placeholder="Paste Zoom link here..."
-                                                oninput="autoFillAddZoomDetails(this.value)"
-                                                class="w-full px-3 py-2 text-xs rounded-lg border-2 border-dashed border-blue-200 focus:border-blue-400 outline-none bg-blue-50/50">
-                                        </div>
-
-                                        <div class="grid grid-cols-1 gap-3">
-                                            <div class="relative">
-                                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                    <i class="fa-solid fa-hashtag text-slate-400 text-xs"></i>
-                                                </div>
-                                                <input type="text" name="zoomMeetingId" id="add-zoomMeetingId" placeholder="Meeting ID"
-                                                    class="w-full pl-8 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
-                                            </div>
-                                            <div class="relative group">
-                                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                    <i class="fa-solid fa-key text-slate-400 text-xs"></i>
-                                                </div>
-                                                <input type="text" name="zoomPassword" id="add-zoomPassword" placeholder="Passcode (Numeric)"
-                                                    class="w-full pl-8 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                                                <div id="add-pwd-warning" class="hidden absolute left-0 -bottom-5 w-full text-[9px] font-bold text-orange-500 animate-pulse px-1">
-                                                    ⚠️ Link Hash detected! Use numeric passcode.
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="text-[10px] text-slate-400 mt-2 italic px-1">Tip: Use the Magic Auto-fill to save time!</p>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">YouTube Demo Video
-                                        URL</label>
-                                    <div class="relative">
-                                        <div
-                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <i class="fa-brands fa-youtube text-red-400"></i>
-                                        </div>
-                                        <input type="url" name="demoVideoUrl"
-                                            placeholder="https://www.youtube.com/watch?v=..."
-                                            class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none transition-all">
-                                    </div>
-                                    <p class="text-xs text-slate-400 mt-1">Shown to users on the enroll page as a
-                                        preview</p>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Start
-                                            Date</label>
-                                        <input type="date" name="startDate"
-                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-semibold text-slate-700 mb-1">End Date</label>
-                                        <input type="date" name="endDate"
-                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Enrollment
-                                        Deadline</label>
-                                    <input type="date" name="enrollmentDeadline"
-                                        class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                                    <p class="text-xs text-slate-400 mt-1">Users cannot enroll after this date</p>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Price (₹)</label>
-                                        <input type="number" name="price" required min="0" placeholder="2999"
-                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Original Price
-                                            (₹)</label>
-                                        <input type="number" name="originalPrice" required min="0" placeholder="5999"
-                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Badge
-                                            Text</label>
-                                        <input type="text" name="badge" placeholder="e.g. New, Bestseller"
-                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Badge
-                                            Color</label>
-                                        <select name="badgeColor"
-                                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                                            <option value="blue">Blue</option>
-                                            <option value="green" selected>Green</option>
-                                            <option value="orange">Orange</option>
-                                            <option value="red">Red</option>
-                                            <option value="purple">Purple</option>
-                                            <option value="indigo">Indigo</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="relative">
-                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Icon
-                                            Emoji</label>
-                                        <input type="hidden" name="icon" id="icon-input" value="📚">
-
-                                        <!-- Dropdown Trigger -->
-                                        <button type="button" id="icon-dropdown-trigger"
-                                            class="w-full px-4 py-3 text-left bg-white border border-slate-300 rounded-lg flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all group">
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-8 h-8 flex items-center justify-center">
-                                                    <span id="selected-icon-display"
-                                                        class="text-2xl leading-none">📚</span>
-                                                </div>
-                                                <span id="selected-icon-label"
-                                                    class="text-sm font-semibold text-slate-700">Books</span>
-                                            </div>
-                                            <i
-                                                class="fa-solid fa-chevron-down text-slate-400 text-sm group-hover:text-blue-500 transition-colors"></i>
-                                        </button>
-
-                                        <!-- Dropdown Menu -->
-                                        <div id="icon-dropdown-menu-add"
-                                            class="hidden absolute z-50 top-full mt-1 w-72 max-h-60 overflow-y-auto custom-scrollbar bg-white border border-slate-200 rounded-xl shadow-xl p-3 transform transition-all origin-top left-0 sm:left-auto">
-                                            <div class="grid grid-cols-2 gap-2">
-                                                <% const icons=[ { emoji: '📚' , label: 'Books' }, { emoji: '📈' ,
-                                                    label: 'Chart Up' }, { emoji: '📉' , label: 'Chart Down' }, {
-                                                    emoji: '💰' , label: 'Money' }, { emoji: '🎓' , label: 'Graduation'
-                                                    }, { emoji: '💎' , label: 'Premium' }, { emoji: '🚀' ,
-                                                    label: 'Growth' }, { emoji: '📊' , label: 'Analysis' }, {
-                                                    emoji: '🧠' , label: 'Psychology' }, { emoji: '🎯' , label: 'Target'
-                                                    }, { emoji: '💡' , label: 'Idea' }, { emoji: '⭐' , label: 'Featured'
-                                                    } ]; %>
-                                                    <% icons.forEach(item=> { %>
-                                                        <button type="button"
-                                                            onclick="selectIcon(this, '<%= item.emoji %>', '<%= item.label %>')"
-                                                            class="icon-btn w-full flex items-center justify-start gap-2 px-1 py-2 rounded-lg border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition-all group/btn <%= item.emoji === '📚' ? 'bg-blue-50 border-blue-500' : 'bg-white' %>">
-                                                            <span
-                                                                class="text-2xl transition-transform group-hover/btn:scale-110 <%= item.emoji === '📚' ? '' : 'grayscale group-hover/btn:grayscale-0' %>">
-                                                                <%= item.emoji %>
-                                                            </span>
-                                                            <span
-                                                                class="text-sm font-medium text-slate-700 group-hover/btn:text-slate-900">
-                                                                <%= item.label %>
-                                                            </span>
-                                                        </button>
-                                                        <% }); %>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="relative">
-                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Color
-                                            Theme</label>
-                                        <input type="hidden" name="colorTheme" id="color-input" value="blue">
-
-                                        <!-- Dropdown Trigger -->
-                                        <button type="button" id="color-dropdown-trigger"
-                                            class="w-full px-4 py-3 text-left bg-white border border-slate-300 rounded-lg flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all group">
-                                            <div class="flex items-center gap-3">
-                                                <div id="selected-color-preview"
-                                                    class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center border border-blue-100">
-                                                    <div class="w-4 h-4 rounded-full bg-current"></div>
-                                                </div>
-                                                <span id="selected-color-label"
-                                                    class="text-sm font-semibold text-slate-700">Blue</span>
-                                            </div>
-                                            <i
-                                                class="fa-solid fa-chevron-down text-slate-400 text-sm group-hover:text-blue-500 transition-colors"></i>
-                                        </button>
-
-                                        <!-- Dropdown Menu -->
-                                        <div id="color-dropdown-menu-add"
-                                            class="hidden absolute z-50 top-full mt-1 w-72 max-h-60 overflow-y-auto custom-scrollbar bg-white border border-slate-200 rounded-xl shadow-xl p-3 transform transition-all origin-top left-0 sm:left-auto">
-                                            <div class="grid grid-cols-2 gap-2">
-                                                <% const colors=[ { value: 'blue' , label: 'Blue' , bg: 'bg-blue-50' ,
-                                                    text: 'text-blue-500' }, { value: 'indigo' , label: 'Indigo' ,
-                                                    bg: 'bg-indigo-50' , text: 'text-indigo-500' }, { value: 'green' ,
-                                                    label: 'Green' , bg: 'bg-green-50' , text: 'text-green-500' }, {
-                                                    value: 'purple' , label: 'Purple' , bg: 'bg-purple-50' ,
-                                                    text: 'text-purple-500' }, { value: 'orange' , label: 'Orange' ,
-                                                    bg: 'bg-orange-50' , text: 'text-orange-500' }, { value: 'red' ,
-                                                    label: 'Red' , bg: 'bg-red-50' , text: 'text-red-500' } ]; %>
-                                                    <% colors.forEach(item=> { %>
-                                                        <button type="button"
-                                                            onclick="selectColor(this, '<%= item.value %>', '<%= item.label %>', '<%= item.bg %>', '<%= item.text %>')"
-                                                            class="color-btn w-full flex items-center justify-start gap-2 px-2 py-2 rounded-lg border border-slate-100 hover:bg-slate-50 transition-all group/btn <%= item.value === 'blue' ? 'bg-slate-50 border-blue-500' : 'bg-white' %>">
-                                                            <div
-                                                                class="w-8 h-8 rounded-full <%= item.bg %> <%= item.text %> flex items-center justify-center border border-slate-100">
-                                                                <div class="w-4 h-4 rounded-full bg-current"></div>
-                                                            </div>
-                                                            <span class="text-sm font-medium text-slate-700">
-                                                                <%= item.label %>
-                                                            </span>
-                                                        </button>
-                                                        <% }); %>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <button type="submit"
-                                    class="w-full py-3 px-4 bg-slate-900 hover:bg-black text-white font-bold rounded-xl shadow-lg shadow-slate-900/10 transition-all transform hover:-translate-y-0.5 mt-4">
-                                    Create Course
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column: Existing Courses List -->
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-xl font-bold text-slate-800">Existing Courses</h2>
-                        <span class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full">
-                            <%= courses.length %> Total
-                        </span>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-4">
-                        <% if (courses.length===0) { %>
-                            <div class="bg-white rounded-xl p-12 text-center border border-dashed border-slate-300">
-                                <div class="text-4xl mb-3">📭</div>
-                                <h3 class="text-lg font-bold text-slate-700">No courses available</h3>
-                                <p class="text-slate-500">Add your first course to get started.</p>
+                    <!-- BRANDED PREMIUM HEADER -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+                        <div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-1.5 h-8 bg-amber-400 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.3)]"></div>
+                                <h1 class="text-4xl font-black text-slate-900 tracking-tight">Management Hub</h1>
                             </div>
-                            <% } %>
+                            <p class="text-slate-500 font-bold mt-2 text-sm flex items-center gap-2">
+                                Operating <span class="text-amber-500"><%= courses.length %> Programs</span> 
+                                <span class="w-1 h-1 bg-slate-300 rounded-full"></span> 
+                                <span class="text-slate-400">Manage curriculum & enrollment</span>
+                            </p>
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <button onclick="openAddModal()" class="px-7 py-3.5 bg-amber-400 hover:bg-amber-500 text-[#0a0f1e] font-black rounded-2xl shadow-xl shadow-amber-400/20 transition-all transform hover:-translate-y-1 flex items-center gap-2.5 border border-amber-500/20 uppercase tracking-tighter text-sm">
+                                <i class="fa-solid fa-plus text-xs"></i> New Course
+                            </button>
+                        </div>
+                    </div>
 
-                                <% var safeClasses={ blue: { bg: 'bg-blue-50' , text: 'text-blue-500' ,
-                                    badgeBg: 'bg-blue-100' , badgeText: 'text-blue-700' }, indigo: { bg: 'bg-indigo-50'
-                                    , text: 'text-indigo-500' , badgeBg: 'bg-indigo-100' , badgeText: 'text-indigo-700'
-                                    }, green: { bg: 'bg-green-50' , text: 'text-green-500' , badgeBg: 'bg-green-100' ,
-                                    badgeText: 'text-green-700' }, purple: { bg: 'bg-purple-50' ,
-                                    text: 'text-purple-500' , badgeBg: 'bg-purple-100' , badgeText: 'text-purple-700' },
-                                    orange: { bg: 'bg-orange-50' , text: 'text-orange-500' , badgeBg: 'bg-orange-100' ,
-                                    badgeText: 'text-orange-700' }, red: { bg: 'bg-red-50' , text: 'text-red-500' ,
-                                    badgeBg: 'bg-red-100' , badgeText: 'text-red-700' } }; safeClasses['default']={
-                                    bg: 'bg-slate-100' , text: 'text-slate-500' , badgeBg: 'bg-slate-100' ,
-                                    badgeText: 'text-slate-700' }; %>
+                    <!-- BRANDED TOOLBAR -->
+                    <div class="bg-white border border-slate-200 p-2 rounded-2xl mb-10 shadow-sm flex flex-col lg:flex-row items-center gap-2">
+                        <div class="flex-grow relative w-full lg:w-auto">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-magnifying-glass text-slate-300 text-sm"></i>
+                            </div>
+                            <input type="text" id="course-search" placeholder="Quick find by name..." 
+                                class="w-full pl-11 pr-4 py-2.5 bg-transparent border-none focus:ring-0 outline-none font-semibold text-slate-700 placeholder:text-slate-300">
+                        </div>
+                        
+                        <div class="flex items-center gap-2 w-full lg:w-auto border-t lg:border-t-0 lg:border-l border-slate-100 pt-2 lg:pt-0 lg:pl-2">
+                            <div class="relative w-full lg:w-[220px]">
+                                <select id="course-sort" class="w-full pl-3 pr-10 py-2.5 bg-transparent border-none appearance-none focus:ring-0 outline-none font-bold text-slate-500 text-sm cursor-pointer hover:text-amber-500 transition-colors">
+                                    <option value="newest">Sort: Recently Added</option>
+                                    <option value="price-low">Price: Lowest first</option>
+                                    <option value="price-high">Price: Highest first</option>
+                                    <option value="name">Alpha: Name A-Z</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <i class="fa-solid fa-chevron-down text-slate-300 text-[10px]"></i>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
 
-                                    <% courses.forEach(course=> {
-                                        const themeKey = course.iconBg ? course.iconBg.split('-')[0] : 'blue';
-                                        const theme = safeClasses[themeKey] || safeClasses.default;
-                                        const badgeThemeKey = course.badgeColor || 'blue';
-                                        const badgeTheme = safeClasses[badgeThemeKey] || safeClasses.default;
-                                        %>
-                                        <div
-                                            class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-center gap-6 group">
-                                            <!-- Icon -->
-                                            <div
-                                                class="w-16 h-16 rounded-xl <%= theme.bg %> flex items-center justify-center text-3xl shrink-0 <%= theme.text %> group-hover:scale-110 transition-transform duration-300">
-                                                <%= course.icon %>
+                    <!-- COURSE MANAGEMENT GRID -->
+                    <div id="course-list-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <% if (courses.length === 0) { %>
+                            <div class="col-span-full bg-white rounded-[2rem] p-24 text-center border border-dashed border-slate-200">
+                                <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8">
+                                    <i class="fa-solid fa-layer-group text-4xl text-slate-300"></i>
+                                </div>
+                                <h3 class="text-2xl font-black text-slate-800 tracking-tight text-brand-navy">Ecosystem is Empty</h3>
+                                <p class="text-slate-400 max-w-sm mx-auto mt-3 font-medium">No programs found in your current view. Start adding courses to grow your brand.</p>
+                                <button onclick="openAddModal()" class="mt-10 px-10 py-4 bg-amber-400 text-[#0a0f1e] font-black rounded-2xl hover:bg-amber-500 transition-all shadow-xl shadow-amber-400/20">
+                                    Add First Course
+                                </button>
+                            </div>
+                        <% } %>
+
+                        <% courses.forEach(course => { %>
+                            <div class="course-card bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500 group flex flex-col relative" 
+                                 data-title="<%= course.title.toLowerCase() %>" 
+                                 data-price="<%= course.price %>" 
+                                 data-date="<%= course.createdAt %>">
+                                
+                                <!-- Card Media (Brand Placeholder) -->
+                                <div class="relative aspect-[16/10] overflow-hidden bg-slate-50 rounded-t-2xl">
+                                    <% if (course.thumbnailUrl) { %>
+                                        <img src="<%= course.thumbnailUrl %>" alt="<%= course.title %>" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                                    <% } else { %>
+                                        <div class="w-full h-full bg-gradient-to-br from-[#0a0f1e] via-[#1a2544] to-[#0a0f1e] flex flex-col items-center justify-center text-white/10 gap-4 group-hover:via-amber-500/10 transition-all duration-700">
+                                            <div class="w-16 h-16 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center transform transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-2xl">
+                                                <span class="text-4xl transition-all duration-500 filter group-hover:drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]">
+                                                    <%= course.icon || '📚' %>
+                                                </span>
                                             </div>
+                                            <span class="text-[9px] font-black uppercase tracking-[0.3em] text-amber-500/40 group-hover:text-amber-500 transition-all">Platform Program</span>
+                                        </div>
+                                    <% } %>
 
-                                            <!-- Info -->
-                                            <div class="flex-grow text-center sm:text-left">
-                                                <div
-                                                    class="flex items-center justify-center sm:justify-start gap-2 mb-1">
-                                                    <h3 class="font-bold text-slate-800 text-lg">
-                                                        <%= course.title %>
-                                                    </h3>
-                                                    <% if (course.badge) { %>
-                                                        <span
-                                                            class="<%= badgeTheme.badgeBg %> <%= badgeTheme.badgeText %> text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                                                            <%= course.badge %>
-                                                        </span>
-                                                        <% } %>
-                                                </div>
-                                                <p class="text-slate-500 text-sm line-clamp-1 mb-2">
-                                                    <%= course.description %>
-                                                </p>
+                                    <!-- Status Overlays -->
+                                    <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                                        <% if (!course.isPublished) { %>
+                                            <span class="px-2.5 py-1 bg-slate-900/90 text-[8px] font-black text-white uppercase tracking-wider rounded border border-white/10 backdrop-blur-sm">Offline</span>
+                                        <% } %>
+                                        <% if (course.isPromoted) { %>
+                                            <span class="px-2.5 py-1 bg-amber-400 text-[8px] font-black text-[#0a0f1e] uppercase tracking-wider rounded border border-amber-500/10 shadow-sm shadow-amber-400/20">Trending</span>
+                                        <% } %>
+                                    </div>
 
-                                                <div
-                                                    class="flex items-center justify-center sm:justify-start gap-4 text-xs font-medium text-slate-400">
-                                                    <span class="flex items-center gap-1"><i
-                                                            class="fa-solid fa-users"></i>
-                                                        <%= course.users %> Users
-                                                    </span>
-                                                    <span class="text-slate-600 font-bold ml-2">₹<%= course.price %>
-                                                            <span class="line-through text-slate-300 font-normal ml-1">₹
-                                                                <%= course.originalPrice %>
-                                                            </span></span>
-                                                </div>
+                                    <!-- Quick Actions Floating Layer (MUST have highest z-index) -->
+                                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-300 flex items-center justify-center gap-2 z-50 backdrop-blur-[2px]">
+                                        <button onclick="openAdminCoursesEditModal('<%= course.id %>')" class="w-10 h-10 rounded-xl bg-amber-400 text-[#0a0f1e] flex items-center justify-center hover:bg-amber-500 transition-all transform scale-90 group-hover:scale-100 shadow-xl relative z-50" title="Configure">
+                                            <i class="fa-solid fa-wrench text-xs pointer-events-none"></i>
+                                        </button>
+                                        <form action="/admin/courses/delete/<%= course.id %>" method="POST" class="inline relative z-50">
+                                            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                            <button type="submit" class="w-10 h-10 rounded-xl bg-white text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all transform scale-90 delay-75 group-hover:scale-100 shadow-xl" title="Remove">
+                                                <i class="fa-solid fa-trash-can text-xs pointer-events-none"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- Card Bio -->
+                                <div class="p-6 flex flex-col flex-grow">
+                                    <div class="flex items-center justify-between gap-3 mb-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-[10px] font-black">
+                                                ID
                                             </div>
+                                            <span class="text-[10px] font-black text-slate-300 uppercase tracking-tighter">#<%= course.id.slice(-6) %></span>
+                                        </div>
+                                        <span class="px-2 py-0.5 bg-slate-50 text-slate-400 text-[8px] font-black uppercase rounded"><%= course.level || 'Mastery' %></span>
+                                    </div>
 
-                                            <!-- Actions -->
+                                    <a href="/courses/<%= course.id %>/view" class="group/title relative z-20">
+                                        <h3 class="text-xl font-black text-slate-800 tracking-tight group-hover/card:text-blue-600 transition-colors">
+                                            <%= course.title %>
+                                        </h3>
+                                    </a>
+
+                                    <p class="text-[11px] font-bold text-slate-400 line-clamp-1 mb-5 opacity-70">
+                                        Program Lead: <span class="text-slate-600">The Saran Trader</span>
+                                    </p>
+
+                                    <!-- Footer Stats -->
+                                    <div class="mt-auto pt-5 border-t border-slate-100 flex items-end justify-between">
+                                        <div class="flex flex-col gap-0.5">
+                                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none">Net Tuition</span>
                                             <div class="flex items-center gap-2">
-                                                <button data-course-id="<%= course.id %>"
-                                                    class="edit-course-btn w-10 h-10 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 flex items-center justify-center transition-colors"
-                                                    title="Edit Course">
-                                                    <i class="fa-solid fa-pen"></i>
-                                                </button>
-                                                <form action="/admin/courses/delete/<%= course.id %>" method="POST"
-                                                    onsubmit="return confirm('Are you sure you want to delete this course?');">
-                                                    <input type="hidden" name="_csrf"
-                                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                    <button type="submit"
-                                                        class="w-10 h-10 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors"
-                                                        title="Delete Course">
-                                                        <i class="fa-solid fa-trash"></i>
-                                                    </button>
-                                                </form>
+                                                <span class="text-xl font-black text-slate-900">₹<%= course.price %></span>
+                                                <% if (course.originalPrice > course.price) { %>
+                                                    <span class="text-[10px] text-slate-300 line-through font-bold">₹<%= course.originalPrice %></span>
+                                                <% } %>
                                             </div>
                                         </div>
-                                        <% }); %>
-                    </div>
-                </div>
-
-            </div>
+                                        <div class="flex flex-col items-end gap-1">
+                                            <div class="flex items-center -space-x-1.5">
+                                                <div class="w-5 h-5 rounded-full border border-white bg-slate-100 flex items-center justify-center text-[7px] font-black text-slate-400">JK</div>
+                                                <div class="w-5 h-5 rounded-full border border-white bg-amber-100 flex items-center justify-center text-[7px] font-black text-amber-600">+<%= course.users %></div>
+                                            </div>
+                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Enrollment</span>
+                                        </div>
+                                    </div> <!-- Close Footer Stats -->
+                                </div> <!-- Close Bio -->
+                            </div> <!-- Close Course Card -->
+                        <% }) %>
+                    </div> <!-- Close Grid -->
+                </div> <!-- Close Max-Width Container -->
+            </main>
         </div>
-    </main>
+    </div>
 
-    <!-- Edit Course Modal -->
-    <div id="editCourseModal"
-        class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 backdrop-blur-sm p-4 [&:not(.hidden)]:flex">
-        <div
-            class="bg-white rounded-2xl shadow-xl w-full max-w-lg transform transition-all scale-100 flex flex-col max-h-[85vh]">
-            <div
-                class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 flex-none rounded-t-2xl">
-                <h3 class="text-lg font-bold text-slate-800">Edit Course</h3>
-                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
-                    <i class="fa-solid fa-times text-xl"></i>
+    <!-- Add/Edit Course Modal (Unified Overlay) -->
+    <div id="courseModal" class="hidden fixed inset-0 z-50 items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 [&:not(.hidden)]:flex">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl transform transition-all scale-100 flex flex-col max-h-[90vh] overflow-hidden border border-white/20">
+            <!-- Modal Header -->
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-none">
+                <div>
+                    <h3 id="modalTitle" class="text-xl font-bold text-slate-900">Create New Course</h3>
+                    <p id="modalSubttile" class="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Define your program parameters</p>
+                </div>
+                <button onclick="closeModal()" class="w-10 h-10 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-all flex items-center justify-center">
+                    <i class="fa-solid fa-times text-lg"></i>
                 </button>
             </div>
 
-            <div class="overflow-y-auto custom-scrollbar flex-grow">
-                <form id="editCourseForm" method="POST" class="p-6 space-y-4 pb-12">
+            <!-- Modal Body (Scrollable) -->
+            <div class="overflow-y-auto overflow-x-hidden custom-scrollbar flex-grow bg-white">
+                <!-- SUBMISSION FORM -->
+                <form id="courseForm" action="/admin/courses/add" method="POST" enctype="multipart/form-data" class="space-y-8 p-8">
                     <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Course Title</label>
-                        <input type="text" name="title" id="edit-title" required
-                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                    </div>
+                    <input type="hidden" name="courseId" id="form-courseId">
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Description</label>
-                        <textarea name="description" id="edit-description" required rows="3"
-                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Zoom Meeting Details</label>
-                        <div class="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Setup</span>
-                                <button type="button" onclick="showEditLinkHelper()" 
-                                    class="text-[10px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-fill from Link
-                                </button>
-                            </div>
-
-                            <div id="edit-link-helper-container" class="hidden mb-3 animate-fade-in">
-                                <input type="text" id="edit-zoom-link-helper" 
-                                    placeholder="Paste Zoom link here..."
-                                    oninput="autoFillEditZoomDetails(this.value)"
-                                    class="w-full px-3 py-2 text-xs rounded-lg border-2 border-dashed border-blue-200 focus:border-blue-400 outline-none bg-blue-50/50">
-                            </div>
-
-                            <div class="grid grid-cols-1 gap-3">
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fa-solid fa-hashtag text-slate-400 text-xs"></i>
-                                    </div>
-                                    <input type="text" name="zoomMeetingId" id="edit-zoomMeetingId" placeholder="Meeting ID"
-                                        class="w-full pl-8 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <!-- Basic Information Section -->
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-3 pb-2 border-b border-slate-50">
+                            <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center text-xs"><i class="fa-solid fa-info"></i></span>
+                            <h4 class="text-sm font-black text-slate-900 uppercase tracking-widest">General Details</h4>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                        Course Title <span class="text-amber-500">*</span>
+                                    </label>
+                                    <input type="text" name="title" id="form-title" required placeholder="e.g. Price Action Mastery 2.0"
+                                        class="w-full px-5 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-amber-500/10 focus:border-amber-400 outline-none transition-all font-bold text-slate-900">
                                 </div>
-                                <div class="relative group">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fa-solid fa-key text-slate-400 text-xs"></i>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Program Thumbnail</label>
+                                    <div class="relative group">
+                                        <input type="file" name="thumbnailUrl" id="thumbnailInput" accept="image/*"
+                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                        <div class="w-full px-5 py-3 bg-white border-2 border-dashed border-slate-200 rounded-xl flex items-center gap-4 group-hover:border-amber-400 transition-all">
+                                            <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center">
+                                                <i class="fa-solid fa-image"></i>
+                                            </div>
+                                            <div class="flex-grow overflow-hidden">
+                                                <p class="text-[10px] font-black text-slate-600 uppercase truncate" id="fileNamePlaceholder">Select Image File</p>
+                                                <p class="text-[8px] font-bold text-slate-400">JPG, PNG, WebP (Max 2MB)</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <input type="text" name="zoomPassword" id="edit-zoomPassword" placeholder="Passcode (Numeric)"
-                                        class="w-full pl-8 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                                    <div id="edit-pwd-warning" class="hidden absolute left-0 -bottom-5 w-full text-[9px] font-bold text-orange-500 animate-pulse px-1">
-                                        ⚠️ Link Hash detected! Use numeric passcode.
+                                    
+                                    <!-- Preview Area -->
+                                    <div id="thumbnailPreview" class="hidden mt-4 relative aspect-video rounded-xl overflow-hidden border border-slate-100 bg-slate-50 group/preview">
+                                        <img src="" class="w-full h-full object-cover">
+                                        <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/preview:opacity-100 transition-all flex items-center justify-center">
+                                            <span class="text-[10px] font-black text-white uppercase tracking-widest">Current Image</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">YouTube Demo Video URL</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fa-brands fa-youtube text-red-400"></i>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                    Program Bio <span class="text-amber-500">*</span>
+                                </label>
+                                <textarea name="description" id="form-description" required rows="6" placeholder="Explain what traders will learn in this program..."
+                                    class="w-full px-5 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-amber-500/10 focus:border-amber-400 outline-none transition-all font-medium text-slate-700"></textarea>
                             </div>
-                            <input type="url" name="demoVideoUrl" id="edit-demoVideoUrl"
-                                placeholder="https://www.youtube.com/watch?v=..."
-                                class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none transition-all">
-                        </div>
-                        <p class="text-xs text-slate-400 mt-1">Shown to users on the enroll page as a preview</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Start Date</label>
-                            <input type="date" name="startDate" id="edit-startDate"
-                                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">End Date</label>
-                            <input type="date" name="endDate" id="edit-endDate"
-                                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Enrollment Deadline</label>
-                        <input type="date" name="enrollmentDeadline" id="edit-enrollmentDeadline"
-                            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                        <p class="text-xs text-slate-400 mt-1">Users cannot enroll after this date</p>
+                    <!-- Platform & Visibility Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-6">
+                            <div class="flex items-center gap-3 pb-2 border-b border-slate-50">
+                                <span class="w-8 h-8 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center text-xs"><i class="fa-solid fa-eye"></i></span>
+                                <h4 class="text-sm font-black text-slate-900 uppercase tracking-widest">Visibility</h4>
+                            </div>
+                            <div class="space-y-4">
+                                <label class="flex items-center gap-3 p-4 rounded-2xl border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors group">
+                                    <input type="checkbox" name="isPublished" id="form-isPublished" class="w-5 h-5 rounded border-slate-300 text-sky-500 focus:ring-sky-500/20" checked>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold text-slate-900">Publish Course</span>
+                                        <span class="text-[10px] font-medium text-slate-400">Make it visible to all prospective students</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-4 rounded-2xl border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors group">
+                                    <input type="checkbox" name="isPromoted" id="form-isPromoted" class="w-5 h-5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500/20">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold text-slate-900">Promote Course</span>
+                                        <span class="text-[10px] font-medium text-slate-400">Highlight with a green badge on the grid</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="flex items-center gap-3 pb-2 border-b border-slate-50">
+                                <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fa-solid fa-indian-rupee-sign"></i></span>
+                                <h4 class="text-sm font-black text-slate-900 uppercase tracking-widest">Pricing</h4>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
+                                        Current ₹ <span class="text-amber-500">*</span>
+                                    </label>
+                                    <input type="number" name="price" id="form-price" required min="0" placeholder="2999"
+                                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-4 focus:ring-sky-500/10 outline-none font-bold text-slate-900">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
+                                        Original ₹ <span class="text-amber-500">*</span>
+                                    </label>
+                                    <input type="number" name="originalPrice" id="form-originalPrice" required min="0" placeholder="5999"
+                                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-4 focus:ring-sky-500/10 outline-none font-medium text-slate-400">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Price (₹)</label>
-                            <input type="number" name="price" id="edit-price" required min="0"
-                                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Original Price (₹)</label>
-                            <input type="number" name="originalPrice" id="edit-originalPrice" required min="0"
-                                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Badge Text</label>
-                            <input type="text" name="badge" id="edit-badge"
-                                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Badge Color</label>
-                            <select name="badgeColor" id="edit-badgeColor"
-                                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                                <option value="blue">Blue</option>
-                                <option value="green">Green</option>
-                                <option value="orange">Orange</option>
-                                <option value="red">Red</option>
-                                <option value="purple">Purple</option>
-                                <option value="indigo">Indigo</option>
+                    <!-- Course Meta (Level & Badges) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-4">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Program Level</label>
+                            <select name="level" id="form-level"
+                                class="w-full px-5 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-semibold text-slate-700">
+                                <option value="">General (No Level)</option>
+                                <option value="Learn Step 1">Learn Step 1</option>
+                                <option value="Nifty Zoom Live Session">Nifty Zoom Live Session</option>
+                                <option value="Nifty+Zoom+Commodity">Nifty+Zoom+Commodity</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="relative">
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Icon Emoji</label>
-                            <input type="hidden" name="icon" id="edit-icon-input">
-
-                            <!-- Dropdown Trigger -->
-                            <button type="button" id="edit-icon-dropdown-trigger"
-                                class="w-full px-4 py-3 text-left bg-white border border-slate-300 rounded-lg flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all group">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 flex items-center justify-center">
-                                        <span id="edit-selected-icon-display" class="text-2xl leading-none">📚</span>
-                                    </div>
-                                    <span id="edit-selected-icon-label"
-                                        class="text-sm font-semibold text-slate-700">Books</span>
-                                </div>
-                                <i
-                                    class="fa-solid fa-chevron-down text-slate-400 text-sm group-hover:text-blue-500 transition-colors"></i>
-                            </button>
-
-                            <!-- Dropdown Menu -->
-                            <div id="icon-dropdown-menu-edit"
-                                class="hidden absolute z-50 top-full mt-1 w-72 max-h-60 overflow-y-auto custom-scrollbar bg-white border border-slate-200 rounded-xl shadow-xl p-3 transform transition-all origin-top left-0 sm:left-auto">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <% const editIcons=[ { emoji: '📚' , label: 'Books' }, { emoji: '📈' ,
-                                        label: 'Chart Up' }, { emoji: '📉' , label: 'Chart Down' }, { emoji: '💰' ,
-                                        label: 'Money' }, { emoji: '🎓' , label: 'Graduation' }, { emoji: '💎' ,
-                                        label: 'Premium' }, { emoji: '🚀' , label: 'Growth' }, { emoji: '📊' ,
-                                        label: 'Analysis' }, { emoji: '🧠' , label: 'Psychology' }, { emoji: '🎯' ,
-                                        label: 'Target' }, { emoji: '💡' , label: 'Idea' }, { emoji: '⭐' ,
-                                        label: 'Featured' } ]; %>
-                                        <% editIcons.forEach(item=> { %>
-                                            <button type="button"
-                                                onclick="selectEditIcon(this, '<%= item.emoji %>', '<%= item.label %>')"
-                                                data-icon="<%= item.emoji %>" data-label="<%= item.label %>"
-                                                class="edit-icon-btn w-full flex items-center justify-start gap-2 px-1 py-2 rounded-lg border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition-all group/btn bg-white">
-                                                <span
-                                                    class="text-2xl transition-transform group-hover/btn:scale-110 text-slate-400 grayscale group-hover/btn:grayscale-0">
-                                                    <%= item.emoji %>
-                                                </span>
-                                                <span
-                                                    class="text-sm font-medium text-slate-700 group-hover/btn:text-slate-900">
-                                                    <%= item.label %>
-                                                </span>
-                                            </button>
-                                            <% }); %>
-                                </div>
+                        <div class="space-y-4">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Promotional Badge</label>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <input type="text" name="badge" id="form-badge" placeholder="e.g. New"
+                                    class="sm:col-span-2 px-5 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-semibold text-slate-700">
+                                <select name="badgeColor" id="form-badgeColor"
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-semibold text-slate-700">
+                                    <option value="blue">Blue</option>
+                                    <option value="green">Green</option>
+                                    <option value="orange">Orange</option>
+                                    <option value="red">Red</option>
+                                    <option value="emerald">Emerald</option>
+                                    <option value="amber">Amber</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="relative">
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Color Theme</label>
-                            <input type="hidden" name="colorTheme" id="edit-color-input">
+                    </div>
 
-                            <!-- Dropdown Trigger -->
-                            <button type="button" id="edit-color-dropdown-trigger"
-                                class="w-full px-4 py-3 text-left bg-white border border-slate-300 rounded-lg flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all group">
-                                <div class="flex items-center gap-3">
-                                    <div id="edit-selected-color-preview"
-                                        class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center border border-blue-100">
-                                        <div class="w-4 h-4 rounded-full bg-current"></div>
-                                    </div>
-                                    <span id="edit-selected-color-label"
-                                        class="text-sm font-semibold text-slate-700">Blue</span>
+                    <!-- Zoom Setup -->
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-3 pb-2 border-b border-slate-50">
+                            <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center text-xs"><i class="fa-solid fa-video"></i></span>
+                            <h4 class="text-sm font-black text-slate-900 uppercase tracking-widest">Zoom Integration</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i class="fa-solid fa-hashtag text-slate-300"></i>
                                 </div>
-                                <i
-                                    class="fa-solid fa-chevron-down text-slate-400 text-sm group-hover:text-blue-500 transition-colors"></i>
-                            </button>
+                                <input type="text" name="zoomMeetingId" id="form-zoomMeetingId" placeholder="Meeting ID"
+                                    class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium">
+                            </div>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i class="fa-solid fa-key text-slate-300"></i>
+                                </div>
+                                <input type="text" name="zoomPassword" id="form-zoomPassword" placeholder="Passcode"
+                                    class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium">
+                            </div>
+                        </div>
+                        <div class="mt-4 relative">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Daily Live Schedule (Admin Only)</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i class="fa-solid fa-clock text-slate-300"></i>
+                                </div>
+                                <input type="text" name="dailyLiveTime" id="form-dailyLiveTime" placeholder="e.g. 10:30 AM Everyday"
+                                    class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium">
+                            </div>
+                        </div>
+                    </div>
 
-                            <!-- Dropdown Menu -->
-                            <div id="color-dropdown-menu-edit"
-                                class="hidden absolute z-50 top-full mt-1 w-72 max-h-60 overflow-y-auto custom-scrollbar bg-white border border-slate-200 rounded-xl shadow-xl p-3 transform transition-all origin-top left-0 sm:left-auto">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <% colors.forEach(item=> { %>
-                                        <button type="button"
-                                            onclick="selectEditColor(this, '<%= item.value %>', '<%= item.label %>', '<%= item.bg %>', '<%= item.text %>')"
-                                            data-color="<%= item.value %>" data-label="<%= item.label %>"
-                                            data-bg="<%= item.bg %>" data-text="<%= item.text %>"
-                                            class="edit-color-btn w-full flex items-center justify-start gap-2 px-2 py-2 rounded-lg border border-slate-100 hover:bg-slate-50 transition-all group/btn bg-white">
-                                            <div
-                                                class="w-8 h-8 rounded-full <%= item.bg %> <%= item.text %> flex items-center justify-center border border-slate-100">
-                                                <div class="w-4 h-4 rounded-full bg-current"></div>
-                                            </div>
-                                            <span class="text-sm font-medium text-slate-700">
-                                                <%= item.label %>
-                                            </span>
-                                        </button>
-                                        <% }); %>
-                                </div>
+                    <!-- Timings & Schedule -->
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-3 pb-2 border-b border-slate-50">
+                            <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center text-xs"><i class="fa-solid fa-calendar-alt"></i></span>
+                            <h4 class="text-sm font-black text-slate-900 uppercase tracking-widest">Timings & Schedule</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Start Date</label>
+                                <input type="date" name="startDate" id="form-startDate" required
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">End Date</label>
+                                <input type="date" name="endDate" id="form-endDate" required
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Enrollment Deadline</label>
+                                <input type="date" name="enrollmentDeadline" id="form-enrollmentDeadline" required
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-sky-500 outline-none font-medium">
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
 
-            <div class="p-6 border-t border-slate-100 bg-slate-50 flex-none rounded-b-2xl">
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeEditModal()"
-                        class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" form="editCourseForm"
-                        class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all transform hover:-translate-y-0.5">
-                        Save Changes
-                    </button>
-                </div>
+            <!-- Modal Footer (Actions) -->
+            <div class="p-8 border-t border-slate-50 bg-slate-50/50 flex flex-col sm:flex-row gap-4 flex-none">
+                <button onclick="closeModal()" class="flex-1 py-3 px-6 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-2xl transition-all">
+                    Cancel
+                </button>
+                <button type="submit" form="courseForm" id="submitBtn"
+                    class="flex-[2] py-3 px-6 bg-slate-900 hover:bg-black text-white font-bold rounded-2xl shadow-xl shadow-slate-900/20 transition-all transform hover:-translate-y-0.5">
+                    Create Course
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Pass Courses Data Safely -->
+    <!-- Pass Courses Data Safely & Define Logic -->
     <script>
-        // Using encodeURIComponent to prevent syntax errors in IDE and handle special characters safely
+        // Data Injection
         const rawCoursesData = "<%- encodeURIComponent(JSON.stringify(courses)) %>";
         window.allCourses = JSON.parse(decodeURIComponent(rawCoursesData));
-    </script>
 
-    <%- include('../partials/footer') %>
-</div>
-    </div>
+        // --- Modal Logic ---
+        function formatToDateInput(dateString) {
+            if (!dateString) return '';
+            const d = new Date(dateString);
+            if (isNaN(d.getTime())) return '';
+            return d.toISOString().split('T')[0];
+        }
+
+        function openAddModal() {
+            const modal = document.getElementById('courseModal');
+            const form = document.getElementById('courseForm');
+            const title = document.getElementById('modalTitle');
+            const submitBtn = document.getElementById('submitBtn');
+
+            form.reset();
+            form.action = '/admin/courses/add';
+            form.method = 'POST';
+            document.getElementById('form-courseId').value = '';
+            
+            title.innerText = 'Create New Course';
+            submitBtn.innerText = 'Create Course';
+            
+            // Default states
+            document.getElementById('form-isPublished').checked = true;
+            document.getElementById('form-isPromoted').checked = false;
+            document.getElementById('thumbnailInput').value = '';
+            document.getElementById('thumbnailPreview').classList.add('hidden');
+            document.getElementById('fileNamePlaceholder').textContent = 'Select Image File';
+
+            // Reset Dates
+            document.getElementById('form-startDate').value = '';
+            document.getElementById('form-endDate').value = '';
+            document.getElementById('form-enrollmentDeadline').value = '';
+
+            modal.classList.remove('hidden');
+        }
+
+        async function openAdminCoursesEditModal(courseId) {
+            const modal = document.getElementById('courseModal');
+            const form = document.getElementById('courseForm');
+            const title = document.getElementById('modalTitle');
+            const submitBtn = document.getElementById('submitBtn');
+
+            title.innerText = 'Edit Course Details';
+            submitBtn.innerText = 'Save Changes';
+            form.action = `/admin/courses/edit/${courseId}`;
+            
+            try {
+                // Fetch fresh course data
+                const response = await fetch(`/admin/courses/api/${courseId}`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const course = await response.json();
+
+                if (course) {
+                    document.getElementById('form-courseId').value = course.id;
+                    document.getElementById('form-title').value = course.title || '';
+                    document.getElementById('form-description').value = course.description || '';
+                    document.getElementById('form-price').value = course.price || 0;
+                    document.getElementById('form-originalPrice').value = course.originalPrice || 0;
+                    document.getElementById('form-level').value = course.level || '';
+                    document.getElementById('form-badge').value = course.badge || '';
+                    document.getElementById('form-badgeColor').value = course.badgeColor || 'blue';
+                    document.getElementById('form-zoomMeetingId').value = course.zoomMeetingId || '';
+                    document.getElementById('form-zoomPassword').value = course.zoomPassword || '';
+                    document.getElementById('form-dailyLiveTime').value = course.dailyLiveTime || '';
+
+                    // Date population
+                    document.getElementById('form-startDate').value = formatToDateInput(course.startDate);
+                    document.getElementById('form-endDate').value = formatToDateInput(course.endDate);
+                    document.getElementById('form-enrollmentDeadline').value = formatToDateInput(course.enrollmentDeadline);
+                    
+                    // Boolean logic for checkboxes
+                    document.getElementById('form-isPublished').checked = course.isPublished !== false;
+                    document.getElementById('form-isPromoted').checked = course.isPromoted === true;
+
+                    // Handle Thumbnail Preview
+                    const thumbnailPreview = document.getElementById('thumbnailPreview');
+                    const fileNamePlaceholder = document.getElementById('fileNamePlaceholder');
+                    
+                    if (course.thumbnailUrl) {
+                        thumbnailPreview.classList.remove('hidden');
+                        thumbnailPreview.querySelector('img').src = course.thumbnailUrl;
+                        fileNamePlaceholder.textContent = 'Existing: ' + course.thumbnailUrl.split('/').pop();
+                    } else {
+                        thumbnailPreview.classList.add('hidden');
+                        fileNamePlaceholder.textContent = 'Select Image File';
+                    }
+
+                    modal.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error fetching course:', error);
+                alert('Failed to load course details. Check console for details.');
+            }
+        }
+
+        // Preview Logic for Thumbnail Upload
+        document.getElementById('thumbnailInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('thumbnailPreview');
+            const placeholder = document.getElementById('fileNamePlaceholder');
+            
+            if (file) {
+                placeholder.textContent = 'Ready: ' + file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.classList.remove('hidden');
+                    preview.querySelector('img').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            } else {
+                placeholder.textContent = 'Select Image File';
+                preview.classList.add('hidden');
+            }
+        });
+
+        function closeModal() {
+            document.getElementById('courseModal').classList.add('hidden');
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('courseModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // --- AJAX Form Submission to prevent redirection ---
+        document.getElementById('courseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerText;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
+            submitBtn.disabled = true;
+
+            try {
+                const formData = new FormData(this);
+                const csrfToken = formData.get('_csrf'); // Extract CSRF token from FormData
+
+                const response = await fetch(this.action, {
+                    method: this.method || 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfToken // Explicitly set CSRF header
+                    },
+                    body: formData
+                });
+
+                const contentType = response.headers.get('content-type');
+                let result = {};
+                if (contentType && contentType.includes('application/json')) {
+                    result = await response.json();
+                }
+
+                if (response.ok && result.success) {
+                    closeModal();
+                    // Show success toast or alert
+                    alert(result.message || 'Course saved successfully!');
+                    // Force reload to show new data
+                    window.location.reload();
+                } else {
+                    // Handle failure
+                    let errorMessage = result.message || 'Error saving course. Please check inputs.';
+                    
+                    // Specific check for CSRF errors or Login redirects
+                    if (response.redirected && response.url.includes('/login')) {
+                        errorMessage = 'Your session has expired. Please refresh the page and login again.';
+                    } else if (response.status === 403) {
+                        errorMessage = 'Security validation failed (CSRF). Please refresh the page.';
+                    }
+
+                    alert(errorMessage);
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('Network error while saving course. Please try again.');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // --- Search & Filter Logic ---
+        const searchInput = document.getElementById('course-search');
+        const sortSelect = document.getElementById('course-sort');
+        const grid = document.getElementById('course-list-grid');
+
+        function filterAndSort() {
+            const query = searchInput.value.toLowerCase();
+            const sortBy = sortSelect.value;
+            const cards = Array.from(document.querySelectorAll('.course-card'));
+
+            // Real-time filtering
+            cards.forEach(card => {
+                const title = card.dataset.title;
+                card.classList.toggle('hidden', !title.includes(query));
+            });
+
+            // Sorting engine
+            const visibleCards = cards.filter(c => !c.classList.contains('hidden'));
+            visibleCards.sort((a, b) => {
+                if (sortBy === 'name') return a.dataset.title.localeCompare(b.dataset.title);
+                if (sortBy === 'price-low') return parseInt(a.dataset.price) - parseInt(b.dataset.price);
+                if (sortBy === 'price-high') return parseInt(b.dataset.price) - parseInt(a.dataset.price);
+                if (sortBy === 'newest') return new Date(b.dataset.date) - new Date(a.dataset.date);
+                return 0;
+            });
+
+            // Re-render in grid
+            visibleCards.forEach(card => grid.appendChild(card));
+        }
+
+        if (searchInput) searchInput.addEventListener('input', filterAndSort);
+        if (sortSelect) sortSelect.addEventListener('change', filterAndSort);
+    </script>
 
     <script src="/javascripts/main.js" defer></script>
     <script src="/javascripts/admin.js" defer></script>
-
-    <script>
-        function showAddLinkHelper() {
-            const container = document.getElementById('add-link-helper-container');
-            container.classList.toggle('hidden');
-            if (!container.classList.contains('hidden')) {
-                document.getElementById('add-zoom-link-helper').focus();
-            }
-        }
-
-        function showEditLinkHelper() {
-            const container = document.getElementById('edit-link-helper-container');
-            container.classList.toggle('hidden');
-            if (!container.classList.contains('hidden')) {
-                document.getElementById('edit-zoom-link-helper').focus();
-            }
-        }
-
-        function autoFillAddZoomDetails(url) {
-            if (!url) return;
-            const idMatch = url.match(/\/j\/(\d+)/);
-            if (idMatch && idMatch[1]) document.getElementById('add-zoomMeetingId').value = idMatch[1];
-            
-            const pwdMatch = url.match(/pwd=([^&]+)/);
-            const pwdInput = document.getElementById('add-zoomPassword');
-            const warning = document.getElementById('add-pwd-warning');
-            
-            if (pwdMatch && pwdMatch[1]) {
-                pwdInput.value = pwdMatch[1];
-                // Show warning if it looks like a long hash
-                if (pwdMatch[1].length > 15) {
-                    warning.classList.remove('hidden');
-                    pwdInput.classList.add('border-orange-300', 'bg-orange-50/30');
-                } else {
-                    warning.classList.add('hidden');
-                    pwdInput.classList.remove('border-orange-300', 'bg-orange-50/30');
-                }
-            }
-        }
-
-        function autoFillEditZoomDetails(url) {
-            if (!url) return;
-            const idMatch = url.match(/\/j\/(\d+)/);
-            if (idMatch && idMatch[1]) document.getElementById('edit-zoomMeetingId').value = idMatch[1];
-            
-            const pwdMatch = url.match(/pwd=([^&]+)/);
-            const pwdInput = document.getElementById('edit-zoomPassword');
-            const warning = document.getElementById('edit-pwd-warning');
-            
-            if (pwdMatch && pwdMatch[1]) {
-                pwdInput.value = pwdMatch[1];
-                // Show warning if it looks like a long hash
-                if (pwdMatch[1].length > 15) {
-                    warning.classList.remove('hidden');
-                    pwdInput.classList.add('border-orange-300', 'bg-orange-50/30');
-                } else {
-                    warning.classList.add('hidden');
-                    pwdInput.classList.remove('border-orange-300', 'bg-orange-50/30');
-                }
-            }
-        }
-    </script>
 </body>
-
 </html>

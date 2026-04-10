@@ -83,6 +83,9 @@ STYLING:
         crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <link rel="stylesheet" href="/stylesheets/output.css">
+    
+    <!-- Swiper.js for Hero Carousel -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <style>
         @keyframes pulse-live {
 
@@ -130,6 +133,59 @@ STYLING:
 
             <main class="flex-grow pb-12">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-10">
+
+                <!-- ---------------- DASHBOARD BANNERS ---------------- -->
+                <% if (typeof dashboardImages !== 'undefined' && dashboardImages.length > 0) { %>
+                <div class="mb-10 relative group">
+                    <!-- Swiper Container -->
+                    <div class="swiper heroSwiper rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white shadow-brand-navy/5">
+                        <div class="swiper-wrapper">
+                            <% dashboardImages.forEach((img, index) => { %>
+                                <div class="swiper-slide relative aspect-[21/9] sm:aspect-[24/9] lg:aspect-[32/9]">
+                                    <img src="<%= img %>" 
+                                         class="absolute inset-0 w-full h-full object-cover transition-transform duration-[2000ms] swiper-lazy"
+                                         alt="Promotional Banner <%= index + 1 %>">
+                                    <!-- Overlay Gradient -->
+                                    <div class="absolute inset-0 bg-gradient-to-r from-brand-navy/60 via-transparent to-transparent"></div>
+                                    
+                                    <!-- Floating Content (Optional/Subtle) -->
+                                    <div class="absolute inset-0 flex items-center px-8 sm:px-16">
+                                        <div class="max-w-xl">
+                                            <div class="inline-block px-4 py-1.5 rounded-full bg-brand-gold/20 backdrop-blur-md border border-brand-gold/30 text-brand-gold font-bold text-[10px] uppercase tracking-widest mb-4">
+                                                Community Update
+                                            </div>
+                                            <h2 class="text-white text-3xl sm:text-5xl font-black tracking-tighter leading-none opacity-90">
+                                                Sculpting <br>the <span class="text-brand-gold italic">Future</span>
+                                            </h2>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                        
+                        <!-- Pagination & Navigation -->
+                        <div class="swiper-pagination !bottom-6"></div>
+                        <div class="swiper-button-next !text-white/50 hover:!text-white transition-colors !right-6 opacity-0 group-hover:opacity-100 hidden sm:flex"></div>
+                        <div class="swiper-button-prev !text-white/50 hover:!text-white transition-colors !left-6 opacity-0 group-hover:opacity-100 hidden sm:flex"></div>
+                    </div>
+                </div>
+                <% } else { %>
+                    <!-- Fallback if no specific dashboard images are provided -->
+                    <div class="mb-10 relative">
+                        <div class="rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white aspect-[21/9] sm:aspect-[24/9] lg:aspect-[32/9] relative bg-brand-navy">
+                            <img src="/images/about_us.jpeg" class="absolute inset-0 w-full h-full object-cover opacity-40 grayscale" alt="Welcome">
+                            <div class="absolute inset-0 bg-gradient-to-r from-brand-navy via-transparent to-transparent"></div>
+                            <div class="absolute inset-0 flex items-center px-8 sm:px-16">
+                                <div class="max-w-xl">
+                                    <h2 class="text-white text-3xl sm:text-5xl font-black tracking-tighter leading-none">
+                                        Welcome to the <br><span class="text-brand-gold italic">Inner Circle</span>
+                                    </h2>
+                                    <p class="text-slate-300 mt-4 text-sm font-medium">Continue your journey to mastery with expert insights.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
 
                 <!-- ---------------- WELCOME HEADER ---------------- -->
                 <div class="mb-8">
@@ -322,11 +378,15 @@ STYLING:
                         </div>
                         <% } %>
 
-                            <!-- ---------------- MY COURSES ---------------- -->
-                            <% const myOngoing=ongoingCourses.filter(c=> purchasedCourseIds &&
-                                purchasedCourseIds.includes(c.id));
-                                const myUpcoming = upcomingCourses.filter(c => purchasedCourseIds &&
-                                purchasedCourseIds.includes(c.id));
+                            <!-- ---------------- MY COURSES (FIXED: Include Expired/Closed but Purchased) ---------------- -->
+                            <% 
+                                // Define my courses by checking enrollment across ALL categories
+                                const myOngoing = [...ongoingCourses, ...expiredCourses].filter(c => 
+                                    purchasedCourseIds && purchasedCourseIds.includes(c.id)
+                                );
+                                const myUpcoming = upcomingCourses.filter(c => 
+                                    purchasedCourseIds && purchasedCourseIds.includes(c.id)
+                                );
                                 const hasMyCourses = myOngoing.length > 0 || myUpcoming.length > 0;
                                 %>
 
@@ -672,7 +732,36 @@ STYLING:
     <%- include('../partials/layout_wrapper_bottom') %>
 
             <script src="/javascripts/main.js" defer></script>
-            <script src="/javascripts/user-dashboard.js" defer></script>
+            <script src="/javascripts/user-dashboard.js"></script>
+
+    <!-- Swiper.js Initialization -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const swiper = new Swiper('.heroSwiper', {
+                loop: true,
+                speed: 1000,
+                autoplay: {
+                    delay: 5000,
+                    disableOnInteraction: false,
+                },
+                pagination: {
+                    el: '.swiper-pagination',
+                    clickable: true,
+                    dynamicBullets: true,
+                },
+                navigation: {
+                    nextEl: '.swiper-button-next',
+                    prevEl: '.swiper-button-prev',
+                },
+                effect: 'fade',
+                fadeEffect: {
+                    crossFade: true
+                },
+                grabCursor: true,
+            });
+        });
+    </script>
 </body>
 
 </html>

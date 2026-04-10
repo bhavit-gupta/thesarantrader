@@ -45,16 +45,22 @@
 <nav class="fixed w-full z-50 bg-brand-navy/90 backdrop-blur-md border-b border-white/10 shadow-xl">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-20 items-center">
-            <% let isAnyCourseLive=false; if (typeof liveSessions !=='undefined' && liveSessions) { const
-                safePurchases=typeof purchasedCourseIds !=='undefined' && purchasedCourseIds ?
-                (Array.isArray(purchasedCourseIds) ? purchasedCourseIds : Array.from(purchasedCourseIds)) : [];
-                isAnyCourseLive=Object.keys(liveSessions).some(courseId=>
-                liveSessions[courseId]?.isLive === true && safePurchases.includes(courseId)
-                );
+            <% 
+                const isAdmin = typeof user !== 'undefined' && user?.role?.toUpperCase() === 'ADMIN';
+                let isAnyCourseLive = false; 
+                
+                if (typeof liveSessions !== 'undefined' && liveSessions) { 
+                    const safePurchases = typeof purchasedCourseIds !== 'undefined' && purchasedCourseIds ? 
+                        (Array.isArray(purchasedCourseIds) ? purchasedCourseIds : Array.from(purchasedCourseIds)) : [];
+                    
+                    // Admins see ALL live sessions, Users see only their purchased ones
+                    isAnyCourseLive = Object.keys(liveSessions).some(courseId => 
+                        liveSessions[courseId]?.isLive === true && (isAdmin || safePurchases.includes(courseId))
+                    );
                 } else if (typeof isLive !== 'undefined') {
-                isAnyCourseLive = Boolean(isLive);
+                    isAnyCourseLive = Boolean(isLive);
                 }
-                %>
+            %>
                 <!-- Logo -->
                 <div class="flex-shrink-0">
                     <a href="<%= links.platform.home %>">
@@ -101,13 +107,13 @@
                             </a>
                             <% } %>
 
-                                <% if (typeof hasPurchasedCourses !=='undefined' && hasPurchasedCourses) { %>
+                                <% if ((typeof hasPurchasedCourses !== 'undefined' && hasPurchasedCourses) || isAdmin) { %>
                                     <!-- 
-                                Live Button Logic:
-                                - Green + pulsing: At least one course is currently live
-                                - Gray + static: No courses currently live
-                                - Updated dynamically via JavaScript polling
-                            -->
+                                        Live Button Logic:
+                                        - Green + pulsing: At least one course is currently live
+                                        - Gray + static: No courses currently live
+                                        - Updated dynamically via JavaScript polling
+                                    -->
                                     <div id="join-live-btn" class="join-live-btn px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer
                                  <%= isAnyCourseLive 
                                      ? 'bg-green-500 text-white shadow-lg shadow-green-500/25' 
@@ -203,7 +209,7 @@
                     <% if (typeof user !=='undefined' && user) { %>
 
                         <!-- Mobile Live Session Indicator / Enroll Now Button -->
-                        <% if (typeof hasPurchasedCourses !=='undefined' && hasPurchasedCourses) { %>
+                        <% if ((typeof hasPurchasedCourses !== 'undefined' && hasPurchasedCourses) || isAdmin) { %>
                             <div id="mobile-join-live-btn" class="join-live-btn px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer flex items-center
                             <%= isAnyCourseLive ? 'text-green-600 bg-green-50' : 'text-slate-400 bg-slate-100' %>">
                                 <span class="w-2.5 h-2.5 rounded-full mr-2 <%= isAnyCourseLive ? 'bg-green-600 animate-pulse' : 'bg-slate-400' %>"></span>

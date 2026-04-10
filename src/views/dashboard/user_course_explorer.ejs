@@ -1,0 +1,237 @@
+<!-- 
+========================================
+FILE: user_course_explorer.ejs
+PURPOSE: Cinematic Folder-Based Curriculum Explorer
+========================================
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <title><%= course.title %> - Academy Explorer</title>
+
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+
+    <style>
+        .folder-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .folder-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(212, 175, 55, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        .folder-icon-wrapper {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), transparent);
+        }
+        .admin-sidebar-blur {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-slate-400 bg-slate-950 min-h-screen overflow-x-hidden">
+    <div class="flex min-h-screen">
+        <!-- Dashboard Sidebar -->
+        <%- include('../partials/dashboard_sidebar') %>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col min-w-0 lg:ml-[288px] min-h-screen">
+            <!-- Header -->
+            <header class="h-16 lg:h-20 bg-slate-950/50 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-40">
+                <div class="flex items-center gap-4">
+                    <a href="/my-courses" class="p-2 text-slate-500 hover:text-brand-gold transition-colors">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </a>
+                    <div class="h-4 w-px bg-white/10 mx-2"></div>
+                    <h1 class="text-sm font-black text-white uppercase tracking-[0.2em] truncate max-w-[200px] lg:max-w-md">
+                        <%= course.title %>
+                    </h1>
+                </div>
+
+                <% if (isAdmin) { %>
+                <button onclick="openAddFolderModal()" class="px-4 py-2 rounded-xl bg-white text-slate-950 text-[10px] font-black uppercase tracking-widest hover:bg-brand-gold transition-all duration-300 shadow-xl shadow-white/5">
+                    <i class="fa-solid fa-folder-plus mr-2"></i> New Folder
+                </button>
+                <% } %>
+            </header>
+
+            <main class="flex-grow pb-24">
+                <div class="max-w-7xl mx-auto px-6 lg:px-12 pt-12">
+                    
+                    <!-- Breadcrumbs / Title Section -->
+                    <div class="mb-12 space-y-4">
+                        <p class="text-[10px] font-black uppercase tracking-[0.4em] text-brand-gold/80 flex items-center gap-3">
+                            <span class="w-1.5 h-1.5 rounded-full bg-brand-gold"></span>
+                            Curriculum Resource Explorer
+                        </p>
+                        <h2 class="text-3xl lg:text-5xl font-black text-white tracking-tighter">
+                            Select a <span class="text-brand-gold">Folder</span>
+                        </h2>
+                    </div>
+
+                    <!-- Folder Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <% folders.forEach(folder => { 
+                            let icon = "fa-folder";
+                            let color = "text-brand-gold";
+                            if(folder.name === "Videos") { icon = "fa-clapperboard"; color = "text-cyan-400"; }
+                            if(folder.name === "Images") { icon = "fa-image"; color = "text-rose-400"; }
+                            if(folder.name === "Documents") { icon = "fa-file-lines"; color = "text-indigo-400"; }
+                        %>
+                            <div class="relative group">
+                                <a href="/courses/<%= course.id %>/folders/<%= folder.id %>" class="folder-card block rounded-3xl p-8 flex flex-col gap-6 relative overflow-hidden h-full">
+                                    <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                        <i class="fa-solid <%= icon %> text-6xl"></i>
+                                    </div>
+
+                                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl folder-icon-wrapper <%= color %> border border-white/5">
+                                        <i class="fa-solid <%= icon %>"></i>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <h3 class="text-xl font-black text-white tracking-tight group-hover:text-brand-gold transition-colors">
+                                            <%= folder.name %>
+                                        </h3>
+                                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                                            Primary Data Folder
+                                        </p>
+                                    </div>
+
+                                    <div class="mt-4 flex items-center gap-3 text-slate-500 group-hover:text-white transition-colors">
+                                        <span class="text-[10px] font-black uppercase tracking-widest">Access Folder</span>
+                                        <i class="fa-solid fa-arrow-right-long text-brand-gold group-hover:translate-x-2 transition-transform"></i>
+                                    </div>
+                                </a>
+
+                                <% if (isAdmin && !['Videos', 'Images', 'Documents'].includes(folder.name)) { %>
+                                    <button 
+                                        type="button"
+                                        onclick="event.preventDefault(); event.stopPropagation(); console.log('Delete triggered for:', '<%= folder.id %>'); openDeleteModal('<%= folder.id %>'); return false;" 
+                                        class="absolute top-6 right-6 z-[60] p-3 rounded-xl bg-slate-900/90 backdrop-blur-md border border-white/10 text-slate-400 hover:text-red-500 hover:border-red-500/50 transition-all opacity-0 group-hover:opacity-100 shadow-2xl pointer-events-auto"
+                                    >
+                                        <i class="fa-solid fa-trash-can pointer-events-none"></i>
+                                    </button>
+                                <% } %>
+                            </div>
+                        <% }); %>
+
+                        <% if (folders.length === 0) { %>
+                             <div class="col-span-full py-32 text-center rounded-[3rem] border border-white/5 bg-white/[0.02]">
+                                <p class="text-slate-500 italic uppercase tracking-[0.2em] font-black">Folder Empty</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </main>
+
+            <%- include('../partials/footer') %>
+        </div>
+    </div>
+
+    <!-- Admin: Add Folder Modal -->
+    <% if (isAdmin) { %>
+    <div id="addFolderModal" class="hidden fixed inset-0 z-[100] items-center justify-center bg-black/90 backdrop-blur-xl p-4">
+        <div class="w-full max-w-md bg-slate-900 border border-white/10 rounded-2xl p-8 shadow-2xl">
+            <h2 class="text-2xl font-black text-white mb-8 uppercase tracking-tighter">Initialize New Folder</h2>
+            <form id="addFolderForm" class="space-y-6">
+                <input type="hidden" name="courseId" value="<%= course.id %>">
+                <div class="space-y-2">
+                    <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest pl-4">Folder Name</label>
+                    <input type="text" name="name" required class="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-brand-gold outline-none transition-all placeholder:text-slate-700 font-bold" placeholder="e.g. Strategy Briefings">
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button type="button" onclick="closeFolderModal()" class="flex-1 px-8 py-4 rounded-xl bg-white/5 text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all">Abort</button>
+                    <button type="submit" class="flex-[2] px-8 py-4 rounded-xl bg-brand-gold text-slate-950 font-black text-[10px] uppercase tracking-widest hover:bg-white transition-all">Initialize</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="hidden fixed inset-0 z-[110] items-center justify-center bg-black/90 backdrop-blur-xl p-4">
+        <div class="w-full max-w-sm bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-2xl text-center">
+            <div class="w-16 h-16 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto mb-6 text-2xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h2 class="text-xl font-black text-white mb-2 uppercase tracking-tighter">Purge Folder?</h2>
+            <p class="text-xs text-slate-500 mb-8 leading-relaxed">This action will permanently delete this folder and all its contents. 100% data loss is guaranteed.</p>
+            
+            <div class="flex gap-4">
+                <button onclick="closeDeleteModal()" class="flex-1 px-6 py-4 rounded-xl bg-white/5 text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all">Abort</button>
+                <button id="confirmDeleteBtn" class="flex-[2] px-6 py-4 rounded-xl bg-red-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-red-500 transition-all shadow-xl shadow-red-600/20">Execute Purge</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let folderToDelete = null;
+
+        function openAddFolderModal() {
+            document.getElementById('addFolderModal').classList.replace('hidden', 'flex');
+        }
+        function closeFolderModal() {
+            document.getElementById('addFolderModal').classList.replace('flex', 'hidden');
+        }
+
+        function openDeleteModal(id) {
+            folderToDelete = id;
+            document.getElementById('deleteConfirmModal').classList.replace('hidden', 'flex');
+        }
+
+        function closeDeleteModal() {
+            folderToDelete = null;
+            document.getElementById('deleteConfirmModal').classList.replace('flex', 'hidden');
+        }
+
+        document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+            if (!folderToDelete) return;
+            
+            try {
+                const res = await fetch(`/api/admin/folders/${folderToDelete}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+                });
+                const result = await res.json();
+                if (result.success) location.reload();
+                else alert(result.message);
+            } catch (err) { alert('Purge failed.'); }
+            finally { closeDeleteModal(); }
+        });
+        
+        document.getElementById('addFolderForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const res = await fetch('/api/admin/folders', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) location.reload();
+                else alert(result.message);
+            } catch (err) {
+                alert('Operation failed.');
+            }
+        });
+    </script>
+    <% } %>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!-- 
+========================================
+FILE: folder_detail.ejs
+PURPOSE: Detailed Resource Viewer for Vault Contents
+========================================
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <title><%= folder.name %> - <%= course.title %></title>
+
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+
+    <style>
+        .resource-row {
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .resource-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(212, 175, 55, 0.2);
+        }
+        .file-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-slate-400 bg-slate-950 min-h-screen">
+    <div class="flex min-h-screen">
+        <%- include('../partials/dashboard_sidebar') %>
+
+        <div class="flex-1 flex flex-col min-w-0 lg:ml-[288px] min-h-screen">
+            <!-- Header with Breadcrumbs -->
+            <header class="h-16 lg:h-20 bg-slate-950/50 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-40">
+                <div class="flex items-center gap-4 text-xs font-black uppercase tracking-widest text-slate-500 overflow-hidden">
+                    <a href="/courses/<%= course.id %>/view" class="hover:text-brand-gold transition-colors truncate">Folders</a>
+                    <i class="fa-solid fa-chevron-right text-[8px] opacity-30"></i>
+                    <span class="text-white truncate"><%= folder.name %></span>
+                </div>
+
+                <% if (isAdmin) { %>
+                <button onclick="openResourceModal()" class="px-6 py-2 rounded-xl bg-brand-gold text-slate-950 text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all shadow-xl shadow-brand-gold/10">
+                    <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Deploy Material
+                </button>
+                <% } %>
+            </header>
+
+            <main class="flex-grow pb-24">
+                <div class="max-w-7xl mx-auto px-6 lg:px-12 pt-12">
+                    
+                    <div class="mb-12 flex items-center justify-between">
+                        <div class="space-y-2">
+                             <h1 class="text-3xl lg:text-5xl font-black text-white tracking-tighter">
+                                <%= folder.name %> <span class="text-slate-700">/</span>
+                            </h1>
+                            <p class="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">
+                                Verified Operational Datasheets
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Resource List -->
+                    <div class="space-y-4">
+                        <% if (resources.length === 0) { %>
+                             <div class="py-32 text-center rounded-[3rem] border border-white/5 bg-white/[0.02]">
+                                <p class="text-slate-500 italic uppercase tracking-[0.2em] font-black">Folder Empty</p>
+                            </div>
+                        <% } else { %>
+                            <% resources.forEach(res => { 
+                                let icon = "fa-file";
+                                let color = "text-slate-400";
+                                if(res.type === "VIDEO") { icon = "fa-play"; color = "text-cyan-400"; }
+                                if(res.type === "IMAGE") { icon = "fa-image"; color = "text-rose-400"; }
+                                if(res.type === "DOCUMENT") { icon = "fa-file-pdf"; color = "text-indigo-400"; }
+                            %>
+                                <div class="resource-row group rounded-2xl p-4 lg:p-6 flex items-center gap-6">
+                                    <div class="file-icon <%= color %> border border-white/5 shadow-2xl">
+                                        <i class="fa-solid <%= icon %> text-xl"></i>
+                                    </div>
+
+                                    <div class="flex-grow min-w-0">
+                                        <h3 class="text-white font-black text-sm lg:text-base tracking-tight truncate"><%= res.name %></h3>
+                                        <% if (res.description) { %>
+                                            <p class="text-[10px] text-slate-500 font-medium truncate italic"><%= res.description %></p>
+                                        <% } %>
+                                    </div>
+
+                                    <div class="flex items-center gap-4">
+                                        <% if(res.type === "VIDEO") { %>
+                                            <% 
+                                                const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+                                                const match = (res.url || "").match(youtubeRegex);
+                                                const videoId = match ? match[1] : "";
+                                            %>
+                                            <button onclick="openPlayerModal('<%= videoId %>')" class="px-6 py-3 rounded-xl bg-white/5 text-white hover:bg-white/10 text-[9px] font-black uppercase tracking-widest transition-all">
+                                                Watch Briefing
+                                            </button>
+                                        <% } else { %>
+                                            <a href="<%= res.path %>" target="_blank" class="px-6 py-3 rounded-xl bg-white/5 text-white hover:bg-white/10 text-[9px] font-black uppercase tracking-widest transition-all">
+                                                Open File
+                                            </a>
+                                        <% } %>
+
+                                        <% if (isAdmin) { %>
+                                            <button onclick="deleteResource('<%= res.id %>')" class="p-3 text-slate-700 hover:text-red-500 transition-colors">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } %>
+                    </div>
+                </div>
+            </main>
+
+            <%- include('../partials/footer') %>
+        </div>
+    </div>
+
+    <!-- Video Player Modal (Reuse logic) -->
+    <div id="videoPlayerModal" class="hidden fixed inset-0 z-[100] items-center justify-center bg-black/95 backdrop-blur-sm p-4 lg:p-12">
+        <button onclick="closePlayerModal()" class="absolute top-10 right-10 text-white/50 hover:text-white text-4xl transition-all z-[110]">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="w-full max-w-6xl aspect-video bg-black rounded-3xl overflow-hidden border border-white/5 shadow-2xl">
+            <iframe id="playerIframe" class="w-full h-full" src="" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <!-- Admin: Add Resource Modal -->
+    <% if (isAdmin) { %>
+    <div id="addResourceModal" class="hidden fixed inset-0 z-[100] items-center justify-center bg-black/90 backdrop-blur-xl p-4">
+        <div class="w-full max-w-xl bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-2xl overflow-hidden relative">
+            <div class="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+                <i class="fa-solid fa-cloud-arrow-up text-9xl"></i>
+            </div>
+
+            <h2 class="text-3xl font-black text-white mb-8 uppercase tracking-tighter">Deploy Material</h2>
+            <form id="addResourceForm" class="space-y-6">
+                <input type="hidden" name="courseId" value="<%= course.id %>">
+                <input type="hidden" name="folderId" value="<%= folder.id %>">
+                
+                <div class="space-y-2">
+                    <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest pl-4">Material Name</label>
+                    <input type="text" name="name" required class="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-brand-gold outline-none transition-all font-bold">
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest pl-4">Resource Type</label>
+                        <select name="type" id="typeSelect" class="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-brand-gold outline-none transition-all font-bold cursor-pointer">
+                            <option value="VIDEO" class="bg-slate-900 text-white font-bold">Video</option>
+                            <option value="IMAGE" class="bg-slate-900 text-white font-bold">Image</option>
+                            <option value="DOCUMENT" class="bg-slate-900 text-white font-bold">Document</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2" id="urlGroup">
+                        <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest pl-4">YouTube URL</label>
+                        <input type="url" name="url" class="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-brand-gold outline-none transition-all font-mono text-xs">
+                    </div>
+                    <div class="space-y-2 hidden" id="fileGroup">
+                        <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest pl-4">File Upload</label>
+                        <input type="file" name="file" class="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-slate-400 focus:border-brand-gold outline-none transition-all text-xs">
+                    </div>
+                </div>
+
+                 <div class="space-y-2">
+                    <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest pl-4">Briefing Notes (Optional)</label>
+                    <textarea name="description" rows="2" class="w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-brand-gold outline-none transition-all"></textarea>
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                    <button type="button" onclick="closeResourceModal()" class="flex-1 px-8 py-4 rounded-2xl bg-white/5 text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all">Abort</button>
+                    <button type="submit" class="flex-[2] px-8 py-4 rounded-2xl bg-brand-gold text-slate-950 font-black text-[10px] uppercase tracking-widest hover:bg-white transition-all shadow-xl">Execute Deployment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <% } %>
+
+    <script>
+        function openPlayerModal(videoId) {
+            if (!videoId) return;
+            const iframe = document.getElementById('playerIframe');
+            iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`;
+            document.getElementById('videoPlayerModal').classList.replace('hidden', 'flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePlayerModal() {
+            document.getElementById('playerIframe').src = '';
+            document.getElementById('videoPlayerModal').classList.replace('flex', 'hidden');
+            document.body.style.overflow = '';
+        }
+
+        <% if (isAdmin) { %>
+        const typeSelect = document.getElementById('typeSelect');
+        const urlGroup = document.getElementById('urlGroup');
+        const fileGroup = document.getElementById('fileGroup');
+
+        typeSelect?.addEventListener('change', (e) => {
+            if (e.target.value === 'VIDEO') {
+                urlGroup.classList.remove('hidden');
+                fileGroup.classList.add('hidden');
+            } else {
+                urlGroup.classList.add('hidden');
+                fileGroup.classList.remove('hidden');
+            }
+        });
+
+        function openResourceModal() {
+            document.getElementById('addResourceModal').classList.replace('hidden', 'flex');
+        }
+        function closeResourceModal() {
+            document.getElementById('addResourceModal').classList.replace('flex', 'hidden');
+        }
+
+        document.getElementById('addResourceForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            try {
+                const res = await fetch('/api/admin/resources', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.success) location.reload();
+                else alert(result.message);
+            } catch (err) { alert('Deployment failed.'); }
+        });
+
+        async function deleteResource(id) {
+            if(!confirm('Permanently purge this operational material?')) return;
+            try {
+                const res = await fetch(`/api/admin/resources/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+                });
+                const result = await res.json();
+                if (result.success) location.reload();
+                else alert(result.message);
+            } catch (err) { alert('Purge failed.'); }
+        }
+        <% } %>
+    </script>
+</body>
+</html>

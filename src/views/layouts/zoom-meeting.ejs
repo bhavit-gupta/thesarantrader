@@ -58,14 +58,14 @@
     <div id="zmmtg-root"></div>
 
     <!-- Zoom SDK Dependencies -->
-    <script src="https://source.zoom.us/3.1.0/lib/vendor/react.min.js"></script>
-    <script src="https://source.zoom.us/3.1.0/lib/vendor/react-dom.min.js"></script>
-    <script src="https://source.zoom.us/3.1.0/lib/vendor/redux.min.js"></script>
-    <script src="https://source.zoom.us/3.1.0/lib/vendor/redux-thunk.min.js"></script>
-    <script src="https://source.zoom.us/3.1.0/lib/vendor/lodash.min.js"></script>
+    <script src="https://source.zoom.us/3.5.0/lib/vendor/react.min.js"></script>
+    <script src="https://source.zoom.us/3.5.0/lib/vendor/react-dom.min.js"></script>
+    <script src="https://source.zoom.us/3.5.0/lib/vendor/redux.min.js"></script>
+    <script src="https://source.zoom.us/3.5.0/lib/vendor/redux-thunk.min.js"></script>
+    <script src="https://source.zoom.us/3.5.0/lib/vendor/lodash.min.js"></script>
     
     <!-- Zoom SDK -->
-    <script src="https://source.zoom.us/zoom-meeting-3.1.0.min.js"></script>
+    <script src="https://source.zoom.us/zoom-meeting-3.5.0.min.js"></script>
 
     <script>
         // Zoom SDK Configuration
@@ -78,7 +78,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             // Setup Zoom Library with absolute paths to prevent hangs
-            ZoomMtg.setZoomJSLib('https://source.zoom.us/3.1.0/lib', '/av');
+            ZoomMtg.setZoomJSLib('https://source.zoom.us/3.5.0/lib', '/av');
             
             // Preload assets
             ZoomMtg.preLoadWasm();

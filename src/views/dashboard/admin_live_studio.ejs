@@ -9,8 +9,7 @@
     <title>Broadcast Studio - TheSaranTrader</title>
 
     <!-- Zoom Component SDK CSS -->
-    <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.5.0/css/bootstrap.css" />
-    <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.5.0/css/react-select.css" />
+    <link type="text/css" rel="stylesheet" href="/zoom-sdk/ui/zoom-meetingsdk.css" />
 
     <!-- Custom Theme -->
     <link rel="stylesheet" href="/stylesheets/output.css">
@@ -23,8 +22,7 @@
         /* Zoom Component Override to fit Dashboard */
         #meetingSDKElement {
             width: 100%;
-            height: 100%;
-            min-height: 600px;
+            height: 650px; /* Fixed height for SDK initialization */
             border-radius: 1rem;
             overflow: hidden;
             background: #0f172a;
@@ -84,6 +82,15 @@
                         <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <h2 class="text-2xl font-black text-slate-800 tracking-tight">Host Control Panel</h2>
+                                <% if (courseId && courseTitle) { %>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded">Program</span>
+                                        <a href="/courses/<%= courseId %>/view" target="_blank" class="text-sm font-bold text-slate-600 hover:text-blue-600 transition-all flex items-center gap-1.5 group">
+                                            <%= courseTitle %>
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                        </a>
+                                    </div>
+                                <% } %>
                                 <p class="text-slate-500 text-sm">Managing Session ID: <span
                                         class="font-mono font-bold text-blue-600">
                                         <%= meetingNumber %>
@@ -137,18 +144,20 @@
             </div>
     </div>
 
-    <!-- Zoom SDK Dependencies -->
-    <script src="https://source.zoom.us/3.5.0/lib/vendor/react.min.js"></script>
-    <script src="https://source.zoom.us/3.5.0/lib/vendor/react-dom.min.js"></script>
-    <script src="https://source.zoom.us/3.5.0/lib/vendor/redux.min.js"></script>
-    <script src="https://source.zoom.us/3.5.0/lib/vendor/redux-thunk.min.js"></script>
-    <script src="https://source.zoom.us/3.5.0/lib/vendor/lodash.min.js"></script>
+    <!-- Zoom Meeting SDK Dependencies -->
+    <script src="/zoom-sdk/lib/vendor/react.min.js" crossorigin="anonymous"></script>
+    <script src="/zoom-sdk/lib/vendor/react-dom.min.js" crossorigin="anonymous"></script>
+    <script src="/zoom-sdk/lib/vendor/redux.min.js" crossorigin="anonymous"></script>
+    <script src="/zoom-sdk/lib/vendor/redux-thunk.min.js" crossorigin="anonymous"></script>
+    <script src="/zoom-sdk/lib/vendor/lodash.min.js" crossorigin="anonymous"></script>
 
     <!-- Zoom Component SDK -->
-    <script src="https://source.zoom.us/zoom-meeting-embedded-3.5.0.min.js"></script>
+    <script src="/zoom-sdk/zoomus-websdk-embedded.umd.min.js" crossorigin="anonymous"></script>
 
     <script>
         const sdkKey = "<%= sdkKey %>";
+        console.log('[Trace:Handshake] Key in Browser:', sdkKey);
+        console.log('[Trace:Handshake] Key CharCodes:', Array.from(sdkKey).map(c => `${c}:${c.charCodeAt(0)}`).join(', '));
         const signature = "<%= signature %>";
         const meetingNumber = "<%= meetingNumber %>";
         const password = "<%= password %>";
@@ -160,61 +169,76 @@
         const client = ZoomMtgEmbedded.createClient();
 
         async function startMeeting() {
-            let meetingSDKElement = document.getElementById('meetingSDKElement');
+            // Diagnostic Logs
+            console.log('[Zoom:Health] Secure Context:', window.isSecureContext);
+            console.log('[Zoom:Health] Cross-Origin Isolated:', window.crossOriginIsolated);
 
-            console.log('🎬 Starting meeting with:', {
-                sdkKey: sdkKey ? sdkKey.substring(0, 8) + '...' : 'MISSING',
-                meetingNumber: meetingNumber,
-                hasPassword: !!password,
-                role: zoomRole,
-            });
-
-            if (zakToken && (zakToken.startsWith('ERROR_') || zakToken.startsWith('FATAL_'))) {
-                console.warn('❌ ZAK Fetch Error:', zakToken);
-            } else {
-                console.log('✅ ZAK Token status:', !!zakToken);
-            }
-
-            try {
-                // Initialize the Meeting SDK
-                await client.init({
-                    zoomAppRoot: meetingSDKElement,
-                    language: 'en-US',
-                    patchJsMedia: true,
-                    leaveUrl: window.location.origin + '/admin/dashboard',
-                    debug: true
-                });
-
-                console.log('✅ SDK initialized successfully');
-
-                // Ensure inputs are stripped of spaces/noise for the SDK
-                const cleanMeetingNumber = String(meetingNumber || '').replace(/\s/gi, '');
-                const cleanPassword = String(password || '').replace(/\s/gi, '');
-
-                const joinParams = {
-                    sdkKey: sdkKey,
-                    signature: signature,
-                    meetingNumber: cleanMeetingNumber,
-                    password: cleanPassword,
-                    userName: userName,
-                    userEmail: userEmail,
-                };
-
-                // Add ZAK token if it's valid (this is required to be Host)
-                if (zakToken && !zakToken.startsWith('ERROR_') && !zakToken.startsWith('FATAL_')) {
-                    joinParams.zak = zakToken;
+            // Wait 500ms for strict isolation headers and DOM to settle
+            setTimeout(async () => {
+                let meetingSDKElement = document.getElementById('meetingSDKElement');
+                if (!meetingSDKElement) {
+                    console.error('❌ Zoom Container not found');
+                    return;
                 }
 
-                // Join the meeting
-                await client.join(joinParams);
-                console.log('🚀 Studio Session Active - Joined Successfully');
+                console.log('🎬 Starting meeting with:', {
+                    sdkKey: sdkKey ? sdkKey.substring(0, 8) + '...' : 'MISSING',
+                    meetingNumber: meetingNumber,
+                    hasPassword: !!password,
+                    role: zoomRole,
+                });
 
-            } catch (error) {
-                const errCode = error && error.errorCode ? error.errorCode : 'unknown';
-                const errMsg = error && error.message ? error.message : JSON.stringify(error);
-                console.error('❌ Studio Init Error:', error);
-                alert(`❌ Studio Error [${errCode}]: ${errMsg}\n\nCheck browser console (F12) for full details.`);
-            }
+                if (zakToken && (zakToken.startsWith('ERROR_') || zakToken.startsWith('FATAL_'))) {
+                    console.warn('❌ ZAK Fetch Error:', zakToken);
+                } else {
+                    console.log('✅ ZAK Token status:', !!zakToken);
+                }
+
+                try {
+                    // Initialize the Meeting SDK
+                    await client.init({
+                        zoomAppRoot: meetingSDKElement,
+                        language: 'en-IN',
+                        patchJsMedia: true,
+                        enforceJsMedia: true, 
+                        leaveUrl: window.location.origin + '/admin/dashboard',
+                        debug: true
+                    });
+
+                    console.log('✅ SDK initialized successfully');
+
+                    // Ensure inputs are stripped of spaces/noise for the SDK
+                    const cleanMeetingNumber = String(meetingNumber || '').replace(/\s/gi, '');
+                    const cleanPassword = String(password || '').replace(/\s/gi, '');
+
+                    const joinParams = {
+                        sdkKey: sdkKey,
+                        signature: signature,
+                        meetingNumber: cleanMeetingNumber,
+                        password: cleanPassword,
+                        userName: userName,
+                        userEmail: userEmail,
+                    };
+
+                    // Add ZAK token if it's valid (this is required to be Host)
+                    if (zakToken && !zakToken.startsWith('ERROR_') && !zakToken.startsWith('FATAL_')) {
+                        joinParams.zak = zakToken;
+                    }
+
+                    // Join the meeting
+                    await client.join(joinParams);
+                    console.log('🚀 Studio Session Active - Joined Successfully');
+
+                } catch (error) {
+                    const errCode = error && error.errorCode ? error.errorCode : 'unknown';
+                    const errMsg = error && error.message ? error.message : JSON.stringify(error);
+                    console.error('❌ Studio Init Error:', error);
+                    // Only alert if it's a real failure, not an abort
+                    if (error.reason !== 'Aborted' && error.message !== 'Already in use') {
+                        alert(`❌ Studio Error [${errCode}]: ${errMsg}\n\nCheck browser console (F12) for full details.`);
+                    }
+                }
+            }, 500);
         }
 
         // Auto-start when page loads

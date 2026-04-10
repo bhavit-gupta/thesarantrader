@@ -140,6 +140,8 @@ class CourseCache {
     get data() { return this._data; }
     get categorized() { return this._categorized; }
     get liveSessions() { return this._liveSessions; }
+    get heroImages() { return this._heroImages; }
+    get dashboardImages() { return this._dashboardImages; }
     get lastFetch() { return this._lastFetch; }
     get refreshing() { return this._refreshing; }
     get metrics() { return { ...this._metrics }; }
@@ -160,7 +162,7 @@ class CourseCache {
      * Refresh cache with new data
      * Categorization uses timestamps, not Date objects
      */
-    refresh(courses, enrollmentMap, liveCourses) {
+    refresh(courses, enrollmentMap, liveCourses, heroImages, dashboardImages) {
         const startTime = Date.now();
 
         // Add user counts and freeze each course
@@ -215,6 +217,8 @@ class CourseCache {
             expired: Object.freeze(categorized.expired)
         });
         this._liveSessions = Object.freeze(liveSessions);
+        this._heroImages = Object.freeze(heroImages || ['/images/about_us.jpeg']);
+        this._dashboardImages = Object.freeze(dashboardImages || ['/images/about_us.jpeg']);
         this._lastFetch = Date.now();
         this._refreshing = false;
 
@@ -241,6 +245,8 @@ class CourseCache {
         this._data = null;
         this._categorized = null;
         this._liveSessions = null;
+        this._heroImages = null;
+        this._dashboardImages = null;
         this._lastFetch = 0;
         this._refreshing = false;
 
@@ -376,7 +382,7 @@ async function refreshCourseCache(waitForRefresh = false) {
 
             // Use withTimeout to prevent hanging
             // Run all queries in parallel
-            const [allCourses, allEnrollments, liveCourses] = await withTimeout(
+            const [allCourses, allEnrollments, liveCourses, heroSetting, dashboardSetting] = await withTimeout(
                 () => Promise.all([
                     prisma.course.findMany({ 
                         where: {
@@ -400,14 +406,37 @@ async function refreshCourseCache(waitForRefresh = false) {
                             ]
                         },
                         select: { id: true, lastLiveStartedAt: true }
-                    })
+                    }),
+                    prisma.siteSetting.findUnique({ where: { key: 'hero_image' } }),
+                    prisma.siteSetting.findUnique({ where: { key: 'dashboard_images' } })
                 ]),
                 CONFIG.QUERY_TIMEOUT_MS
             );
 
-            // Validate query results
-            if (!Array.isArray(allCourses) || !Array.isArray(allEnrollments)) {
-                throw new Error('Invalid database query results');
+            // Parse hero images array
+            let heroImages = [];
+            if (heroSetting && heroSetting.value) {
+                try {
+                    const parsed = JSON.parse(heroSetting.value);
+                    heroImages = Array.isArray(parsed) ? parsed : [heroSetting.value];
+                } catch (e) {
+                    heroImages = [heroSetting.value];
+                }
+            } else {
+                heroImages = ['/images/about_us.jpeg'];
+            }
+
+            // Parse dashboard images array
+            let dashboardImages = [];
+            if (dashboardSetting && dashboardSetting.value) {
+                try {
+                    const parsed = JSON.parse(dashboardSetting.value);
+                    dashboardImages = Array.isArray(parsed) ? parsed : [dashboardSetting.value];
+                } catch (e) {
+                    dashboardImages = [dashboardSetting.value];
+                }
+            } else {
+                dashboardImages = ['/images/about_us.jpeg'];
             }
 
             // Use reduce for enrollment map
@@ -421,7 +450,8 @@ async function refreshCourseCache(waitForRefresh = false) {
                 return map;
             }, {});
 
-            courseCache.refresh(allCourses, enrollmentMap, liveCourses);
+            courseCache.refresh(allCourses, enrollmentMap, liveCourses, heroImages, dashboardImages);
+
 
         } catch (error) {
             courseCache.recordError();
@@ -466,17 +496,15 @@ async function getUserPurchaseData(user, req) {
         };
     }
 
-    // Check if session already has purchasedCourseIds
-    let purchasedCourseIds;
-    if (user.purchasedCourseIds && Array.isArray(user.purchasedCourseIds)) {
-        purchasedCourseIds = user.purchasedCourseIds;
-    } else {
-        const idsSet = await getUserPurchasedCourses(userId);
-        purchasedCourseIds = Array.from(idsSet);
-        // Update session for next request
-        if (req.session && req.session.user) {
-            req.session.user.purchasedCourseIds = purchasedCourseIds;
-        }
+    // Always fetch fresh data from the DB/UserCache to ensure 
+    // real-time reactivity to admin approvals. Trusting req.session.user 
+    // here causes stale data if the user is already logged in.
+    const idsSet = await getUserPurchasedCourses(userId);
+    const purchasedCourseIds = Array.from(idsSet);
+    
+    // Update session for next request (keep it synced but don't rely only on it)
+    if (req.session && req.session.user) {
+        req.session.user.purchasedCourseIds = purchasedCourseIds;
     }
 
     const hasPurchasedCourses = purchasedCourseIds.length > 0;
@@ -579,6 +607,8 @@ const viewDataMiddleware = async (req, res, next) => {
         const courses = courseCache.data || [];
         const categorized = courseCache.categorized || { ongoing: [], upcoming: [], expired: [] };
         const liveSessions = courseCache.liveSessions || {};
+        const heroImages = courseCache.heroImages || ['/images/about_us.jpeg'];
+        const dashboardImages = courseCache.dashboardImages || ['/images/about_us.jpeg'];
 
         // ========== STEP 3: USER-SPECIFIC DATA ==========
         //  Safe session access
@@ -601,17 +631,20 @@ const viewDataMiddleware = async (req, res, next) => {
 
         // ========== STEP 4: POPULATE RES.LOCALS ==========
         res.locals.user = user;
-        res.locals.path = req.path;
+        res.locals.path = req.originalUrl;
         res.locals.courses = courses;
         res.locals.ongoingCourses = categorized.ongoing;
         res.locals.upcomingCourses = categorized.upcoming;
         res.locals.expiredCourses = categorized.expired;
         res.locals.liveSessions = liveSessions;
+        res.locals.heroImages = heroImages;
+        res.locals.dashboardImages = dashboardImages;
         res.locals.purchasedCourseIds = purchaseData.purchasedCourseIds;
         res.locals.hasPurchasedCourses = purchaseData.hasPurchasedCourses;
         res.locals.pendingCourseIds = purchaseData.pendingCourseIds;
         res.locals.rejectedPurchases = purchaseData.rejectedPurchases;
         res.locals.standardTopPadding = user ? 'pt-20 lg:pt-10' : 'pt-24 lg:pt-32';
+        res.locals.version = "2.0.0";
 
         next();
 

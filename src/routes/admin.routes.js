@@ -34,7 +34,7 @@ const { isAuthenticated, isAdmin } = require('../middleware/auth.middleware');
 const multer = require('multer');
 const { compressImage } = require('../utils/upload.utils');
 const { clearUserCourseCache } = require('../utils/helpers');
-const { invalidateUserCache } = require('../middleware/viewData.middleware');
+const { invalidateUserCache, invalidateCourseCache } = require('../middleware/viewData.middleware');
 
 /* -------------------------------------------------------------------------- */
 /*                              CONFIGURATION                                */
@@ -433,6 +433,9 @@ router.post('/api/admin/reject-payment', isAdmin, async (req, res) => {
         // Sanitize log output
         console.log(`[Rejection] Purchase ${sanitizeForLog(purchaseId)} rejected`);
 
+        // Invalidate cache immediately so user sees rejection notice
+        invalidateUserCache(purchase.userId);
+
         res.json({ success: true, message: 'Payment rejected' });
 
     } catch (error) {
@@ -583,33 +586,8 @@ router.get('/admin/users/:id', isAuthenticated, isAdmin, async (req, res) => {
  * @access Admin only
  */
 router.get('/admin/courses/:id/videos', isAuthenticated, isAdmin, async (req, res) => {
-    try {
-        const courseId = req.params.id;
-
-        const course = await prisma.course.findUnique({
-            where: { id: courseId }
-        });
-
-        if (!course) {
-            return res.status(404).render('error', { message: 'Course not found' });
-        }
-
-        const videos = await prisma.courseVideo.findMany({
-            where: { courseId },
-            orderBy: { order: 'asc' },
-            take: 100
-        });
-
-        res.render('dashboard/admin_course_videos', {
-            user: req.session?.user || null,
-            course,
-            videos,
-            path: '/admin/courses'
-        });
-    } catch (error) {
-        console.error('[Videos] View error', error);
-        res.status(500).render('error', { message: 'Internal Server Error' });
-    }
+    // REDIRECTION: This route is deprecated. Moved to hierarchical folder explorer.
+    return res.redirect(`/courses/${req.params.id}/view`);
 });
 
 /**
@@ -874,6 +852,7 @@ const settingsUpload = multer({
 
 /**
  * Upload a new hero image for the home page.
+ * Adds image to the hero gallery (multi-image support).
  */
 router.post('/api/admin/settings/hero-image', isAdmin, settingsUpload.single('heroImage'), async (req, res) => {
     try {
@@ -890,28 +869,209 @@ router.post('/api/admin/settings/hero-image', isAdmin, settingsUpload.single('he
         }
 
         const imageUrl = `/uploads/settings/${finalFilename}`;
+        
+        // Fetch existing hero images
         const oldSetting = await prisma.siteSetting.findUnique({ where: { key: 'hero_image' } });
-
-        await prisma.siteSetting.upsert({
-            where: { key: 'hero_image' },
-            update: { value: imageUrl },
-            create: { key: 'hero_image', value: imageUrl }
-        });
-
-        if (oldSetting && oldSetting.value && oldSetting.value.startsWith('/uploads/settings/')) {
-            const oldFilename = path.basename(oldSetting.value);
-            if (oldFilename !== finalFilename) {
-                await fs.unlink(path.join(SETTINGS_UPLOAD_DIR, oldFilename)).catch(() => { });
-                await fs.unlink(path.join(SETTINGS_UPLOAD_DIR, '.originals', oldFilename)).catch(() => { });
+        let images = [];
+        
+        if (oldSetting && oldSetting.value) {
+            try {
+                const parsed = JSON.parse(oldSetting.value);
+                images = Array.isArray(parsed) ? parsed : [oldSetting.value];
+            } catch (e) {
+                // Migration: Handle legacy non-JSON string
+                images = [oldSetting.value];
             }
         }
 
-        res.json({ success: true, message: 'Hero image updated successfully', imageUrl });
+        // Add new image to gallery
+        images.push(imageUrl);
+
+        await prisma.siteSetting.upsert({
+            where: { key: 'hero_image' },
+            update: { value: JSON.stringify(images) },
+            create: { key: 'hero_image', value: JSON.stringify([imageUrl]) }
+        });
+
+        // Invalidate cache so changes take effect immediately
+        invalidateCourseCache();
+
+        res.json({ success: true, message: 'Hero image added to gallery', imageUrl, images });
     } catch (error) {
         console.error('[Settings] Upload error:', error);
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
+
+/**
+ * Delete a hero image from the gallery.
+ */
+router.post('/api/admin/settings/hero-image/delete', isAdmin, async (req, res) => {
+    try {
+        const { imageUrl } = req.body;
+        if (!imageUrl) {
+            return res.status(400).json({ success: false, message: 'Image URL required' });
+        }
+
+        const setting = await prisma.siteSetting.findUnique({ where: { key: 'hero_image' } });
+        if (!setting || !setting.value) {
+            return res.status(404).json({ success: false, message: 'No hero images found' });
+        }
+
+        let images = [];
+        try {
+            const parsed = JSON.parse(setting.value);
+            images = Array.isArray(parsed) ? parsed : [setting.value];
+        } catch (e) {
+            images = [setting.value];
+        }
+
+        // Filter out the deleted image
+        const updatedImages = images.filter(img => img !== imageUrl);
+        
+        // Update DB
+        await prisma.siteSetting.update({
+            where: { key: 'hero_image' },
+            data: { value: JSON.stringify(updatedImages) }
+        });
+
+        // Invalidate cache
+        invalidateCourseCache();
+
+        // Clean up file storage
+        if (imageUrl.startsWith('/uploads/settings/')) {
+            const filename = path.basename(imageUrl);
+            const filePath = path.join(SETTINGS_UPLOAD_DIR, filename);
+            const originalPath = path.join(SETTINGS_UPLOAD_DIR, '.originals', filename);
+            
+            await fs.unlink(filePath).catch(() => {});
+        }
+
+        res.json({ success: true, message: 'Hero image removed', images: updatedImages });
+    } catch (error) {
+        console.error('[Settings] Delete error:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+const dashboardStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, SETTINGS_UPLOAD_DIR),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, 'dashboard-banner-' + Date.now() + ext);
+    }
+});
+
+const dashboardUpload = multer({
+    storage: dashboardStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (!CONFIG.ALLOWED_EXTENSIONS.includes(ext)) {
+            return cb(new Error('Only images (JPG, PNG, WebP) are allowed'));
+        }
+        cb(null, true);
+    }
+});
+
+/**
+ * Upload a new dashboard banner.
+ */
+router.post('/api/admin/settings/dashboard-image', isAdmin, dashboardUpload.single('dashboardImage'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        let finalFilename = req.file.filename;
+        try {
+            const compressedFilename = await compressImage(req.file, SETTINGS_UPLOAD_DIR, 'course');
+            if (compressedFilename) finalFilename = compressedFilename;
+        } catch (compErr) {
+            console.warn('[Settings] Compression failed:', compErr.message);
+        }
+
+        const imageUrl = `/uploads/settings/${finalFilename}`;
+        
+        const oldSetting = await prisma.siteSetting.findUnique({ where: { key: 'dashboard_images' } });
+        let images = [];
+        
+        if (oldSetting && oldSetting.value) {
+            try {
+                const parsed = JSON.parse(oldSetting.value);
+                images = Array.isArray(parsed) ? parsed : [oldSetting.value];
+            } catch (e) {
+                images = [oldSetting.value];
+            }
+        }
+
+        images.push(imageUrl);
+
+        await prisma.siteSetting.upsert({
+            where: { key: 'dashboard_images' },
+            update: { value: JSON.stringify(images) },
+            create: { key: 'dashboard_images', value: JSON.stringify([imageUrl]) }
+        });
+
+        // Invalidate cache immediately
+        invalidateCourseCache();
+
+        res.json({ success: true, message: 'Dashboard banner added', imageUrl, images });
+    } catch (error) {
+        console.error('[Settings] Dashboard upload error:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * Delete a dashboard banner.
+ */
+router.post('/api/admin/settings/dashboard-image/delete', isAdmin, async (req, res) => {
+    try {
+        const { imageUrl } = req.body;
+        if (!imageUrl) {
+            return res.status(400).json({ success: false, message: 'Image URL required' });
+        }
+
+        const setting = await prisma.siteSetting.findUnique({ where: { key: 'dashboard_images' } });
+        if (!setting || !setting.value) {
+            return res.status(404).json({ success: false, message: 'No dashboard images found' });
+        }
+
+        let images = [];
+        try {
+            const parsed = JSON.parse(setting.value);
+            images = Array.isArray(parsed) ? parsed : [setting.value];
+        } catch (e) {
+            images = [setting.value];
+        }
+
+        const updatedImages = images.filter(img => img !== imageUrl);
+        
+        await prisma.siteSetting.update({
+            where: { key: 'dashboard_images' },
+            data: { value: JSON.stringify(updatedImages) }
+        });
+
+        // Invalidate cache
+        invalidateCourseCache();
+
+        if (imageUrl.startsWith('/uploads/settings/')) {
+            const filename = path.basename(imageUrl);
+            const filePath = path.join(SETTINGS_UPLOAD_DIR, filename);
+            const originalPath = path.join(SETTINGS_UPLOAD_DIR, '.originals', filename);
+            
+            await fs.unlink(filePath).catch(() => {});
+            await fs.unlink(originalPath).catch(() => {});
+        }
+
+        res.json({ success: true, message: 'Dashboard banner removed', images: updatedImages });
+    } catch (error) {
+        console.error('[Settings] Dashboard delete error:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
 
 /* -------------------------------------------------------------------------- */
 /*                                  EXPORTS                                  */

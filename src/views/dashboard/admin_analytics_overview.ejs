@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Hub — The Saran Trader</title>
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="font-sans antialiased text-slate-700 bg-slate-50 min-h-screen">
+
+<%- include('../partials/layout_wrapper_top', { pageTitle: 'Analytics Hub' }) %>
+
+<main class="flex-grow pb-24">
+<div class="max-w-[1400px] mx-auto px-4 lg:px-8 pt-8">
+
+    <!-- ── PAGE HEADER ── -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-brand-gold/15 flex items-center justify-center text-brand-gold text-xl flex-shrink-0">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-slate-900 leading-tight">Analytics Hub</h1>
+                <p class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">Platform Intelligence Overview</p>
+            </div>
+        </div>
+        <!-- Sub-nav -->
+        <div class="flex flex-wrap items-center gap-1.5">
+            <a href="/admin/analytics"           class="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest bg-brand-gold/15 text-brand-gold border border-brand-gold/20">
+                <i class="fa-solid fa-gauge-high text-[10px] mr-1"></i>Overview
+            </a>
+            <a href="/admin/analytics/revenue"   class="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-indian-rupee-sign text-[10px] mr-1"></i>Revenue
+            </a>
+            <a href="/admin/analytics/courses"   class="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-book-open text-[10px] mr-1"></i>Courses
+            </a>
+            <a href="/admin/analytics/users"     class="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-users text-[10px] mr-1"></i>Users
+            </a>
+            <a href="/admin/analytics/engagement" class="px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-heart text-[10px] mr-1"></i>Engagement
+            </a>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!--  ROW 1 — REVENUE KPIs                                      -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <p class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 mb-3">
+        <i class="fa-solid fa-indian-rupee-sign text-emerald-400"></i> Revenue
+    </p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+
+        <a href="/admin/analytics/courses?sort=revenue"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-emerald-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-lg">COURSES</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1">₹<%= Number(totalRevenue).toLocaleString('en-IN') %></p>
+            <p class="text-xs text-slate-400 font-semibold">Total Revenue</p>
+            <p class="text-[10px] text-emerald-500 font-bold mt-2"><i class="fa-solid fa-circle-check text-[8px] mr-1"></i>Verified payments only</p>
+        </a>
+
+        <a href="/admin/verifications"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-amber-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-lg">Awaiting</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1">₹<%= Number(pendingRevenue).toLocaleString('en-IN') %></p>
+            <p class="text-xs text-slate-400 font-semibold">Pending Revenue</p>
+            <p class="text-[10px] text-amber-500 font-bold mt-2"><i class="fa-solid fa-hourglass-half text-[8px] mr-1"></i>Needs verification</p>
+        </a>
+
+        <a href="/admin/analytics/revenue?tab=rejected"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-red-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-red-100 text-red-500 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-ban"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-red-400 bg-red-50 border border-red-100 px-2 py-0.5 rounded-lg">Lost</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1">₹<%= Number(rejectedRevenue).toLocaleString('en-IN') %></p>
+            <p class="text-xs text-slate-400 font-semibold">Lost Revenue</p>
+            <p class="text-[10px] text-red-400 font-bold mt-2"><i class="fa-solid fa-xmark text-[8px] mr-1"></i>Rejected payments</p>
+        </a>
+
+        <a href="/admin/analytics/revenue"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-lg">Average</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1">₹<%= Number(avgOrderValue).toLocaleString('en-IN') %></p>
+            <p class="text-xs text-slate-400 font-semibold">Avg Order Value</p>
+            <p class="text-[10px] text-indigo-400 font-bold mt-2"><i class="fa-solid fa-arrow-trend-up text-[8px] mr-1"></i>Per transaction</p>
+        </a>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!--  ROW 2 — USER KPIs                                         -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <p class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 mb-3">
+        <i class="fa-solid fa-users text-blue-400"></i> Users
+    </p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+
+        <a href="/admin/analytics/users"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-blue-500 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">Total</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= totalUsers %></p>
+            <p class="text-xs text-slate-400 font-semibold">Registered Users</p>
+            <p class="text-[10px] text-blue-400 font-bold mt-2"><i class="fa-solid fa-earth-asia text-[8px] mr-1"></i>Platform-wide</p>
+        </a>
+
+        <a href="/admin/analytics/users"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-yellow-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-yellow-100 text-yellow-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-yellow-600 bg-yellow-50 border border-yellow-100 px-2 py-0.5 rounded-lg">Paying</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= payingUsers %></p>
+            <p class="text-xs text-slate-400 font-semibold">Paying Students</p>
+            <p class="text-[10px] text-yellow-600 font-bold mt-2"><i class="fa-solid fa-circle-check text-[8px] mr-1"></i>At least 1 course</p>
+        </a>
+
+        <a href="/admin/analytics/users"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-percent"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-purple-500 bg-purple-50 border border-purple-100 px-2 py-0.5 rounded-lg">Rate</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= conversionRate %>%</p>
+            <p class="text-xs text-slate-400 font-semibold">Conversion Rate</p>
+            <p class="text-[10px] text-purple-400 font-bold mt-2"><i class="fa-solid fa-arrow-right text-[8px] mr-1"></i>Signup → Purchase</p>
+        </a>
+
+        <a href="/admin/analytics/revenue?tab=pending"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-500 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-lg">Action</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= pendingUserCount %></p>
+            <p class="text-xs text-slate-400 font-semibold">Pending Payments</p>
+            <p class="text-[10px] text-orange-400 font-bold mt-2"><i class="fa-solid fa-triangle-exclamation text-[8px] mr-1"></i>Needs review</p>
+        </a>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!--  ROW 3 — COURSE KPIs                                       -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <p class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 mb-3">
+        <i class="fa-solid fa-book-open text-teal-400"></i> Courses
+    </p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+
+        <a href="/admin/analytics/courses"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-teal-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-teal-500 bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-lg">All Time</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= totalCourses %></p>
+            <p class="text-xs text-slate-400 font-semibold">Courses Created</p>
+            <p class="text-[10px] text-teal-400 font-bold mt-2"><i class="fa-solid fa-database text-[8px] mr-1"></i>Including deleted</p>
+        </a>
+
+        <a href="/admin/analytics/courses?filter=active"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-green-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-green-500 bg-green-50 border border-green-100 px-2 py-0.5 rounded-lg">Live</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= activeCourses %></p>
+            <p class="text-xs text-slate-400 font-semibold">Active Courses</p>
+            <p class="text-[10px] text-green-500 font-bold mt-2"><i class="fa-solid fa-wifi text-[8px] mr-1"></i>Currently running</p>
+        </a>
+
+        <a href="/admin/analytics/courses"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-sky-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-users-viewfinder"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-sky-500 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-lg">Students</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= totalEnrollments %></p>
+            <p class="text-xs text-slate-400 font-semibold">Total Enrollments</p>
+            <p class="text-[10px] text-sky-400 font-bold mt-2"><i class="fa-solid fa-person-chalkboard text-[8px] mr-1"></i>Across all courses</p>
+        </a>
+
+        <a href="/admin/analytics/courses?sort=revenue"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-rose-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-500 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-rose-400 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-lg">Top</span>
+            </div>
+            <p class="text-lg font-black text-slate-900 mb-1 truncate leading-tight">
+                <%= topRevenueCourse ? (topRevenueCourse.icon || '📚') + ' ' + topRevenueCourse.title.substring(0, 20) + (topRevenueCourse.title.length > 20 ? '…' : '') : 'N/A' %>
+            </p>
+            <p class="text-xs text-slate-400 font-semibold">Highest Revenue Course</p>
+            <p class="text-[10px] text-rose-400 font-bold mt-2"><i class="fa-solid fa-indian-rupee-sign text-[8px] mr-1"></i>₹<%= Number(topRevenueCourseRevenue).toLocaleString('en-IN') %></p>
+        </a>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!--  ROW 4 — ENGAGEMENT KPIs                                   -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <p class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 mb-3">
+        <i class="fa-solid fa-fire-flame-curved text-orange-400"></i> Engagement
+    </p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+
+        <a href="/admin/analytics/engagement?tab=community"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-violet-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-newspaper"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-violet-500 bg-violet-50 border border-violet-100 px-2 py-0.5 rounded-lg">Community</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= communityPostCount %></p>
+            <p class="text-xs text-slate-400 font-semibold">Community Posts</p>
+            <p class="text-[10px] text-violet-400 font-bold mt-2"><i class="fa-solid fa-pen-to-square text-[8px] mr-1"></i>User generated</p>
+        </a>
+
+        <a href="/admin/analytics/engagement?tab=community"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-pink-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-pink-100 text-pink-500 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-pink-400 bg-pink-50 border border-pink-100 px-2 py-0.5 rounded-lg">Likes</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= totalLikes %></p>
+            <p class="text-xs text-slate-400 font-semibold">Total Likes</p>
+            <p class="text-[10px] text-pink-400 font-bold mt-2"><i class="fa-solid fa-thumbs-up text-[8px] mr-1"></i>On all posts</p>
+        </a>
+
+        <a href="/admin/analytics/engagement?tab=chat"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-cyan-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-cyan-500 bg-cyan-50 border border-cyan-100 px-2 py-0.5 rounded-lg">Chat</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= chatCount %></p>
+            <p class="text-xs text-slate-400 font-semibold">Chat Messages</p>
+            <p class="text-[10px] text-cyan-400 font-bold mt-2"><i class="fa-solid fa-door-open text-[8px] mr-1"></i>All course rooms</p>
+        </a>
+
+        <a href="/admin/analytics/engagement?tab=testimonials"
+           class="relative block bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-yellow-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-yellow-100 text-yellow-500 flex items-center justify-center text-sm flex-shrink-0">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-yellow-500 bg-yellow-50 border border-yellow-100 px-2 py-0.5 rounded-lg">Rating</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 mb-1"><%= avgRating %> <span class="text-lg text-yellow-400">★</span></p>
+            <p class="text-xs text-slate-400 font-semibold">Avg Testimonial Rating</p>
+            <p class="text-[10px] text-yellow-500 font-bold mt-2"><i class="fa-solid fa-star-half-stroke text-[8px] mr-1"></i>Approved reviews</p>
+        </a>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!--  CHARTS                                                     -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <p class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 mb-3">
+        <i class="fa-solid fa-chart-column text-indigo-400"></i> Visualisations
+    </p>
+
+    <!-- Row A: Revenue Line (wide) + Enrollment Donut -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+        <div class="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h3 class="font-black text-slate-900 text-sm">Monthly Revenue</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Last 12 months</p>
+                </div>
+                <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+            </div>
+            <canvas id="revenueLineChart" height="110"></canvas>
+        </div>
+        <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h3 class="font-black text-slate-900 text-sm">Enrollment Share</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Per course</p>
+                </div>
+                <div class="w-8 h-8 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+            </div>
+            <div style="height:200px;position:relative;">
+                <canvas id="enrollmentDonut"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row B: User Growth + Payment Methods + Rating -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+        <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h3 class="font-black text-slate-900 text-sm">User Growth</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">New signups / month</p>
+                </div>
+                <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-person-circle-plus"></i>
+                </div>
+            </div>
+            <canvas id="userGrowthChart" height="160"></canvas>
+        </div>
+        <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h3 class="font-black text-slate-900 text-sm">Payment Methods</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Gateway vs manual</p>
+                </div>
+                <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-credit-card"></i>
+                </div>
+            </div>
+            <canvas id="paymentMethodChart" height="160"></canvas>
+        </div>
+        <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h3 class="font-black text-slate-900 text-sm">Rating Distribution</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">1★ to 5★ breakdown</p>
+                </div>
+                <div class="w-8 h-8 rounded-xl bg-yellow-100 text-yellow-500 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+            </div>
+            <canvas id="ratingChart" height="160"></canvas>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!--  RECENT ACTIVITY                                            -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+        <div class="px-6 py-5 border-b border-slate-50 flex items-center justify-between">
+            <div>
+                <h3 class="font-black text-slate-900 text-sm">Recent Transactions</h3>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Last 10 completed payments</p>
+            </div>
+            <a href="/admin/analytics/revenue" class="flex items-center gap-1.5 text-[10px] font-black text-brand-gold uppercase tracking-widest hover:gap-2.5 transition-all">
+                View All <i class="fa-solid fa-arrow-right text-[9px]"></i>
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-100">
+                        <th class="px-6 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">User</th>
+                        <th class="px-6 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Course</th>
+                        <th class="px-6 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
+                        <th class="px-6 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    <% if (enrichedActivity.length === 0) { %>
+                        <tr>
+                            <td colspan="4" class="px-6 py-10 text-center text-slate-400 text-sm font-semibold">
+                                <i class="fa-solid fa-inbox text-2xl text-slate-200 block mb-2"></i>
+                                No completed transactions yet
+                            </td>
+                        </tr>
+                    <% } %>
+                    <% enrichedActivity.forEach(p => { %>
+                        <tr class="hover:bg-slate-50/70 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center text-xs font-black flex-shrink-0">
+                                        <%= p.userName.charAt(0).toUpperCase() %>
+                                    </div>
+                                    <span class="font-bold text-slate-800 text-sm"><%= p.userName %></span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600 font-medium max-w-[200px] truncate"><%= p.courseTitle %></td>
+                            <td class="px-6 py-4 font-black text-slate-900 text-sm">₹<%= Number(p.amount).toLocaleString('en-IN') %></td>
+                            <td class="px-6 py-4 text-[11px] text-slate-400 font-semibold whitespace-nowrap">
+                                <%= new Date(p.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</main>
+
+<%- include('../partials/layout_wrapper_bottom', { hideFooter: true }) %>
+
+<script src="/javascripts/main.js"></script>
+<script>
+const monthlyRevenue = <%- JSON.stringify(monthlyRevenue) %>;
+const userGrowth     = <%- JSON.stringify(userGrowth) %>;
+const paymentMethods = <%- JSON.stringify(paymentMethods) %>;
+const ratingDist     = <%- JSON.stringify(ratingDist) %>;
+const allCourses     = <%- JSON.stringify(allCourses) %>;
+
+const labels12 = Object.keys(monthlyRevenue).map(k => {
+    const [y, m] = k.split('-');
+    return new Date(y, m - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+});
+
+const EMERALD = '#10b981', BLUE = '#3b82f6', INDIGO = '#6366f1';
+const GOLD = '#D4AF37';
+const palette = [GOLD, BLUE, '#8b5cf6', EMERALD, '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+
+// 1. Monthly Revenue Line
+new Chart(document.getElementById('revenueLineChart'), {
+    type: 'line',
+    data: {
+        labels: labels12,
+        datasets: [{
+            label: 'Revenue (₹)',
+            data: Object.values(monthlyRevenue),
+            borderColor: EMERALD,
+            backgroundColor: 'rgba(16,185,129,0.08)',
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: EMERALD,
+            pointRadius: 4,
+            borderWidth: 2.5
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { callback: v => '₹' + Number(v).toLocaleString('en-IN'), font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+            x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+        }
+    }
+});
+
+// 2. Enrollment Donut
+new Chart(document.getElementById('enrollmentDonut'), {
+    type: 'doughnut',
+    data: {
+        labels: allCourses.map(c => (c.icon || '📚') + ' ' + c.title.substring(0, 15)),
+        datasets: [{
+            data: allCourses.map(c => c.users || 0),
+            backgroundColor: palette,
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 8 } } }
+    }
+});
+
+// 3. User Growth Bar
+new Chart(document.getElementById('userGrowthChart'), {
+    type: 'bar',
+    data: {
+        labels: labels12,
+        datasets: [{
+            label: 'New Users',
+            data: Object.values(userGrowth),
+            backgroundColor: 'rgba(99,102,241,0.8)',
+            borderRadius: 6,
+            borderSkipped: false
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+            x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+        }
+    }
+});
+
+// 4. Payment Methods Pie
+const pmL = paymentMethods.map(m => m.paymentMethod === 'GATEWAY' ? 'Gateway' : 'Manual');
+const pmV = paymentMethods.map(m => m._sum.amount || 0);
+new Chart(document.getElementById('paymentMethodChart'), {
+    type: 'pie',
+    data: {
+        labels: pmL.length ? pmL : ['No Data'],
+        datasets: [{
+            data: pmV.length ? pmV : [1],
+            backgroundColor: [GOLD, INDIGO],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 10 } } }
+    }
+});
+
+// 5. Rating Distribution
+const rdFull = [1, 2, 3, 4, 5].map(r => {
+    const f = ratingDist.find(d => d.rating === r);
+    return f ? f._count._all : 0;
+});
+new Chart(document.getElementById('ratingChart'), {
+    type: 'bar',
+    data: {
+        labels: ['1★', '2★', '3★', '4★', '5★'],
+        datasets: [{
+            label: 'Reviews',
+            data: rdFull,
+            backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981'],
+            borderRadius: 6,
+            borderSkipped: false
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+            x: { ticks: { font: { size: 12, weight: 'bold' } }, grid: { display: false } }
+        }
+    }
+});
+</script>
+
+</body>
+</html>

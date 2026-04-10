@@ -49,6 +49,9 @@ const { invalidateCourseCache, invalidateUserCache } = require('../middleware/vi
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
+const { compressImage } = require('../utils/upload.utils');
+
+const THUMBNAIL_DIR = path.join(__dirname, '../public/uploads/thumbnails');
 
 /* -------------------------------------------------------------------------- */
 /*                          CONFIGURATION CONSTANTS                          */
@@ -127,7 +130,7 @@ function validateCourseDates(startDate, endDate, enrollmentDeadline) {
  * @returns {string|null} - Error message or null if valid
  */
 function validateCourseInput(data) {
-    const { title, description, price, originalPrice, colorTheme, zoomMeetingId, zoomPassword, demoVideoUrl, startDate, endDate, enrollmentDeadline, icon, badge, badgeColor } = data;
+    const { title, description, price, originalPrice, colorTheme, zoomMeetingId, zoomPassword, demoVideoUrl, startDate, endDate, enrollmentDeadline, icon, badge, badgeColor, level } = data;
 
 
     // Title validation
@@ -173,13 +176,27 @@ function validateCourseInput(data) {
 
 
     // Date logic validation
-    const start = startDate ? new Date(startDate) : null;
-    const end = endDate ? new Date(endDate) : null;
-    const deadline = enrollmentDeadline ? new Date(enrollmentDeadline) : null;
+    if (!startDate) return 'Start date is required';
+    if (!endDate) return 'End date is required';
+    if (!enrollmentDeadline) return 'Enrollment deadline is required';
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const deadline = new Date(enrollmentDeadline);
+
+    if (isNaN(start.getTime())) return 'Invalid start date format';
+    if (isNaN(end.getTime())) return 'Invalid end date format';
+    if (isNaN(deadline.getTime())) return 'Invalid enrollment deadline format';
 
     const dateError = validateCourseDates(start, end, deadline);
     if (dateError) {
         return dateError;
+    }
+
+    // Level validation
+    const ALLOWED_LEVELS = ['Learn Step 1', 'Nifty Zoom Live Session', 'Nifty+Zoom+Commodity'];
+    if (level && !ALLOWED_LEVELS.includes(level)) {
+        return 'Invalid course level selected';
     }
 
     return null;
@@ -207,6 +224,10 @@ function validateCourseInput(data) {
 exports.getAllCourses = async (req, res) => {
     try {
         const now = new Date();
+        // For visibility checks, we compare against the start of today to ensure 
+        // courses with today's deadline/end-date remain visible all day.
+        const startOfToday = new Date(now);
+        startOfToday.setHours(0, 0, 0, 0);
 
         // Fetch only active courses (not ended) with retry
         const courses = await withRetry(
@@ -215,8 +236,14 @@ exports.getAllCourses = async (req, res) => {
                     AND: [
                         {
                             OR: [
-                                { endDate: { gte: now } },       // End date is in the future
+                                { endDate: { gte: startOfToday } },       // End date is in the future
                                 { endDate: null }                 // No end date (ongoing)
+                            ]
+                        },
+                        {
+                            OR: [
+                                { enrollmentDeadline: { gte: startOfToday } }, // Enrollment deadline in future
+                                { enrollmentDeadline: null }          // No enrollment deadline
                             ]
                         },
                         {
@@ -236,6 +263,28 @@ exports.getAllCourses = async (req, res) => {
     } catch (error) {
         console.error("❌ Fetch Error:", error);
         res.status(500).json({ success: false, message: "Error fetching courses" });
+    }
+};
+
+/**
+ * API: Fetches a single course by ID.
+ * Used by the admin dashboard for pre-filling edit forms.
+ */
+exports.getCourseById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const course = await prisma.course.findUnique({
+            where: { id }
+        });
+
+        if (!course) {
+            return res.status(404).json({ success: false, message: "Course not found" });
+        }
+
+        res.json(course);
+    } catch (error) {
+        console.error("❌ API Fetch Error:", error);
+        res.status(500).json({ success: false, message: "Error fetching course" });
     }
 };
 
@@ -308,8 +357,7 @@ exports.addCourse = async (req, res) => {
         return res.status(403).json({ success: false, message: 'Admin access only' });
     }
 
-    const { title, description, price, originalPrice, icon, colorTheme, zoomMeetingId, zoomPassword, demoVideoUrl, startDate, endDate, enrollmentDeadline } = req.body;
-
+    const { title, description, price, originalPrice, icon, colorTheme, zoomMeetingId, zoomPassword, demoVideoUrl, startDate, endDate, enrollmentDeadline, level, dailyLiveTime } = req.body;
 
     // 2. Comprehensive validation
     const validationError = validateCourseInput(req.body);
@@ -317,11 +365,25 @@ exports.addCourse = async (req, res) => {
         return res.status(400).json({ success: false, message: validationError });
     }
 
+
     const { badge, badgeColor } = req.body;
     const parsedPrice = parseInt(price);
     const parsedOriginalPrice = parseInt(originalPrice);
 
     try {
+        // 2.5 Handle Thumbnail Upload & Compression
+        let thumbnailUrl = req.body.thumbnailUrl || null;
+        if (req.file) {
+            try {
+                const compressedFilename = await compressImage(req.file, THUMBNAIL_DIR, 'course');
+                if (compressedFilename) {
+                    thumbnailUrl = `/uploads/thumbnails/${compressedFilename}`;
+                }
+            } catch (compErr) {
+                console.error('⚠️ [Thumbnail] Compression failed:', compErr.message);
+            }
+        }
+
         // 3. Create new course with validated data using retry
         const newCourse = await withRetry(
             () => prisma.course.create({
@@ -337,12 +399,16 @@ exports.addCourse = async (req, res) => {
                     badge: badge || "New",                                // Custom badge selection
                     badgeColor: badgeColor || "green",                    // Custom badge color
                     demoVideoUrl: demoVideoUrl || "",
+                    thumbnailUrl,
+                    isPublished: req.body.isPublished === 'on',
+                    isPromoted: req.body.isPromoted === 'on',
                     zoomMeetingId: zoomMeetingId || "",
                     zoomPassword: zoomPassword || "",
                     startDate: startDate ? new Date(startDate) : null,
-
                     endDate: endDate ? new Date(endDate) : null,
-                    enrollmentDeadline: enrollmentDeadline ? new Date(enrollmentDeadline) : null
+                    enrollmentDeadline: enrollmentDeadline ? new Date(enrollmentDeadline) : null,
+                    level: level || null,
+                    dailyLiveTime: dailyLiveTime || null
                 }
             }),
             2
@@ -352,9 +418,20 @@ exports.addCourse = async (req, res) => {
         // 4. Log creation for monitoring
         console.log(`✅ [NEW COURSE] Added: ${title} (#${newCourse.id})`);
 
-        // 5. Invalidate cache and redirect
+        // 5. Invalidate cache and respond
         invalidateCourseCache();
-        res.redirect('/admin/courses');
+
+        // AJAX response check (Safe header check)
+        if (req.xhr || (req.headers && req.headers.accept && req.headers.accept.includes('json'))) {
+            return res.status(201).json({ 
+                success: true, 
+                message: 'Course created successfully!', 
+                courseId: newCourse.id 
+            });
+        }
+
+        const referer = req.get('Referer');
+        res.redirect(referer ? referer : '/admin/courses');
     } catch (e) {
         console.error("❌ Course Addition Error:", e);
         res.status(500).json({ success: false, message: 'Error adding course: ' + e.message });
@@ -431,7 +508,8 @@ exports.deleteCourse = async (req, res) => {
         // This preserves financial history for accounting and refund tracking
         // 4. Invalidate cache and redirect
         invalidateCourseCache();
-        res.redirect('/admin/courses');
+        const referer = req.get('Referer');
+        res.redirect(referer ? referer : '/admin/courses');
     } catch (e) {
         console.error("❌ Course Deletion Error:", e);
         res.status(500).json({ success: false, message: 'Error deleting course: ' + e.message });
@@ -461,7 +539,7 @@ exports.editCourse = async (req, res) => {
     }
 
     const courseId = req.params.id;
-    const { title, description, price, originalPrice, icon, colorTheme, zoomMeetingId, zoomPassword, demoVideoUrl, startDate, endDate, enrollmentDeadline, badge, badgeColor } = req.body;
+    const { title, description, price, originalPrice, icon, colorTheme, zoomMeetingId, zoomPassword, demoVideoUrl, startDate, endDate, enrollmentDeadline, badge, badgeColor, level, dailyLiveTime } = req.body;
 
 
     // 2. Comprehensive validation [, 4.2, 4.5, 4.6, 4.7, 4.16]
@@ -483,12 +561,36 @@ exports.editCourse = async (req, res) => {
         zoomMeetingId: zoomMeetingId || "",
         zoomPassword: zoomPassword || "",
         startDate: startDate ? new Date(startDate) : null,
-
         endDate: endDate ? new Date(endDate) : null,
         enrollmentDeadline: enrollmentDeadline ? new Date(enrollmentDeadline) : null,
         badge: badge || null, // Update badge
-        badgeColor: badgeColor || "blue" // Update badge color
+        badgeColor: badgeColor || "blue", // Update badge color
+        level: level || null,
+        dailyLiveTime: dailyLiveTime || null,
+        isPublished: req.body.isPublished === 'on',
+        isPromoted: req.body.isPromoted === 'on'
     };
+
+    // 3.5 Handle Thumbnail replacement
+    if (req.file) {
+        try {
+            const compressedFilename = await compressImage(req.file, THUMBNAIL_DIR, 'course');
+            if (compressedFilename) {
+                // Delete old file if it was a local upload
+                const oldCourse = await prisma.course.findUnique({ where: { id: courseId }, select: { thumbnailUrl: true } });
+                if (oldCourse?.thumbnailUrl && oldCourse.thumbnailUrl.startsWith('/uploads/thumbnails/')) {
+                    const oldPath = path.join(__dirname, '../public', oldCourse.thumbnailUrl);
+                    await fs.unlink(oldPath).catch(() => { });
+                }
+                updateData.thumbnailUrl = `/uploads/thumbnails/${compressedFilename}`;
+            }
+        } catch (compErr) {
+            console.error('⚠️ [Thumbnail] Edit compression failed:', compErr.message);
+        }
+    } else if (req.body.thumbnailUrl !== undefined) {
+        // Fallback for manual URL entry if file wasn't provided
+        updateData.thumbnailUrl = req.body.thumbnailUrl || null;
+    }
 
 
     // 4. Conditionally update icon and color theme
@@ -506,7 +608,18 @@ exports.editCourse = async (req, res) => {
         );
         console.log(`✏️ [COURSE UPDATED] ${courseId}`);
         invalidateCourseCache();
-        res.redirect('/admin/courses');
+
+        // AJAX response check (Safe header check)
+        if (req.xhr || (req.headers && req.headers.accept && req.headers.accept.includes('json'))) {
+            return res.json({ 
+                success: true, 
+                message: 'Course updated successfully!', 
+                courseId 
+            });
+        }
+
+        const referer = req.get('Referer');
+        res.redirect(referer ? referer : '/admin/courses');
     } catch (e) {
         console.error("❌ Update Error:", e);
         res.status(500).json({ success: false, message: 'Error updating course' });
@@ -790,21 +903,24 @@ exports.enrollCourse = async (req, res) => {
 exports.viewCourseVideos = async (req, res) => {
     // 1. Authentication check
     if (!req.session.user) {
-        return res.redirect('/login?returnUrl=' + encodeURIComponent(req.path));
+        return res.redirect('/login');
     }
 
     const courseId = req.params.id;
     const userId = req.session.user.id;
+    const isAdmin = String(req.session.user.role).toUpperCase() === 'ADMIN';
 
     try {
-        // 2. Verify user has purchased this course
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { purchasedCourseIds: true }
-        });
+        // 2. Access verification (Admins bypass enrollment check)
+        if (!isAdmin) {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { purchasedCourseIds: true }
+            });
 
-        if (!user || !user.purchasedCourseIds.includes(courseId)) {
-            return res.redirect('/dashboard?error=not_enrolled');
+            if (!user || !user.purchasedCourseIds.includes(courseId)) {
+                return res.redirect('/dashboard?error=not_enrolled');
+            }
         }
 
         // 3. Fetch course details
@@ -816,28 +932,104 @@ exports.viewCourseVideos = async (req, res) => {
         // 4. Fetch all videos for this course in proper order
         const videos = await prisma.courseVideo.findMany({
             where: { courseId: courseId },
-            orderBy: { order: 'asc' }  // Sequential order (Lesson 1, 2, 3...)
+            orderBy: { order: 'asc' }
         });
 
-        // 5. Handle empty video list gracefully
-        if (!videos || videos.length === 0) {
-            return res.render("dashboard/user_course_videos", {
-                course,
-                videos: [],
-                user: req.session.user,
-                message: 'No videos available for this course yet'
-            });
-        }
-
-        // 6. Render video player interface
+        // 5. Render video player interface with role context
         res.render("dashboard/user_course_videos", {
             course,
             videos,
-            user: req.session.user
+            user: req.session.user,
+            isAdmin,
+            csrfToken: res.locals.csrfToken || req.csrfToken?.() || ''
         });
     } catch (e) {
-        console.error("❌ User Video Fetch Error:", e);
-        res.status(500).json({ success: false, message: 'Error loading course content' });
+        console.error("❌ Course View Error:", e);
+        res.status(500).send('Error loading course content');
+    }
+};
+
+/**
+ * renderMyCourses - Displays the course portal with enrolled courses.
+ * 
+ * Logic:
+ * - Admin: Sees all non-deleted courses.
+ * - User: Sees only courses in their purchasedCourseIds.
+ */
+exports.renderMyCourses = async (req, res) => {
+    try {
+        if (!req.session.user) return res.redirect('/login');
+
+        const userId = req.session.user.id;
+        const isAdmin = String(req.session.user.role).toUpperCase() === 'ADMIN';
+
+        const now = new Date();
+
+        if (isAdmin) {
+            // Admin sees all non-deleted courses
+            filter = {
+                OR: [
+                    { deletedAt: null },
+                    { deletedAt: { isSet: false } }
+                ]
+            };
+        } else {
+            // Student sees only purchased, published, and non-expired courses
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { purchasedCourseIds: true }
+            });
+            const purchasedIds = user?.purchasedCourseIds || [];
+            
+            filter = {
+                id: { in: purchasedIds },
+                isPublished: true,
+                AND: [
+                    {
+                        OR: [
+                            { deletedAt: null },
+                            { deletedAt: { isSet: false } }
+                        ]
+                    },
+                    {
+                        OR: [
+                            { endDate: null },
+                            { endDate: { isSet: false } },
+                            { endDate: { gt: now } }
+                        ]
+                    }
+                ]
+            };
+        }
+
+        courses = await prisma.course.findMany({
+            where: filter,
+            orderBy: { startDate: 'desc' }
+        });
+
+        // 4. Fetch lesson counts for each course for the UI
+        const coursesWithMetadata = await Promise.all(courses.map(async (course) => {
+            const videoCount = await prisma.courseResource.count({
+                where: { 
+                    courseId: course.id,
+                    type: 'VIDEO'
+                }
+            });
+            return {
+                ...course,
+                videoCount
+            };
+        }));
+
+        res.render('dashboard/my_courses', {
+            user: req.session.user,
+            courses: coursesWithMetadata,
+            isAdmin,
+            path: '/my-courses'
+        });
+    } catch (error) {
+        console.error('[MyCourses] Render error:', error);
+        res.status(500).send('Error loading your courses');
     }
 };
 
@@ -863,7 +1055,7 @@ exports.cleanupExpiredCourses = async () => {
         const now = new Date();
         
         // 1. Find and stop live streams for courses that have ended
-        const result = await prisma.course.updateMany({
+        const liveResult = await prisma.course.updateMany({
             where: {
                 endDate: { lt: now },
                 isLive: true
@@ -874,15 +1066,127 @@ exports.cleanupExpiredCourses = async () => {
             }
         });
 
-        if (result.count > 0) {
-            console.log(`🧹 [CLEANUP] Stopped live streams for ${result.count} expired courses.`);
+        // 2. Unpublish courses that have passed their end date
+        const publishResult = await prisma.course.updateMany({
+            where: {
+                endDate: { lt: now },
+                isPublished: true
+            },
+            data: {
+                isPublished: false
+            }
+        });
+
+        if (liveResult.count > 0 || publishResult.count > 0) {
+            console.log(`🧹 [CLEANUP] Stopped ${liveResult.count} live streams and unpublished ${publishResult.count} expired courses.`);
             // Invalidate cache if courses were updated
             invalidateCourseCache();
         }
 
-        return result.count;
+        return liveResult.count + publishResult.count;
     } catch (error) {
         console.error("❌ Error running course cleanup:", error);
         throw error;
+    }
+};
+
+/**
+ * renderLiveControlPage - Renders the unified broadcast control dashboard.
+ * Groups courses into "Ongoing" and "Upcoming" for centralized management.
+ * 
+ * @route GET /admin/live
+ * @access Admin only
+ */
+exports.renderLiveControlPage = async (req, res) => {
+    try {
+        const now = new Date();
+
+        // 1. Fetch all courses with basic metadata
+        const allCourses = await withRetry(() => prisma.course.findMany({
+            where: {
+                OR: [
+                    { deletedAt: null },
+                    { deletedAt: { isSet: false } }
+                ]
+            },
+            orderBy: { startDate: 'desc' }
+        }), 2);
+
+        // 2. Categorize courses based on dates and status
+        const ongoing = [];
+        const upcoming = [];
+
+        allCourses.forEach(course => {
+            const start = course.startDate ? new Date(course.startDate) : null;
+            const end = course.endDate ? new Date(course.endDate) : null;
+            
+            // Logically Ongoing: Started or No End Date, and not clearly in the future
+            const isFuture = start && start > now;
+            
+            if (isFuture) {
+                upcoming.push(course);
+            } else {
+                ongoing.push(course);
+            }
+        });
+
+        // 3. Render the control panel
+        if (!res.locals.csrfToken) {
+            console.warn('⚠️ [Live Control] No CSRF token in res.locals! AJAX controls may fail.');
+        }
+
+        res.render('dashboard/admin_live_control', {
+            user: req.session.user,
+            ongoing,
+            upcoming,
+            now: now.toISOString(), // Pass for server-client time sync
+            csrfToken: res.locals.csrfToken || ''
+        });
+
+    } catch (error) {
+        console.error('❌ Live Control Error:', error.message);
+        res.status(500).render('error', { 
+            message: 'Failed to load live session controls. Please try again.',
+            errorId: req.errorId 
+        });
+    }
+};
+
+/**
+ * Admin Landing Page Management - Control site-wide branding and hero imagery.
+ * Supports multiple hero images (gallery).
+ * 
+ * @route GET /admin/landing-page
+ * @access Admin only
+ */
+exports.renderLandingPageManagement = async (req, res) => {
+    try {
+        const heroSetting = await prisma.siteSetting.findUnique({
+            where: { key: 'hero_image' }
+        });
+
+        let heroImages = [];
+        if (heroSetting && heroSetting.value) {
+            try {
+                const parsed = JSON.parse(heroSetting.value);
+                heroImages = Array.isArray(parsed) ? parsed : [heroSetting.value];
+            } catch (e) {
+                heroImages = [heroSetting.value];
+            }
+        } else {
+            heroImages = ['/images/hero-image.png'];
+        }
+
+        res.render('dashboard/admin_landing_page', {
+            user: req.session.user,
+            heroImages: heroImages,
+            csrfToken: res.locals.csrfToken
+        });
+    } catch (error) {
+        console.error('❌ Landing Page Management Error:', error.message);
+        res.status(500).render('error', { 
+            message: 'Failed to load landing page controls.',
+            errorId: req.errorId 
+        });
     }
 };

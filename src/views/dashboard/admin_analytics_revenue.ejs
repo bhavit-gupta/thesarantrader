@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= locals.csrfToken || '' %>">
+    <title>Revenue Analytics — The Saran Trader</title>
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="font-sans antialiased text-slate-700 bg-slate-50 min-h-screen">
+<%- include('../partials/layout_wrapper_top', { pageTitle: 'Revenue' }) %>
+
+<main class="flex-grow pb-24">
+<div class="max-w-[1500px] mx-auto px-4 lg:px-8 pt-6">
+
+    <!-- Header & nav -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a href="/admin/analytics" class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-brand-gold/10 hover:text-brand-gold transition-all"><i class="fa-solid fa-arrow-left text-xs"></i></a>
+            <div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight leading-none">Revenue & Payments</h1>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Full Financial Intelligence</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="/admin/analytics" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-gauge-high text-xs"></i> Overview</a>
+            <a href="/admin/analytics/revenue" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-brand-gold/10 text-brand-gold"><i class="fa-solid fa-indian-rupee-sign text-xs"></i> Revenue</a>
+            <a href="/admin/analytics/courses" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-book-open text-xs"></i> Courses</a>
+            <a href="/admin/analytics/users" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-users text-xs"></i> Users</a>
+            <a href="/admin/analytics/engagement" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-heart text-xs"></i> Engagement</a>
+        </div>
+    </div>
+
+    <!-- KPI Strip -->
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <% const kpis = [
+            { label: 'Total Revenue', val: '₹' + Number(totalRevenue).toLocaleString('en-IN'), color: 'emerald', icon: 'fa-indian-rupee-sign' },
+            { label: 'Pending Revenue', val: '₹' + Number(pendingRevenue).toLocaleString('en-IN'), color: 'amber', icon: 'fa-clock', href: '/admin/verifications' },
+            { label: 'Lost Revenue', val: '₹' + Number(lostRevenue).toLocaleString('en-IN'), color: 'red', icon: 'fa-arrow-trend-down' },
+            { label: 'Approval Rate', val: approvalRate + '%', color: 'purple', icon: 'fa-percent' },
+            { label: 'Avg Order', val: '₹' + Number(avgOrderValue).toLocaleString('en-IN'), color: 'indigo', icon: 'fa-calculator' },
+            { label: 'Platform Expenses', val: '₹' + Number(totalExpenses).toLocaleString('en-IN'), color: 'slate', icon: 'fa-file-invoice-dollar' }
+        ]; %>
+        <% kpis.forEach(k => { %>
+        <% if (k.href) { %>
+            <a href="<%= k.href %>" class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-brand-gold/20 transition-all group">
+                <div class="w-8 h-8 rounded-xl bg-<%= k.color %>-100 text-<%= k.color %>-600 flex items-center justify-center text-xs mb-3 group-hover:bg-<%= k.color %>-500 group-hover:text-white transition-colors"><i class="fa-solid <%= k.icon %>"></i></div>
+                <p class="text-xl font-black text-slate-900"><%= k.val %></p>
+                <div class="flex items-center justify-between mt-1">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wide"><%= k.label %></p>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[8px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                </div>
+            </a>
+        <% } else { %>
+            <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+                <div class="w-8 h-8 rounded-xl bg-<%= k.color %>-100 text-<%= k.color %>-600 flex items-center justify-center text-xs mb-3"><i class="fa-solid <%= k.icon %>"></i></div>
+                <p class="text-xl font-black text-slate-900"><%= k.val %></p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-1"><%= k.label %></p>
+            </div>
+        <% } %>
+        <% }) %>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="font-black text-slate-900 mb-1">Monthly Revenue Trend</h3>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Last 12 Months</p>
+            <canvas id="revTrendChart" height="80"></canvas>
+        </div>
+        <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="font-black text-slate-900 mb-1">Transaction Status</h3>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Completed / Pending / Rejected</p>
+            <canvas id="statusDonut" height="140"></canvas>
+        </div>
+        <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="font-black text-slate-900 mb-1">Payment Methods</h3>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">By Revenue Value</p>
+            <canvas id="methodPie" height="140"></canvas>
+        </div>
+        <div class="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="font-black text-slate-900 mb-1">Revenue per Course</h3>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Sorted by Total Revenue</p>
+            <canvas id="perCourseBar" height="80"></canvas>
+        </div>
+    </div>
+
+    <!-- Tab Switcher -->
+    <div class="flex gap-2 mb-4 flex-wrap" id="revenue-tab-switcher">
+        <button data-tab="completed" class="tab-btn px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all bg-emerald-500 text-white shadow-md">
+            <i class="fa-solid fa-check mr-1"></i> Completed (<%= completed.length %>)
+        </button>
+        <button data-tab="pending" class="tab-btn px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all bg-white border border-slate-200 text-slate-500 hover:border-amber-200 hover:text-amber-600">
+            <i class="fa-solid fa-clock mr-1"></i> Pending (<%= pending.length %>)
+        </button>
+        <button data-tab="rejected" class="tab-btn px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all bg-white border border-slate-200 text-slate-500 hover:border-red-200 hover:text-red-500">
+            <i class="fa-solid fa-ban mr-1"></i> Rejected (<%= rejected.length %>)
+        </button>
+        <button data-tab="expenses" class="tab-btn px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all bg-white border border-slate-200 text-slate-500 hover:border-slate-400 hover:text-slate-700">
+            <i class="fa-solid fa-file-invoice-dollar mr-1"></i> Expenses (<%= expenses.length %>)
+        </button>
+        <button type="button" onclick="document.getElementById('expenseModal').classList.remove('hidden')" class="ml-auto px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20">
+            <i class="fa-solid fa-plus mr-1"></i> Add Expense
+        </button>
+    </div>
+
+    <!-- Purchases Table -->
+    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+        <!-- Expenses Table -->
+        <div id="tab-content-expenses" class="tab-content hidden overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 text-slate-400 font-black uppercase tracking-widest text-[9px] border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4">Expense Description</th>
+                        <th class="px-6 py-4">Amount</th>
+                        <th class="px-6 py-4">Date Logged</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    <% if (expenses.length === 0) { %>
+                        <tr><td colspan="3" class="px-6 py-10 text-center text-slate-400 font-semibold">No expenses logged yet</td></tr>
+                    <% } %>
+                    <% expenses.forEach(e => { %>
+                        <tr class="hover:bg-slate-50/70 transition-all">
+                            <td class="px-6 py-4 font-bold text-slate-800 text-sm"><%= e.description %></td>
+                            <td class="px-6 py-4 font-black text-red-500">-₹<%= Number(e.amount).toLocaleString('en-IN') %></td>
+                            <td class="px-6 py-4 text-[11px] text-slate-400 font-semibold"><%= new Date(e.date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) %></td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Purchases Tables -->
+        <% const types = ['completed', 'pending', 'rejected']; %>
+        <% types.forEach(type => { %>
+            <div id="tab-content-<%= type %>" class="tab-content <%= type === 'completed' ? '' : 'hidden' %> overflow-x-auto">
+                <% const tableData = type === 'pending' ? pending : (type === 'rejected' ? rejected : completed); %>
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 text-slate-400 font-black uppercase tracking-widest text-[9px] border-b border-slate-100">
+                        <tr>
+                            <th class="px-6 py-4">User</th>
+                            <th class="px-6 py-4">Email</th>
+                            <th class="px-6 py-4">Course</th>
+                            <th class="px-6 py-4">Amount</th>
+                            <th class="px-6 py-4">Method</th>
+                            <th class="px-6 py-4">Date</th>
+                            <% if (type === 'rejected') { %><th class="px-6 py-4">Reason</th><% } %>
+                            <% if (type === 'pending') { %><th class="px-6 py-4 text-right">Actions</th><% } %>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        <% if (tableData.length === 0) { %>
+                            <tr><td colspan="7" class="px-6 py-10 text-center text-slate-400 font-semibold">No <%= type %> transactions</td></tr>
+                        <% } %>
+                        <% tableData.forEach(p => { %>
+                            <tr class="hover:bg-slate-50/70 transition-all">
+                                <td class="px-6 py-4 font-bold text-slate-800 text-sm"><%= p.userName %></td>
+                                <td class="px-6 py-4 text-xs text-slate-500"><%= p.userEmail %></td>
+                                <td class="px-6 py-4 text-sm text-slate-700 max-w-[150px] truncate font-medium"><%= p.courseTitle %></td>
+                                <td class="px-6 py-4 font-black text-slate-900">₹<%= Number(p.amount).toLocaleString('en-IN') %></td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest <%= p.paymentMethod === 'GATEWAY' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600' %>">
+                                        <%= p.paymentMethod === 'GATEWAY' ? 'Gateway' : 'Manual' %>
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-[11px] text-slate-400 font-semibold"><%= new Date(p.date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) %></td>
+                                <% if (type === 'rejected') { %>
+                                    <td class="px-6 py-4 text-xs text-red-500 max-w-[150px] truncate"><%= p.rejectionReason || '—' %></td>
+                                <% } %>
+                                <% if (type === 'pending') { %>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <% if (p.screenshotUrl) { %>
+                                                <a href="<%= p.screenshotUrl %>" target="_blank" class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center hover:bg-brand-gold transition-all"><i class="fa-solid fa-image text-xs"></i></a>
+                                            <% } %>
+                                            <button data-purchase-id="<%= p.id %>" class="approve-payment-btn w-8 h-8 rounded-xl bg-emerald-500 text-white hover:scale-105 transition-all flex items-center justify-center"><i class="fa-solid fa-check text-xs"></i></button>
+                                            <button data-purchase-id="<%= p.id %>" class="reject-payment-btn w-8 h-8 rounded-xl bg-red-500 text-white hover:scale-105 transition-all flex items-center justify-center"><i class="fa-solid fa-xmark text-xs"></i></button>
+                                        </div>
+                                    </td>
+                                <% } %>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        <% }) %>
+    </div>
+
+    <!-- Add Expense Modal -->
+    <div id="expenseModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
+        <div class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6 ring-1 ring-slate-900/5 overflow-hidden">
+            <button type="button" onclick="document.getElementById('expenseModal').classList.add('hidden')" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-all"><i class="fa-solid fa-xmark"></i></button>
+            <div class="mb-5 pb-5 border-b border-slate-100">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <h3 class="font-black text-xl text-slate-900 tracking-tight">Log Expense</h3>
+                <p class="text-xs text-slate-500 font-medium">This will be added to Lost Revenue calculations.</p>
+            </div>
+            <form action="/admin/analytics/expense" method="POST">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 ml-1">Amount (₹)</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400">₹</span>
+                            <input type="number" name="amount" required min="1" class="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" placeholder="5000">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5 ml-1">Description</label>
+                        <input type="text" name="description" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" placeholder="Marketing Ads, Server Cost...">
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white text-sm font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-emerald-500/30">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</main>
+<%- include('../partials/layout_wrapper_bottom', { hideFooter: true }) %>
+    <script src="/javascripts/main.js"></script>
+    <script src="/javascripts/admin.js"></script>
+    <script>
+    const monthlyRevenue = <%- JSON.stringify(monthlyRevenue) %>;
+    const perCourseRevenue = <%- JSON.stringify(perCourseRevenue) %>;
+    const methodGroups = <%- JSON.stringify(methodGroups) %>;
+    const completedCount = <%= completed.length %>;
+    const pendingCount = <%= pending.length %>;
+    const rejectedCount = <%= rejected.length %>;
+
+    const labels12 = Object.keys(monthlyRevenue).map(k => {
+        const [y,m] = k.split('-');
+        return new Date(y,m-1).toLocaleDateString('en-IN',{month:'short',year:'2-digit'});
+    });
+
+    new Chart(document.getElementById('revTrendChart'), {
+        type: 'line',
+        data: { labels: labels12, datasets: [{ label: '₹', data: Object.values(monthlyRevenue),
+            borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.07)', fill: true, tension: 0.4, pointBackgroundColor: '#10b981', pointRadius: 4, borderWidth: 2.5 }] },
+        options: { responsive: true, plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + Number(v).toLocaleString('en-IN'), font:{size:10} }, grid:{color:'#f1f5f9'} }, x: { ticks:{font:{size:10}}, grid:{display:false} } } }
+    });
+
+    new Chart(document.getElementById('statusDonut'), {
+        type: 'doughnut',
+        data: { labels: ['Completed','Pending','Rejected'], datasets: [{ data: [completedCount, pendingCount, rejectedCount],
+            backgroundColor: ['#10b981','#f59e0b','#ef4444'], borderWidth: 2, borderColor: '#fff' }] },
+        options: { responsive: true, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { font:{size:10}, padding:8 } } } }
+    });
+
+    const pmL = methodGroups.map(m => m.paymentMethod === 'GATEWAY' ? 'Gateway' : 'Manual');
+    const pmV = methodGroups.map(m => m._sum.amount || 0);
+    new Chart(document.getElementById('methodPie'), {
+        type: 'pie',
+        data: { labels: pmL.length ? pmL : ['No Data'], datasets: [{ data: pmV.length ? pmV : [1], backgroundColor: ['#D4AF37','#6366f1'], borderWidth: 2, borderColor: '#fff' }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font:{size:10}, padding:8 } } } }
+    });
+
+    new Chart(document.getElementById('perCourseBar'), {
+        type: 'bar',
+        data: { 
+            labels: perCourseRevenue.map(c => (c.icon || '📚') + ' ' + (c.title || c.courseTitle).substring(0, 20)),
+            datasets: [{ 
+                label: 'Revenue (₹)', 
+                data: perCourseRevenue.map(c => c.revenue),
+                backgroundColor: '#D4AF37', 
+                borderRadius: 6, 
+                borderSkipped: false 
+            }] 
+        },
+        options: { 
+            indexAxis: 'y', 
+            responsive: true, 
+            plugins: { legend: { display: false } },
+            scales: { 
+                x: { 
+                    beginAtZero: true, 
+                    ticks: { callback: v => '₹'+Number(v).toLocaleString('en-IN'), font:{size:10} }, 
+                    grid:{color:'#f1f5f9'} 
+                }, 
+                y: { 
+                    ticks:{font:{size:10}}, 
+                    grid:{display:false} 
+                } 
+            } 
+        }
+    });
+
+    // Client-side Tab Switcher Logic
+    const switcher = document.getElementById('revenue-tab-switcher');
+    const tabBtns = switcher.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+
+    const theme = {
+        completed: 'bg-emerald-500 text-white shadow-md',
+        pending: 'bg-amber-500 text-white shadow-md',
+        rejected: 'bg-red-500 text-white shadow-md',
+        expenses: 'bg-slate-700 text-white shadow-md',
+        default: 'bg-white border border-slate-200 text-slate-500'
+    };
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.tab;
+
+            // Update Buttons
+            tabBtns.forEach(b => {
+                const bType = b.dataset.tab;
+                b.className = 'tab-btn px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ' + theme.default;
+                if (bType === 'pending') b.classList.add('hover:border-amber-200', 'hover:text-amber-600');
+                if (bType === 'completed') b.classList.add('hover:border-emerald-200', 'hover:text-emerald-600');
+                if (bType === 'rejected') b.classList.add('hover:border-red-200', 'hover:text-red-500');
+                if (bType === 'expenses') b.classList.add('hover:border-slate-400', 'hover:text-slate-700');
+            });
+
+            btn.className = 'tab-btn px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ' + theme[target];
+
+            // Update Content
+            contents.forEach(c => c.classList.add('hidden'));
+            document.getElementById('tab-content-' + target).classList.remove('hidden');
+        });
+    });
+    </script>
+</body>
+</html>

@@ -121,17 +121,29 @@ JAVASCRIPT DEPENDENCIES:
                                     <!-- Chat Info & Enter Button -->
                                     <div class="p-8">
                                         <div class="flex items-center justify-between mb-8">
-                                            <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
-                                                <i class="fa-solid fa-shield-halved text-brand-gold/60"></i>
-                                                <span>Private Lounge</span>
+                                            <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] <%= course.id === 'e1f1a7e78ba742e88c7c1c9f' ? 'text-blue-500' : 'text-slate-400' %>">
+                                                <i class="fa-solid <%= course.id === 'e1f1a7e78ba742e88c7c1c9f' ? 'fa-globe' : 'fa-shield-halved' %> text-brand-gold/60"></i>
+                                                <span><%= course.id === 'e1f1a7e78ba742e88c7c1c9f' ? 'Community Access' : 'Private Lounge' %></span>
                                             </div>
+                                            <% 
+                                                const now = new Date();
+                                                const isActive = course.lastActivityAt && 
+                                                    (now - new Date(course.lastActivityAt)) < 24 * 60 * 60 * 1000;
+                                            %>
+                                            <% if (isActive) { %>
                                             <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-green-600 bg-green-500/5 px-2 py-1 rounded-full border border-green-500/10">
                                                 <span class="relative flex h-1.5 w-1.5">
-                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                    <span class="animate-ping absolute inline-flex h-1.5 w-1.5 rounded-full bg-green-400 opacity-75"></span>
                                                     <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
                                                 </span>
                                                 <span>Active</span>
                                             </div>
+                                            <% } else { %>
+                                            <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+                                                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-slate-300"></span>
+                                                <span>Quiet</span>
+                                            </div>
+                                            <% } %>
                                         </div>
 
                                         <div

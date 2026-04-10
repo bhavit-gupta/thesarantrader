@@ -1,0 +1,307 @@
+<!-- 
+========================================
+FILE: my_courses.ejs
+PURPOSE: My Courses Portal - Enhanced UI
+========================================
+
+DESCRIPTION:
+Premium gallery for enrolled courses (User) and syllabus command (Admin).
+Features cinematic transitions, real-time filtering, and professional metadata.
+
+VARIABLES:
+- courses: Array of courses (with .videoCount)
+- isAdmin: Boolean
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>My Courses - The Saran Trader</title>
+
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(212, 175, 55, 0.4);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(212, 175, 55, 0.1);
+        }
+        .search-glow:focus-within {
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+            border-color: rgba(212, 175, 55, 0.5);
+        }
+        .mesh-gradient {
+            background: radial-gradient(at 0% 0%, rgba(212, 175, 55, 0.05) 0px, transparent 50%),
+                        radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.05) 0px, transparent 50%);
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-slate-400 bg-slate-950 min-h-screen overflow-x-hidden mesh-gradient">
+    <div class="flex min-h-screen">
+        <!-- Dashboard Sidebar -->
+        <%- include('../partials/dashboard_sidebar') %>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col min-w-0 lg:ml-[288px] min-h-screen">
+            <!-- Mobile Header -->
+            <header class="lg:hidden h-16 bg-slate-900/80 backdrop-blur-md border-b border-white/10 flex items-center px-4 sticky top-0 z-40">
+                <button id="sidebar-toggle" class="p-2 text-white/70 hover:text-white transition-colors">
+                    <i class="fa-solid fa-bars-staggered text-xl"></i>
+                </button>
+                <div class="ml-4 flex items-center gap-2">
+                    <img src="/images/logo.webp" alt="Logo" class="h-8 w-auto">
+                    <span class="text-white font-black text-xs uppercase italic">Saran Trader</span>
+                </div>
+            </header>
+
+            <main class="flex-grow pb-24 overflow-y-auto bg-slate-950 relative">
+                <!-- Background Glows -->
+                <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+                <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 pt-12 lg:pt-20">
+                    
+                    <!-- Header & Search Section -->
+                    <div class="mb-16 space-y-10">
+                        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+                            <div class="space-y-4">
+                                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-gold/10 border border-brand-gold/20 text-brand-gold text-[9px] font-black uppercase tracking-[0.3em]">
+                                    <span class="w-1 h-1 rounded-full bg-brand-gold animate-ping"></span>
+                                    Content
+                                </div>
+                                <h1 class="text-4xl lg:text-6xl font-black text-white tracking-tighter leading-none mb-2">
+                                    Course <span class="text-brand-gold italic">Catalog</span>
+                                </h1>
+                            </div>
+
+                            <% if (isAdmin) { %>
+                            <div class="flex-shrink-0">
+                                <a href="/admin/courses" class="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-white text-slate-950 font-black text-[10px] uppercase tracking-widest hover:bg-brand-gold transition-all duration-500 shadow-2xl shadow-white/5 group">
+                                    <i class="fa-solid fa-plus group-hover:rotate-90 transition-transform"></i>
+                                    Create New Strategy
+                                </a>
+                            </div>
+                            <% } %>
+                        </div>
+
+                        <!-- Search Bar -->
+                        <div class="flex items-center bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl search-glow transition-all duration-500 max-w-2xl mx-auto">
+                            <div class="relative flex-1 group w-full">
+                                <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-gold transition-colors"></i>
+                                <input type="text" id="courseSearch" placeholder="Quick find by curriculum title or keywords..." 
+                                    class="w-full bg-transparent border-none py-3 pl-14 pr-6 text-white text-sm font-medium focus:ring-0 placeholder:text-slate-600">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Course Grid -->
+                    <div id="courseGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                        <% if (courses && courses.length > 0) { %>
+                            <% courses.forEach(course => { 
+                                const now = new Date();
+                                const start = course.startDate ? new Date(course.startDate) : null;
+                                const end = course.endDate ? new Date(course.endDate) : null;
+                                
+                                let statusLabel = "Active";
+                                let statusClass = "bg-green-500/10 text-green-400 border-green-500/20";
+                                
+                                if (start && start > now) {
+                                    statusLabel = "Upcoming";
+                                    statusClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                                } else if (end && end < now) {
+                                    statusLabel = "Terminated";
+                                    statusClass = "bg-red-500/10 text-red-400 border-red-500/20";
+                                }
+                            %>
+                                <div class="course-card group glass-card rounded-3xl overflow-hidden flex flex-col h-full" 
+                                     data-title="<%= course.title.toLowerCase() %>" 
+                                     data-level="<%= course.level || 'all' %>">
+                                    
+                                    <!-- Image Container -->
+                                    <div class="relative h-48 lg:h-52 overflow-hidden bg-slate-900">
+                                        <% if (course.thumbnailUrl) { %>
+                                            <img src="<%= course.thumbnailUrl %>" 
+                                                 class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.3] group-hover:grayscale-0" alt="<%= course.title %>">
+                                        <% } else { %>
+                                            <!-- Branded Placeholder (Platform Program Style) -->
+                                            <div class="w-full h-full bg-gradient-to-br from-[#0a0f1e] via-[#1a2544] to-[#0a0f1e] flex flex-col items-center justify-center text-white/10 gap-4 group-hover:via-brand-gold/10 transition-all duration-700">
+                                                <div class="w-12 h-12 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center transform transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-2xl relative">
+                                                    <span class="text-2xl transition-all duration-500 filter group-hover:drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]">
+                                                        <%= course.icon || '📚' %>
+                                                    </span>
+                                                </div>
+                                                <span class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-gold/40 group-hover:text-brand-gold transition-all">Platform Program</span>
+                                            </div>
+                                        <% } %>
+                                        
+                                        <!-- Overlay Info -->
+                                        <div class="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+                                            <div class="flex flex-wrap gap-2">
+                                                <% if (!isAdmin) { %>
+                                                    <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 text-[8px] font-black uppercase tracking-[0.2em] backdrop-blur-md">
+                                                        Active
+                                                    </span>
+                                                <% } else { %>
+                                                    <% if (!course.isPublished) { %>
+                                                        <span class="px-3 py-1 rounded-full bg-slate-900/90 text-white border border-white/10 text-[8px] font-black uppercase tracking-[0.2em] backdrop-blur-md">
+                                                            Offline
+                                                        </span>
+                                                    <% } %>
+                                                    <% if (end && end < now) { %>
+                                                        <span class="px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 text-[8px] font-black uppercase tracking-[0.2em] backdrop-blur-md">
+                                                            Expired
+                                                        </span>
+                                                    <% } else if (course.isPublished) { %>
+                                                        <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 text-[8px] font-black uppercase tracking-[0.2em] backdrop-blur-md">
+                                                            Active
+                                                        </span>
+                                                    <% } %>
+                                                <% } %>
+
+                                                <% if (course.level) { %>
+                                                    <span class="px-3 py-1 rounded-full bg-black/40 text-white border border-white/10 text-[8px] font-black uppercase tracking-[0.2em] backdrop-blur-md">
+                                                        <%= course.level %>
+                                                    </span>
+                                                <% } %>
+                                            </div>
+                                        </div>
+
+                                        <% if (course.isLive) { %>
+                                        <div class="absolute top-6 right-6 px-3 py-1.5 rounded-xl bg-red-600 text-white text-[8px] font-black uppercase tracking-widest animate-pulse flex items-center gap-2">
+                                            <i class="fa-solid fa-tower-broadcast animate-bounce"></i> Live Now
+                                        </div>
+                                        <% } %>
+                                    </div>
+
+                                    <!-- Content -->
+                                    <div class="p-6 lg:p-8 flex flex-col flex-grow relative">
+                                        <div class="mb-6">
+                                            <div class="flex items-center gap-4 mb-4">
+                                                <div class="w-12 h-12 rounded-2xl <%= course.iconBg %> flex items-center justify-center text-2xl shadow-inner border border-white/5">
+                                                    <%= course.icon || '📜' %>
+                                                </div>
+                                                <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+                                            </div>
+                                            <h3 class="text-xl font-black text-white leading-tight tracking-tighter group-hover:text-brand-gold transition-colors duration-500">
+                                                <%= course.title %>
+                                            </h3>
+                                        </div>
+
+                                        <p class="text-sm text-slate-500 line-clamp-2 mb-10 font-medium leading-relaxed italic border-l-2 border-brand-gold/20 pl-4">
+                                            <%= course.description || 'Access tactical market intelligence with our proprietary curriculum.' %>
+                                        </p>
+
+                                        <!-- Progress Bar (Decorative) -->
+                                        <div class="mb-6 space-y-2">
+                                            <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-slate-600">
+                                                <span>Curriculum Modules</span>
+                                                <span class="text-white"><%= course.videoCount %> Total Lessons</span>
+                                            </div>
+                                            <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                                                <div class="h-full bg-gradient-to-r from-brand-gold/60 to-brand-gold rounded-full shadow-[0_0_10px_rgba(212,175,55,0.3)] transition-all duration-1000 w-[<%= Math.min(100, (course.videoCount * 12)) %>%]"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
+                                            <a href="/courses/<%= course.id %>/view" class="flex items-center gap-3 text-white group-hover:text-brand-gold transition-colors duration-500">
+                                                <span class="text-[10px] font-black uppercase tracking-[0.4em]">Explore Content</span>
+                                                <i class="fa-solid fa-arrow-right-long text-brand-gold group-hover:translate-x-3 transition-transform duration-500"></i>
+                                            </a>
+                                            
+                                            <% if (course.users > 0) { %>
+                                            <div class="flex -space-x-3 overflow-hidden">
+                                                <img class="inline-block h-6 w-6 rounded-full ring-2 ring-slate-950" src="https://ui-avatars.com/api/?name=User+1&background=random" alt="">
+                                                <img class="inline-block h-6 w-6 rounded-full ring-2 ring-slate-950" src="https://ui-avatars.com/api/?name=User+2&background=random" alt="">
+                                                <div class="flex items-center justify-center h-6 w-6 rounded-full bg-slate-900 ring-2 ring-slate-950 text-[8px] font-bold text-slate-500">
+                                                    +<%= course.users %>
+                                                </div>
+                                            </div>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <!-- Cinematic Empty State -->
+                            <div class="col-span-full py-40 text-center relative overflow-hidden rounded-[4rem] border border-white/5 bg-white/[0.02]">
+                                <div class="absolute inset-0 bg-brand-gold/5 blur-3xl rounded-full opacity-20 -translate-y-1/2"></div>
+                                <div class="relative z-10">
+                                    <div class="w-32 h-32 bg-slate-900/50 backdrop-blur-3xl rounded-[3rem] flex items-center justify-center text-6xl mb-12 mx-auto border border-white/10 shadow-inner">
+                                        🌑
+                                    </div>
+                                    <h3 class="text-3xl lg:text-4xl font-black text-white mb-6 uppercase tracking-widest bg-clip-text text-transparent bg-gradient-to-b from-white to-white/20">
+                                        The Radar is Empty
+                                    </h3>
+                                    <p class="text-slate-500 max-w-sm mx-auto leading-relaxed mb-12 italic">
+                                        No active tactical missions detected in your current protocol. Begin your roadmap now.
+                                    </p>
+                                    <a href="/courses" class="inline-flex items-center gap-4 px-10 py-5 rounded-2xl bg-brand-gold text-slate-900 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-white transition-all duration-700 shadow-2xl shadow-brand-gold/10">
+                                        Secure Access <i class="fa-solid fa-lock-open text-[12px]"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </main>
+
+            <%- include('../partials/footer') %>
+        </div>
+    </div>
+
+    <script defer>
+        // Real-time Search Logic
+        const searchInput = document.getElementById('courseSearch');
+        const courseCards = document.querySelectorAll('.course-card');
+
+        searchInput?.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            courseCards.forEach(card => {
+                const title = card.getAttribute('data-title');
+                if (title.includes(query)) {
+                    card.style.display = 'flex';
+                    card.classList.add('animate-fade-in');
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // Category Filter Logic
+        function filterCourses(level) {
+            // Update UI buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-white/5', 'text-white');
+                btn.classList.add('text-slate-500');
+            });
+            event.target.classList.add('active', 'bg-white/5', 'text-white');
+            event.target.classList.remove('text-slate-500');
+
+            // Apply filter
+            courseCards.forEach(card => {
+                const cardLevel = card.getAttribute('data-level');
+                if (level === 'all' || cardLevel.toLowerCase().includes(level.toLowerCase())) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

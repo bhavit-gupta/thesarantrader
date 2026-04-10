@@ -31,6 +31,8 @@ const { getUserPurchasedCourses } = require('../utils/helpers');
 const csrfProtection = require('../middleware/csrfProtection');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { generateSignature, getZAKToken } = require('../utils/zoom');
+const { isAuthenticated, isAdmin: isUserAdmin } = require('../middleware/auth.middleware');
+const courseController = require('../controllers/course.controller');
 
 
 /* -------------------------------------------------------------------------- */
@@ -150,23 +152,12 @@ async function verifyAdminInDatabase(req, res, next) {
 /*                              PUBLIC PAGES                                 */
 /* -------------------------------------------------------------------------- */
 
-// Landing page
-// Rate limiting on public pages
-router.get('/', authLimiter, async (req, res) => {
-    try {
-        // Fetch custom hero image if set by admin
-        const heroSetting = await prisma.siteSetting.findUnique({
-            where: { key: 'hero_image' }
-        });
-        
-        const heroImage = heroSetting ? heroSetting.value : '/images/hero-image.png';
-        
-        res.render("layouts/index", { heroImage });
-    } catch (error) {
-        // Fallback to default if database fails
-        console.error('[Views] Home error:', error.message);
-        res.render("layouts/index", { heroImage: '/images/hero-image.png' });
+// Show landing page for guests, redirect authenticated users to dashboard
+router.get('/', authLimiter, (req, res) => {
+    if (req.session && req.session.user) {
+        return res.redirect(URLS.DASHBOARD);
     }
+    res.render("layouts/index");
 });
 
 // Course catalog
@@ -297,6 +288,14 @@ router.get('/checkout/:courseId',
 /*                          USER DASHBOARD                                   */
 /* -------------------------------------------------------------------------- */
 
+// My Courses Portal (Unified)
+router.get('/my-courses',
+    isAuthenticated,
+    async (req, res) => {
+        await courseController.renderMyCourses(req, res);
+    }
+);
+
 /**
  * User dashboard - Main page for enrolled users.
  * 
@@ -352,13 +351,21 @@ router.get('/live-meeting',
         }
 
         try {
-            const rawId = (req.query.id || '').trim();
-            const rawPwd = (req.query.pwd || '').trim();
+            // Get meeting details from query params and clean them
+            const meetingNumber = (req.query.id || '').replace(/\s/g, '');
+            const password = (req.query.pwd || '').replace(/\s/g, '');
             
-            // Zoom Meeting IDs are strictly numeric (strip spaces, extra trailing chars from user typos)
-            const meetingNumber = rawId.replace(/\D/g, ''); 
-            const password = rawPwd; 
-            
+            // --- ZOOM SDK TOGGLE LOGIC ---
+            // If the toggle is missing or not explicitly "true", fallback to direct Zoom redirect
+            if (process.env.USE_ZOOM_SDK !== 'true') {
+                const zoomJoinUrl = `https://zoom.us/j/${meetingNumber}?pwd=${password}`;
+                console.log(`[Live Meeting] SDK Disabled - Redirecting to Zoom: ${meetingNumber}`);
+                return res.redirect(zoomJoinUrl);
+            }
+            // -----------------------------
+
+            // Default to Participant (Role 0) for the browser console to avoid 
+            // errorCode: 1 conflicts with the Zoom Desktop App.
             // Identify Role: Admin = 1 (Host), Student = 0 (Attendee)
             const isAdmin = req.session.user.role === 'ADMIN';
             const role = isAdmin ? 1 : 0;
@@ -380,9 +387,16 @@ router.get('/live-meeting',
                 }
             }
 
+            // Fetch course details for context (Admin link to content)
+            const course = await prisma.course.findFirst({
+                where: { zoomMeetingId: meetingNumber },
+                select: { id: true, title: true }
+            });
+
             // Render integrated dashboard view
             const viewPath = isAdmin ? 'dashboard/admin_live_studio' : 'dashboard/user_live_room';
 
+            console.log(`[Trace:Handshake] Key on Server: ${process.env.ZOOM_SDK_KEY}`);
             res.render(viewPath, {
                 sdkKey: process.env.ZOOM_SDK_KEY,
                 signature: signature,
@@ -392,7 +406,9 @@ router.get('/live-meeting',
                 // CRITICAL FIX: The userEmail provided to the SDK MUST match the owner of the ZAK token
                 userEmail: isAdmin ? hostEmailForZAK : (req.session.user.email || ''),
                 role: role,
-                zakToken: zakToken
+                zakToken: zakToken,
+                courseId: course?.id || null,
+                courseTitle: course?.title || null
             });
         } catch (error) {
             console.error('[Live Meeting] Error:', error.message);
@@ -430,13 +446,20 @@ router.get('/admin/dashboard',
                 totalPaidUsersResult,
                 pendingPurchasesResult,
                 totalUsersResult,
-                heroSettingResult
+                heroSettingResult,
+                totalRevenueResult,
+                customScheduleResult
             ] = await Promise.allSettled([
                 prisma.course.findMany({ orderBy: { startDate: 'asc' } }),
                 prisma.user.count({ where: { purchasedCourseIds: { isEmpty: false } } }),
                 prisma.purchase.findMany({ where: { status: 'PENDING' }, orderBy: { date: 'desc' } }).catch(() => prisma.purchase.findMany({ where: { status: 'PENDING' } })), // Fallback if date sorting fails
                 prisma.user.count(),
-                prisma.siteSetting.findUnique({ where: { key: 'hero_image' } })
+                prisma.siteSetting.findUnique({ where: { key: 'hero_image' } }),
+                prisma.purchase.aggregate({
+                    where: { status: 'COMPLETED' },
+                    _sum: { amount: true }
+                }),
+                prisma.siteSetting.findUnique({ where: { key: 'admin_custom_schedule' } })
             ]);
 
             // Extract results with default fallbacks
@@ -445,7 +468,12 @@ router.get('/admin/dashboard',
             const pendingPurchases = pendingPurchasesResult.status === 'fulfilled' ? pendingPurchasesResult.value : [];
             const totalUsers = totalUsersResult.status === 'fulfilled' ? totalUsersResult.value : 0;
             const heroSetting = heroSettingResult.status === 'fulfilled' ? heroSettingResult.value : null;
-            const heroImage = heroSetting ? heroSetting.value : '/images/hero-image.png';
+            const customScheduleSetting = customScheduleResult.status === 'fulfilled' ? customScheduleResult.value : null;
+            
+            // Extract total revenue safely
+            const totalRevenue = totalRevenueResult.status === 'fulfilled' ? 
+                (totalRevenueResult.value?._sum?.amount || 0) : 0;
+            const heroImage = heroSetting ? heroSetting.value : '/images/about_us.jpeg';
 
             if (totalPaidUsersResult.status === 'rejected') console.error('[Dashboard] totalPaidUsers failed:', totalPaidUsersResult.reason.message);
             if (pendingPurchasesResult.status === 'rejected') console.error('[Dashboard] pendingPurchases failed:', pendingPurchasesResult.reason.message);
@@ -500,6 +528,16 @@ router.get('/admin/dashboard',
                 return course;
             });
 
+            // Build unified adminSchedule: courses with dailyLiveTime + custom events
+            const courseScheduleItems = enrichedCourses
+                .filter(c => c.dailyLiveTime)
+                .map(c => ({ id: c.id, label: c.title, time: c.dailyLiveTime, type: 'course', icon: c.icon || '📚' }));
+            const customEvents = customScheduleSetting ? JSON.parse(customScheduleSetting.value) : [];
+            const adminSchedule = [
+                ...courseScheduleItems,
+                ...customEvents.map(e => ({ ...e, icon: e.type === 'youtube' ? '▶️' : '📡' }))
+            ];
+
             res.render("dashboard/admin", {
                 liveSessions: res.locals.liveSessions,
                 courses: enrichedCourses,
@@ -508,15 +546,33 @@ router.get('/admin/dashboard',
                 expiredCourses,
                 pendingPurchases: enrichedPendingPurchases,
                 heroImage,
+                adminSchedule,
                 stats: {
                     totalPaidUsers,
-                    totalUsers
+                    totalUsers,
+                    totalRevenue
                 }
             });
         } catch (error) {
             console.error('[Admin Dashboard] Critical Error:', error.message);
             res.status(500).send(STRINGS.SERVER_ERROR);
         }
+    }
+);
+
+/**
+ * Admin Management Hub - Central entry point for administrative tools.
+ * 
+ * @route GET /admin/management
+ * @access Admin only
+ */
+router.get('/admin/management',
+    verifyAdminInDatabase,
+    (req, res) => {
+        res.render('dashboard/admin_management', {
+            user: req.session.user,
+            path: '/admin/management'
+        });
     }
 );
 
@@ -554,6 +610,610 @@ router.get('/admin/testimonials',
         }
     }
 );
+
+/**
+ * Admin Live Control - Specialized dashboard for managing course broadcasts.
+ * 
+ * @route GET /admin/live
+ * @access Admin only
+ */
+router.get('/admin/live',
+    verifyAdminInDatabase,
+    csrfProtection,
+    courseController.renderLiveControlPage
+);
+
+/**
+ * Admin Landing Page Management - Control site-wide branding and hero imagery.
+ * 
+ * @route GET /admin/landing-page
+ * @access Admin only
+ */
+router.get('/admin/landing-page',
+    verifyAdminInDatabase,
+    courseController.renderLandingPageManagement
+);
+
+/**
+ * Admin Verifications - Specialized queue for handling pending payment requests.
+ * 
+ * @route GET /admin/verifications
+ * @access Admin only
+ */
+router.get('/admin/verifications', verifyAdminInDatabase, async (req, res) => {
+    try {
+        const pendingPurchases = await prisma.purchase.findMany({
+            where: { status: 'PENDING' },
+            orderBy: { date: 'desc' }
+        });
+
+        const uIds = [...new Set(pendingPurchases.map(p => p.userId))];
+        const cIds = [...new Set(pendingPurchases.map(p => p.courseId))];
+
+        const [users, courses] = await Promise.all([
+            prisma.user.findMany({ where: { id: { in: uIds } }, select: { id: true, name: true, username: true, email: true } }),
+            prisma.course.findMany({ where: { id: { in: cIds } }, select: { id: true, title: true, price: true } })
+        ]);
+
+        const uMap = users.reduce((a, u) => ({ ...a, [u.id]: u }), {});
+        const cMap = courses.reduce((a, c) => ({ ...a, [c.id]: c }), {});
+
+        const enrichedPending = pendingPurchases.map(p => ({
+            ...p,
+            userName: uMap[p.userId]?.name || uMap[p.userId]?.username || 'Unknown',
+            userEmail: uMap[p.userId]?.email || '',
+            courseTitle: cMap[p.courseId]?.title || 'Unknown Course',
+            coursePrice: cMap[p.courseId]?.price || 0
+        }));
+
+        res.render('dashboard/admin_verifications', {
+            path: '/admin/verifications',
+            pending: enrichedPending,
+            csrfToken: res.locals.csrfToken || ''
+        });
+    } catch (err) {
+        console.error('[Verification] Render error:', err);
+        res.status(500).send('Error loading verification queue');
+    }
+});
+
+
+/* -------------------------------------------------------------------------- */
+/*                         ADMIN ANALYTICS ROUTES                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Analytics Overview — 16 KPI cards + 5 charts + activity feed
+ * @route GET /admin/analytics
+ */
+router.get('/admin/analytics', verifyAdminInDatabase, async (req, res) => {
+    try {
+        const [
+            totalRevenueRes, pendingRevenueRes, rejectedRevenueRes,
+            totalUsersRes, payingUsersRes, pendingUsersRes,
+            allCoursesRes, purchasesGroupRes,
+            communityStatsRes, totalLikesRes, chatCountRes, avgRatingRes,
+            recentActivityRes, monthlyRevenueRes, userGrowthRes,
+            paymentMethodRes, ratingDistRes
+        ] = await Promise.allSettled([
+            // Revenue
+            prisma.purchase.aggregate({ where: { status: 'COMPLETED' }, _sum: { amount: true } }),
+            prisma.purchase.aggregate({ where: { status: 'PENDING' }, _sum: { amount: true } }),
+            prisma.purchase.aggregate({ where: { status: 'REJECTED' }, _sum: { amount: true } }),
+            // Users
+            prisma.user.count({ where: { role: 'USER' } }),
+            prisma.user.count({ where: { role: 'USER', purchasedCourseIds: { isEmpty: false } } }),
+            prisma.purchase.findMany({ where: { status: 'PENDING' }, select: { userId: true } }),
+            // Courses
+            prisma.course.findMany({ select: { id: true, title: true, users: true, icon: true, deletedAt: true } }),
+            prisma.purchase.groupBy({ by: ['courseId'], where: { status: 'COMPLETED' }, _sum: { amount: true }, orderBy: { _sum: { amount: 'desc' } } }),
+            // Engagement
+            prisma.communityPost.count(),
+            prisma.communityPost.aggregate({ _sum: { likes: true } }),
+            prisma.chatMessage.count(),
+            prisma.testimonial.aggregate({ where: { status: 'APPROVED' }, _avg: { rating: true } }),
+            // Recent activity
+            prisma.purchase.findMany({ where: { status: 'COMPLETED' }, orderBy: { date: 'desc' }, take: 10 }),
+            // Monthly revenue (all purchases with dates)
+            prisma.purchase.findMany({ where: { status: 'COMPLETED' }, select: { amount: true, date: true }, orderBy: { date: 'asc' } }),
+            // User growth
+            prisma.user.findMany({ select: { createdAt: true }, orderBy: { createdAt: 'asc' } }),
+            // Payment method split
+            prisma.purchase.groupBy({ by: ['paymentMethod'], where: { status: 'COMPLETED' }, _sum: { amount: true }, _count: { _all: true } }),
+            // Rating distribution
+            prisma.testimonial.groupBy({ by: ['rating'], where: { status: 'APPROVED' }, _count: { _all: true } })
+        ]);
+
+        const g = (r, fallback) => r.status === 'fulfilled' ? r.value : fallback;
+
+        const totalRevenue = g(totalRevenueRes, { _sum: { amount: 0 } })?._sum?.amount || 0;
+        const pendingRevenue = g(pendingRevenueRes, { _sum: { amount: 0 } })?._sum?.amount || 0;
+        const rejectedRevenue = g(rejectedRevenueRes, { _sum: { amount: 0 } })?._sum?.amount || 0;
+        const totalUsers = g(totalUsersRes, 0);
+        const payingUsers = g(payingUsersRes, 0);
+        const pendingUserIds = [...new Set((g(pendingUsersRes, [])).map(p => p.userId))];
+        const allCourses = g(allCoursesRes, []);
+        const purchaseGroups = g(purchasesGroupRes, []);
+        const communityPostCount = g(communityStatsRes, 0);
+        const totalLikes = g(totalLikesRes, { _sum: { likes: 0 } })?._sum?.likes || 0;
+        const chatCount = g(chatCountRes, 0);
+        const avgRating = g(avgRatingRes, { _avg: { rating: 0 } })?._avg?.rating || 0;
+        const recentActivity = g(recentActivityRes, []);
+        const allPaidPurchases = g(monthlyRevenueRes, []);
+        const allUsers = g(userGrowthRes, []);
+        const paymentMethods = g(paymentMethodRes, []);
+        const ratingDist = g(ratingDistRes, []);
+
+        // Enrich recent activity with user/course names
+        const recentActivityUserIds = [...new Set(recentActivity.map(p => p.userId))];
+        const recentActivityCourseIds = [...new Set(recentActivity.map(p => p.courseId))];
+        const [activityUsers, activityCourses] = await Promise.all([
+            prisma.user.findMany({ where: { id: { in: recentActivityUserIds } }, select: { id: true, name: true, username: true } }),
+            prisma.course.findMany({ where: { id: { in: recentActivityCourseIds } }, select: { id: true, title: true } })
+        ]);
+        const auMap = activityUsers.reduce((a, u) => ({ ...a, [u.id]: u }), {});
+        const acMap = activityCourses.reduce((a, c) => ({ ...a, [c.id]: c }), {});
+        const enrichedActivity = recentActivity.map(p => ({
+            ...p,
+            userName: auMap[p.userId]?.name || auMap[p.userId]?.username || 'Unknown',
+            courseTitle: acMap[p.courseId]?.title || 'Unknown Course'
+        }));
+
+        // Revenue per course map
+        const revenueMap = purchaseGroups.reduce((a, g) => ({ ...a, [g.courseId]: g._sum.amount || 0 }), {});
+
+        // Monthly revenue buckets (last 12 months)
+        const monthlyRevenue = {};
+        const now = new Date();
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            monthlyRevenue[key] = 0;
+        }
+        allPaidPurchases.forEach(p => {
+            const d = new Date(p.date);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            if (monthlyRevenue[key] !== undefined) monthlyRevenue[key] += (p.amount || 0);
+        });
+
+        // User growth buckets (last 12 months)
+        const userGrowth = {};
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            userGrowth[key] = 0;
+        }
+        allUsers.forEach(u => {
+            const d = new Date(u.createdAt);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            if (userGrowth[key] !== undefined) userGrowth[key]++;
+        });
+
+        // Top course by revenue
+        const topRevenueEntry = purchaseGroups[0];
+        const topRevenueCourse = topRevenueEntry ? allCourses.find(c => c.id === topRevenueEntry.courseId) : null;
+        const completedPurchaseCount = allPaidPurchases.length;
+        const rejectedCount = await prisma.purchase.count({ where: { status: 'REJECTED' } });
+        const avgOrderValue = completedPurchaseCount > 0 ? Math.round(totalRevenue / completedPurchaseCount) : 0;
+        const totalEnrollments = allCourses.reduce((s, c) => s + (c.users || 0), 0);
+
+        res.render('dashboard/admin_analytics_overview', {
+            path: '/admin/analytics',
+            // Revenue
+            totalRevenue, pendingRevenue, rejectedRevenue, avgOrderValue,
+            // Users
+            totalUsers, payingUsers, pendingUserCount: pendingUserIds.length,
+            conversionRate: totalUsers > 0 ? ((payingUsers / totalUsers) * 100).toFixed(1) : '0.0',
+            // Courses
+            allCourses, totalCourses: allCourses.length,
+            activeCourses: allCourses.filter(c => !c.deletedAt).length,
+            totalEnrollments, topRevenueCourse,
+            topRevenueCourseRevenue: topRevenueEntry?._sum?.amount || 0,
+            revenueMap,
+            // Engagement
+            communityPostCount, totalLikes, chatCount,
+            avgRating: avgRating ? avgRating.toFixed(1) : '0.0',
+            // Charts data
+            monthlyRevenue, userGrowth,
+            paymentMethods,
+            ratingDist,
+            // Activity
+            enrichedActivity
+        });
+    } catch (err) {
+        console.error('[Analytics] Overview error:', err);
+        res.status(500).send('Error loading analytics');
+    }
+});
+
+/**
+ * Revenue & Payments analytics
+ * @route GET /admin/analytics/revenue
+ */
+router.get('/admin/analytics/revenue', verifyAdminInDatabase, async (req, res) => {
+    try {
+        const [
+            completedRes, pendingRes, rejectedRes,
+            methodGroupRes, monthlyRes, perCourseRes,
+            highestRes, allCoursesRes, expensesRes
+        ] = await Promise.allSettled([
+            prisma.purchase.findMany({ where: { status: 'COMPLETED' }, orderBy: { date: 'desc' } }),
+            prisma.purchase.findMany({ where: { status: 'PENDING' }, orderBy: { date: 'desc' } }),
+            prisma.purchase.findMany({ where: { status: 'REJECTED' }, orderBy: { date: 'desc' } }),
+            prisma.purchase.groupBy({ by: ['paymentMethod'], where: { status: 'COMPLETED' }, _sum: { amount: true }, _count: { _all: true } }),
+            prisma.purchase.findMany({ where: { status: 'COMPLETED' }, select: { amount: true, date: true } }),
+            prisma.purchase.groupBy({ by: ['courseId'], where: { status: 'COMPLETED' }, _sum: { amount: true }, _count: { _all: true }, orderBy: { _sum: { amount: 'desc' } } }),
+            prisma.purchase.findFirst({ where: { status: 'COMPLETED' }, orderBy: { amount: 'desc' }, select: { amount: true, userId: true, courseId: true, date: true } }),
+            prisma.course.findMany({ select: { id: true, title: true, icon: true } }),
+            prisma.expense.findMany({ orderBy: { date: 'desc' } })
+        ]);
+
+        const g = (r, fb) => r.status === 'fulfilled' ? r.value : fb;
+        const completed = g(completedRes, []);
+        const pending = g(pendingRes, []);
+        const rejected = g(rejectedRes, []);
+        const methodGroups = g(methodGroupRes, []);
+        const monthlyPurchases = g(monthlyRes, []);
+        const perCourseGroups = g(perCourseRes, []);
+        const highest = g(highestRes, null);
+        const allCourses = g(allCoursesRes, []);
+        const expenses = g(expensesRes, []);
+        const courseMap = allCourses.reduce((a, c) => ({ ...a, [c.id]: c }), {});
+
+        // Enrich all purchase lists with user + course
+        const allPurchases = [...completed, ...pending, ...rejected];
+        const uIds = [...new Set(allPurchases.map(p => p.userId))];
+        const cIds = [...new Set(allPurchases.map(p => p.courseId))];
+        const [users, courses] = await Promise.all([
+            prisma.user.findMany({ where: { id: { in: uIds } }, select: { id: true, name: true, username: true, email: true } }),
+            prisma.course.findMany({ where: { id: { in: cIds } }, select: { id: true, title: true } })
+        ]);
+        const uMap = users.reduce((a, u) => ({ ...a, [u.id]: u }), {});
+        const cMap = courses.reduce((a, c) => ({ ...a, [c.id]: c }), {});
+        const enrich = list => list.map(p => ({
+            ...p,
+            userName: uMap[p.userId]?.name || uMap[p.userId]?.username || 'Unknown',
+            userEmail: uMap[p.userId]?.email || '',
+            courseTitle: cMap[p.courseId]?.title || 'Unknown Course'
+        }));
+
+        const totalRevenue = completed.reduce((s, p) => s + (p.amount || 0), 0);
+        const pendingRevenue = pending.reduce((s, p) => s + (p.amount || 0), 0);
+        const rejectedRevenue = rejected.reduce((s, p) => s + (p.amount || 0), 0);
+        const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+        const lostRevenue = rejectedRevenue + totalExpenses;
+
+        const approvalRate = (completed.length + rejected.length) > 0
+            ? ((completed.length / (completed.length + rejected.length)) * 100).toFixed(1) : '0.0';
+
+        // Monthly revenue
+        const now = new Date();
+        const monthlyRevenue = {};
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            monthlyRevenue[key] = 0;
+        }
+        monthlyPurchases.forEach(p => {
+            const d = new Date(p.date);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            if (monthlyRevenue[key] !== undefined) monthlyRevenue[key] += (p.amount || 0);
+        });
+
+        const perCourseRevenue = perCourseGroups.map(g => ({
+            courseTitle: courseMap[g.courseId]?.title || 'Unknown',
+            icon: courseMap[g.courseId]?.icon || '📚',
+            revenue: g._sum.amount || 0,
+            count: g._count._all || 0
+        }));
+
+        res.render('dashboard/admin_analytics_revenue', {
+            path: '/admin/analytics/revenue',
+            tab: req.query.tab || 'completed',
+            totalRevenue, pendingRevenue, rejectedRevenue, totalExpenses, lostRevenue, approvalRate,
+            avgOrderValue: completed.length > 0 ? Math.round(totalRevenue / completed.length) : 0,
+            highestTransaction: highest?.amount || 0,
+            completed: enrich(completed), pending: enrich(pending), rejected: enrich(rejected),
+            methodGroups, monthlyRevenue, perCourseRevenue, expenses
+        });
+    } catch (err) {
+        console.error('[Analytics] Revenue error:', err);
+        res.status(500).send('Error loading revenue analytics');
+    }
+});
+
+/**
+ * Course Performance analytics
+ * @route GET /admin/analytics/courses
+ */
+router.get('/admin/analytics/courses', verifyAdminInDatabase, async (req, res) => {
+    try {
+        const [allCoursesRes, purchaseGroupRes, foldersRes, resourcesRes] = await Promise.allSettled([
+            prisma.course.findMany({ orderBy: { createdAt: 'desc' } }), // ALL courses including deleted
+            prisma.purchase.groupBy({ by: ['courseId'], where: { status: 'COMPLETED' }, _sum: { amount: true }, _count: { _all: true } }),
+            prisma.courseFolder.findMany({ select: { courseId: true } }),
+            prisma.courseResource.findMany({ select: { courseId: true, type: true } })
+        ]);
+
+        const g = (r, fb) => r.status === 'fulfilled' ? r.value : fb;
+        const allCourses = g(allCoursesRes, []);
+        const purchaseGroups = g(purchaseGroupRes, []);
+        const folders = g(foldersRes, []);
+        const resources = g(resourcesRes, []);
+
+        const revenueMap = purchaseGroups.reduce((a, p) => ({ ...a, [p.courseId]: { revenue: p._sum.amount || 0, count: p._count._all || 0 } }), {});
+        const folderMap = folders.reduce((a, f) => ({ ...a, [f.courseId]: (a[f.courseId] || 0) + 1 }), {});
+        const resourceMap = resources.reduce((a, r) => ({ ...a, [r.courseId]: (a[r.courseId] || 0) + 1 }), {});
+
+        const enrichedCourses = allCourses.map(c => ({
+            ...c,
+            revenue: revenueMap[c.id]?.revenue || 0,
+            purchaseCount: revenueMap[c.id]?.count || 0,
+            revenuePerSeat: (c.users > 0 && revenueMap[c.id]?.revenue) ? Math.round(revenueMap[c.id].revenue / c.users) : 0,
+            folderCount: folderMap[c.id] || 0,
+            resourceCount: resourceMap[c.id] || 0,
+            discountPct: c.originalPrice > c.price ? Math.round(((c.originalPrice - c.price) / c.originalPrice) * 100) : 0,
+            isDeleted: !!c.deletedAt
+        }));
+
+        const sort = req.query.sort || 'revenue';
+        const filter = req.query.filter || 'all';
+
+        let filtered = enrichedCourses;
+        if (filter === 'active') filtered = enrichedCourses.filter(c => !c.deletedAt);
+        else if (filter === 'deleted') filtered = enrichedCourses.filter(c => c.deletedAt);
+        else if (filter === 'published') filtered = enrichedCourses.filter(c => !c.deletedAt && c.isPublished);
+        else if (filter === 'unpublished') filtered = enrichedCourses.filter(c => !c.isPublished);
+        else if (filter === 'promoted') filtered = enrichedCourses.filter(c => c.isPromoted);
+        else if (filter === 'live') filtered = enrichedCourses.filter(c => c.isLive);
+
+        if (sort === 'revenue') filtered.sort((a, b) => b.revenue - a.revenue);
+        else if (sort === 'enrollments') filtered.sort((a, b) => b.users - a.users);
+        else if (sort === 'revenuePerSeat') filtered.sort((a, b) => b.revenuePerSeat - a.revenuePerSeat);
+        else if (sort === 'newest') filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        else if (sort === 'oldest') filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        else if (sort === 'price') filtered.sort((a, b) => b.price - a.price);
+
+        const totalRevenue = enrichedCourses.reduce((s, c) => s + c.revenue, 0);
+        const totalEnrollments = enrichedCourses.reduce((s, c) => s + (c.users || 0), 0);
+
+        res.render('dashboard/admin_analytics_courses', {
+            path: '/admin/analytics/courses',
+            courses: filtered, allCourses: enrichedCourses,
+            sort, filter,
+            totalRevenue, totalEnrollments,
+            activeCourses: enrichedCourses.filter(c => !c.deletedAt).length,
+            deletedCourses: enrichedCourses.filter(c => c.deletedAt).length,
+            avgRevenue: enrichedCourses.length > 0 ? Math.round(totalRevenue / enrichedCourses.length) : 0,
+            avgEnrollments: enrichedCourses.length > 0 ? Math.round(totalEnrollments / enrichedCourses.length) : 0
+        });
+    } catch (err) {
+        console.error('[Analytics] Courses error:', err);
+        res.status(500).send('Error loading course analytics');
+    }
+});
+
+/**
+ * User Analytics & Leaderboard
+ * @route GET /admin/analytics/users
+ */
+router.get('/admin/analytics/users', verifyAdminInDatabase, async (req, res) => {
+    try {
+        const [allUsersRes, purchaseGroupRes, communityPostsRes, chatMsgsRes] = await Promise.allSettled([
+            prisma.user.findMany({ orderBy: { createdAt: 'desc' } }),
+            prisma.purchase.groupBy({ by: ['userId'], where: { status: 'COMPLETED' }, _sum: { amount: true }, _count: { _all: true } }),
+            prisma.communityPost.findMany({ select: { userId: true, userName: true, likes: true, comments: true } }),
+            prisma.chatMessage.groupBy({ by: ['userId'], _count: { _all: true }, orderBy: { _count: { _all: 'desc' } }, take: 20 })
+        ]);
+
+        const g = (r, fb) => r.status === 'fulfilled' ? r.value : fb;
+        const allUsers = g(allUsersRes, []);
+        const purchaseGroups = g(purchaseGroupRes, []);
+        const communityPosts = g(communityPostsRes, []);
+        const chatGroups = g(chatMsgsRes, []);
+
+        const spendMap = purchaseGroups.reduce((a, p) => ({ ...a, [p.userId]: { total: p._sum.amount || 0, count: p._count._all || 0 } }), {});
+
+        // Community activity per user
+        const postCountMap = {};
+        const commentCountMap = {};
+        communityPosts.forEach(p => {
+            postCountMap[p.userId] = (postCountMap[p.userId] || 0) + 1;
+            (p.comments || []).forEach(c => {
+                commentCountMap[c.userId] = (commentCountMap[c.userId] || 0) + 1;
+            });
+        });
+
+        const enrichedUsers = allUsers.map(u => {
+            const { password, ...safe } = u;
+            return {
+                ...safe,
+                totalSpent: spendMap[u.id]?.total || 0,
+                purchaseCount: spendMap[u.id]?.count || 0,
+                enrollmentCount: (u.purchasedCourseIds || []).length,
+                postCount: postCountMap[u.id] || 0,
+                commentCount: commentCountMap[u.id] || 0,
+                isDeleted: !!u.deletedAt
+            };
+        });
+
+        const payingUsers = enrichedUsers.filter(u => u.enrollmentCount > 0);
+        const totalRevenue = payingUsers.reduce((s, u) => s + u.totalSpent, 0);
+        const avgSpend = payingUsers.length > 0 ? Math.round(totalRevenue / payingUsers.length) : 0;
+
+        // Leaderboards
+        const topBuyers = [...enrichedUsers].sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 20);
+        const topEnrollers = [...enrichedUsers].sort((a, b) => b.enrollmentCount - a.enrollmentCount).slice(0, 20);
+        const topCommunity = [...enrichedUsers].sort((a, b) => (b.postCount + b.commentCount) - (a.postCount + a.commentCount)).slice(0, 20);
+
+        // Geographic breakdown
+        const stateMap = {};
+        const cityMap = {};
+        allUsers.forEach(u => {
+            if (u.state) stateMap[u.state] = (stateMap[u.state] || 0) + 1;
+            if (u.city) cityMap[u.city] = (cityMap[u.city] || 0) + 1;
+        });
+        const stateData = Object.entries(stateMap).sort((a, b) => b[1] - a[1]).slice(0, 15);
+        const cityData = Object.entries(cityMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+        // Monthly registration
+        const now = new Date();
+        const userGrowth = {};
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            userGrowth[key] = 0;
+        }
+        allUsers.forEach(u => {
+            const d = new Date(u.createdAt);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            if (userGrowth[key] !== undefined) userGrowth[key]++;
+        });
+
+        // Most active state/city
+        const topState = stateData[0]?.[0] || 'N/A';
+        const topCity = cityData[0]?.[0] || 'N/A';
+
+        res.render('dashboard/admin_analytics_users', {
+            path: '/admin/analytics/users',
+            tab: req.query.tab || 'buyers',
+            allUsers: enrichedUsers,
+            totalUsers: allUsers.length,
+            payingCount: payingUsers.length,
+            nonPayingCount: allUsers.length - payingUsers.length,
+            conversionRate: allUsers.length > 0 ? ((payingUsers.length / allUsers.length) * 100).toFixed(1) : '0.0',
+            totalRevenue, avgSpend,
+            topBuyers, topEnrollers, topCommunity,
+            stateData, cityData, userGrowth,
+            topState, topCity
+        });
+    } catch (err) {
+        console.error('[Analytics] Users error:', err);
+        res.status(500).send('Error loading user analytics');
+    }
+});
+
+/**
+ * Engagement — Community, Chat & Testimonials
+ * @route GET /admin/analytics/engagement
+ */
+router.get('/admin/analytics/engagement', verifyAdminInDatabase, async (req, res) => {
+    try {
+        const [
+            allPostsRes, chatGroupRes, testimonialsRes,
+            chatImagesRes, totalChatRes, activeRoomsCountRes
+        ] = await Promise.allSettled([
+            prisma.communityPost.findMany({ orderBy: { likes: 'desc' } }),
+            prisma.chatMessage.groupBy({ by: ['courseId'], _count: { _all: true }, orderBy: { _count: { _all: 'desc' } } }),
+            prisma.testimonial.findMany({ orderBy: { submittedAt: 'desc' } }),
+            prisma.chatMessage.count({ where: { imageUrl: { not: null } } }),
+            prisma.chatMessage.count(),
+            prisma.course.count({ where: { deletedAt: null } })
+        ]);
+
+        const g = (r, fb) => r.status === 'fulfilled' ? r.value : fb;
+        const allPosts = g(allPostsRes, []);
+        const chatGroups = g(chatGroupRes, []);
+        const testimonials = g(testimonialsRes, []);
+        const chatImages = g(chatImagesRes, 0);
+        const totalChat = g(totalChatRes, 0);
+        const activeRoomsCount = g(activeRoomsCountRes, 0);
+
+        // Community stats
+        const totalComments = allPosts.reduce((s, p) => s + (p.comments?.length || 0), 0);
+        const totalLikes = allPosts.reduce((s, p) => s + (p.likes || 0), 0);
+        const postsWithImages = allPosts.filter(p => p.imageUrl).length;
+        const avgCommentsPerPost = allPosts.length > 0 ? (totalComments / allPosts.length).toFixed(1) : '0.0';
+        const avgLikesPerPost = allPosts.length > 0 ? (totalLikes / allPosts.length).toFixed(1) : '0.0';
+
+        // Most active poster
+        const posterMap = {};
+        allPosts.forEach(p => { posterMap[p.userId] = { name: p.userName, count: (posterMap[p.userId]?.count || 0) + 1 }; });
+        const topPoster = Object.values(posterMap).sort((a, b) => b.count - a.count)[0] || null;
+        const topPost = allPosts[0] || null;
+
+        // Monthly posts trend
+        const now = new Date();
+        const monthlyPosts = {};
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            monthlyPosts[key] = 0;
+        }
+        allPosts.forEach(p => {
+            const d = new Date(p.createdAt);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            if (monthlyPosts[key] !== undefined) monthlyPosts[key]++;
+        });
+
+        // Enrich chat groups with course names
+        const chatCourseIds = chatGroups.map(g => g.courseId);
+        const chatCourses = await prisma.course.findMany({ where: { id: { in: chatCourseIds } }, select: { id: true, title: true, icon: true } });
+        const chatCourseMap = chatCourses.reduce((a, c) => ({ ...a, [c.id]: c }), {});
+        const enrichedChatGroups = chatGroups.map(g => ({
+            courseId: g.courseId,
+            count: g._count._all,
+            title: chatCourseMap[g.courseId]?.title || 'Unknown Course',
+            icon: chatCourseMap[g.courseId]?.icon || '💬'
+        }));
+
+        // Testimonial breakdown
+        const approvedTests = testimonials.filter(t => t.status === 'APPROVED');
+        const pendingTests = testimonials.filter(t => t.status === 'PENDING');
+        const rejectedTests = testimonials.filter(t => t.status === 'REJECTED');
+        const avgRating = approvedTests.length > 0 ? (approvedTests.reduce((s, t) => s + t.rating, 0) / approvedTests.length).toFixed(1) : '0.0';
+        const ratingDist = [1, 2, 3, 4, 5].map(r => ({ rating: r, count: approvedTests.filter(t => t.rating === r).length }));
+        const approvalRate = (approvedTests.length + rejectedTests.length) > 0
+            ? ((approvedTests.length / (approvedTests.length + rejectedTests.length)) * 100).toFixed(1) : '0.0';
+
+        res.render('dashboard/admin_analytics_engagement', {
+            path: '/admin/analytics/engagement',
+            tab: req.query.tab || 'community',
+            // Community
+            allPosts: allPosts.slice(0, 20), totalPosts: allPosts.length,
+            totalComments, totalLikes, postsWithImages,
+            avgCommentsPerPost, avgLikesPerPost, topPoster, topPost,
+            monthlyPosts,
+            // Chat
+            enrichedChatGroups, totalChat, chatImages, activeRoomsCount,
+            // Testimonials
+            approvedTests, pendingTests, rejectedTests,
+            avgRating, ratingDist, approvalRate,
+            featuredCount: approvedTests.filter(t => t.isFeatured).length
+        });
+    } catch (err) {
+        console.error('[Analytics] Engagement error:', err);
+        res.status(500).send('Error loading engagement analytics');
+    }
+});
+
+/**
+ * Add an expense entry
+ * @route POST /admin/analytics/expense
+ */
+router.post('/admin/analytics/expense', verifyAdminInDatabase, async (req, res) => {
+    try {
+        const amount = parseInt(req.body.amount, 10);
+        const description = (req.body.description || '').trim();
+
+        if (isNaN(amount) || amount <= 0 || !description) {
+            return res.status(400).json({ success: false, message: 'Invalid amount or missing description.' });
+        }
+
+        await prisma.expense.create({
+            data: {
+                amount,
+                description,
+                date: new Date()
+            }
+        });
+
+        res.redirect('/admin/analytics/revenue');
+    } catch (err) {
+        console.error('[Analytics] Add expense error:', err);
+        res.status(500).send('Error adding expense');
+    }
+});
 
 /* -------------------------------------------------------------------------- */
 /*                              SESSION LOGOUT                               */

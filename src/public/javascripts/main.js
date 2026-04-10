@@ -24,8 +24,8 @@
     // =========================================================================
     const CONFIG = Object.freeze({
         POLL_INTERVAL_MS: 5000,
-        MAX_POLL_INTERVAL_MS: 60000,      //  Max backoff interval
-        BACKOFF_MULTIPLIER: 2,             //  Exponential backoff
+        MAX_POLL_INTERVAL_MS: 60000,
+        BACKOFF_MULTIPLIER: 2,
         MAX_CONSECUTIVE_FAILURES: 5,
         REQUEST_TIMEOUT_MS: 10000,
         DEBUG: true,
@@ -520,6 +520,13 @@
         //  Don't start polling if no buttons
         if (!state.cachedLiveButtons || state.cachedLiveButtons.length === 0) {
             Logger.debug('No live buttons found, skipping polling');
+            return;
+        }
+
+        // --- ADMIN PROTECTION ---
+        // Prevent global user polling from interfering with specialized admin control pages
+        if (window.location.pathname.includes('/admin/live')) {
+            Logger.info('Admin Live Control page detected. Disabling global polling to avoid conflicts.');
             return;
         }
 

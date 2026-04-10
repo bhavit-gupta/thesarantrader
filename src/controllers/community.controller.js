@@ -157,10 +157,18 @@ exports.createPost = async (req, res) => {
         return res.status(401).json({ success: false, message: 'Please log in to post' });
     }
 
+    // 2. Authorization check (Admin Only)
+    if (req.session.user.role !== 'ADMIN') {
+        return res.status(403).json({ 
+            success: false, 
+            message: 'Only Administrators can create posts in the community.' 
+        });
+    }
+
     const userId = req.session.user.id;
     const { title, content } = req.body;
 
-    // 2. Rate limiting check
+    // 3. Rate limiting check
     if (isRateLimited(userId)) {
         // Cleanup uploaded file before returning
         if (req.file) {

@@ -20,30 +20,26 @@
         display: block !important;
     }
 
+    /* Premium Card Styles */
+    .card-premium {
+        @apply bg-white rounded-[2.5rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300;
+    }
+
+    .card-premium:hover {
+        @apply shadow-[0_20px_40px_rgba(15,23,42,0.08)] -translate-y-1 border-brand-gold/20;
+    }
+
+    .card-stat {
+        @apply bg-white rounded-[2.5rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300;
+    }
+
+    /* Typography Overhaul */
+    .text-heading {
+        @apply text-slate-900 font-extrabold tracking-tight;
+    }
+
     /* Custom scrollbar for sidebar */
     .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.05);
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.2);
-    }
-
-    /* Premium Glow Utilities */
-    .shadow-glow-gold {
-        box-shadow: 0 0 15px -3px rgba(212, 175, 55, 0.4);
-    }
-
-    .shadow-glow-red {
-        box-shadow: 0 0 15px -3px rgba(239, 68, 68, 0.4);
+        width: 5px;
     }
 }    

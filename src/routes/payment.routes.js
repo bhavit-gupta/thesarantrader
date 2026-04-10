@@ -43,6 +43,7 @@ const { compressImage } = require('../utils/upload.utils');
 const csrfProtection = require('../middleware/csrfProtection');
 const { isAuthenticated } = require('../middleware/auth.middleware');
 const { authLimiter } = require('../middleware/rateLimiter');
+const { invalidateUserCache } = require('../middleware/viewData.middleware');
 
 /* -------------------------------------------------------------------------- */
 /*                              CONFIGURATION                                */
@@ -400,6 +401,9 @@ router.post('/api/payment/submit-proof',
                     status: 'PENDING'
                 }
             });
+
+            // Invalidate user cache to show "Waiting for Approval" immediately
+            invalidateUserCache(userId);
 
             // Audit logging
             await logPaymentAudit(userId, 'PAYMENT_SUBMITTED', {

@@ -156,6 +156,12 @@ function debugLog(message) {
  * @returns {boolean} True if client expects JSON
  */
 function isApiRequest(req) {
+    // 1. Explicit AJAX indicators (Standard)
+    if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+        return true;
+    }
+
+    // 2. Content negotiation check
     const acceptHeader = req.headers.accept || '';
     const isFormSubmit = req.is('application/x-www-form-urlencoded') ||
         req.is('multipart/form-data');

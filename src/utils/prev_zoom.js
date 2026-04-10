@@ -11,23 +11,20 @@ const https = require('https');
 function generateSignature(meetingNumber, role) {
   const sdkKey = (process.env.ZOOM_SDK_KEY || '').trim();
   const sdkSecret = (process.env.ZOOM_SDK_SECRET || '').trim();
-
+  
   if (!sdkKey || !sdkSecret) {
-    console.error('[Zoom) CRITICAL: Missing SDK Key or Secret for signature generation');
+    console.error('[Zoom] CRITICAL: Missing SDK Key or Secret for signature generation');
     return '';
   }
 
-  // BUG FIX 1: Keep meetingNumber as a STRING — do not parseInt().
-  // The JWT payload mn must match the type passed to client.join().
-  // Zoom Embedded SDK 3.5.0 expects meetingNumber as a string in join().
-  const mn = String(meetingNumber).replace(/\D/g, '');
-
-  // Role must be integer: 0 = attendee, 1 = host
+  // Ensure Role is an integer (0 for attendee, 1 for host)
   const roleValue = parseInt(role, 10);
-
-  // BUG FIX 2: Use 30s back-drift (not 60s). Zoom rejects tokens with iat too far in past.
-  const iat = Math.floor(Date.now() / 1000) - 30;
-  const exp = iat + 7200; // 2 hour expiration
+  // Ensure Meeting Number is an integer string with no noise
+  const mn = parseInt(String(meetingNumber).replace(/\D/g, ''), 10);
+  
+  // Precise timestamping for 3.5.0 security
+  const iat = Math.floor(Date.now() / 1000) - 60; // 1 min buffer for clock drift
+  const exp = iat + 7200; // 2 hour expiration (standard)
 
   const payload = {
     sdkKey: sdkKey,
@@ -35,28 +32,28 @@ function generateSignature(meetingNumber, role) {
     role: roleValue,
     iat: iat,
     exp: exp,
-    appKey: sdkKey,
-    tokenExp: exp
+    appKey: sdkKey, // for compatibility
+    tokenExp: exp 
   };
 
-  console.log(`[Zoom] Generating signature — Meeting: ${mn}, Role: ${roleValue}`);
-
+  console.log(`[Zoom] 🔑 Generating signature for Meeting: ${mn}, Role: ${roleValue}`);
+  
   try {
-    // BUG FIX 3: When passing a custom header object, you MUST include alg explicitly.
-    // Without alg in the header object, jsonwebtoken drops it even if algorithm is set
-    // in options — Zoom then sees a token with no alg and rejects it with error 3712.
-    return jwt.sign(payload, sdkSecret, {
+    // Zoom strictly requires typ: 'JWT' in the header
+    return jwt.sign(payload, sdkSecret, { 
       algorithm: 'HS256',
-      header: { alg: 'HS256', typ: 'JWT' }
+      header: { typ: 'JWT' }
     });
   } catch (error) {
-    console.error('[Zoom) Signature generation failed:', error.message);
+    console.error('[Zoom] Signature generation failed:', error.message);
     return '';
   }
 }
 
 /**
  * Get an OAuth access token using Server-to-Server OAuth credentials.
+ * Used to call Zoom APIs on behalf of the account (like fetching ZAK).
+ * @returns {Promise<string>} Access token
  */
 function getOAuthToken() {
   return new Promise((resolve, reject) => {
@@ -105,11 +102,16 @@ function getOAuthToken() {
 /**
  * Get a ZAK (Zoom Access Key) token for the meeting host.
  * Required since March 2026 for hosts using the Meeting SDK.
+ * @param {string} hostEmail - The Zoom account email of the host. Falls back to ZOOM_HOST_EMAIL env var.
+ * @returns {Promise<string>} ZAK token
  */
 async function getZAKToken(hostEmail) {
   try {
     const accessToken = await getOAuthToken();
 
+    // Use the specific host's email/userId so the ZAK token belongs to the correct user.
+    // This is critical — using /users/me returns the S2S service account token which doesn't
+    // match the meeting host, causing errorCode 200 "Not support start meeting via tokens".
     const userId = encodeURIComponent(hostEmail || process.env.ZOOM_HOST_EMAIL || 'me');
     const path = `/v2/users/${userId}/token?type=zak`;
 
@@ -135,7 +137,7 @@ async function getZAKToken(hostEmail) {
             } else {
               const errMsg = parsed.message || JSON.stringify(parsed);
               console.warn(`[Zoom] ZAK token missing for ${userId}:`, errMsg);
-              resolve(`ERROR_${errMsg}`);
+              resolve(`ERROR_${errMsg}`); // Pass the error back so we can see it in the UI log
             }
           } catch (e) {
             reject(e);

@@ -164,18 +164,19 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             // Still need unsafe-inline for existing templates, but document for future refactoring
-            scriptSrc: ["'self'", "'unsafe-inline'", "blob:", "cdnjs.cloudflare.com", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:", "cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
             // Note: Keep unsafe-inline for now due to existing inline handlers
             // TODO: Refactor templates to remove inline handlers
             scriptSrcAttr: ["'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
+            styleSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "fonts.googleapis.com", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
             fontSrc: ["'self'", "data:", "cdnjs.cloudflare.com", "fonts.gstatic.com", "https://source.zoom.us", "https://*.cloudfront.net"],
             // Restricted image sources - add specific CDNs as needed
-            imgSrc: ["'self'", "data:", "https://i.imgur.com", "https://res.cloudinary.com", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
-            connectSrc: ["'self'", "blob:", "*.zoom.us", "zoom.us", "https://source.zoom.us", "wss://*.zoom.us", "https://*.cloudfront.net"],
+            imgSrc: ["'self'", "data:", "https://cdn.jsdelivr.net", "https://i.imgur.com", "https://res.cloudinary.com", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
+            connectSrc: ["'self'", "blob:", "https://cdn.jsdelivr.net", "*.zoom.us", "zoom.us", "https://source.zoom.us", "wss://*.zoom.us", "https://*.cloudfront.net"],
             frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com", "https://www.youtube-nocookie.com", "*.zoom.us", "zoom.us"],
-            workerSrc: ["'self'", "blob:", "https://source.zoom.us", "https://*.cloudfront.net"],
-            childSrc: ["'self'", "blob:", "https://source.zoom.us", "https://*.cloudfront.net"],
+            workerSrc: ["'self'", "blob:", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
+            childSrc: ["'self'", "blob:", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
+            mediaSrc: ["'self'", "blob:", "*.zoom.us", "zoom.us", "https://source.zoom.us"]
 
 
 
@@ -200,6 +201,16 @@ app.use(helmet({
     }
 }));
 
+// Apply Cross-Origin Isolation AFTER Helmet for Zoom routes
+// This prevents Helmet from overriding these specific headers.
+app.use('/live-meeting', (req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp'); // Strict isolation for WASM/SAB
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); // Allow cross-origin resources in this context
+    res.setHeader('Permissions-Policy', 'camera=*, microphone=*, display-capture=*, clipboard-write=*');
+    next();
+});
+
 /* -------------------------------------------------------------------------- */
 /*                          STATIC FILES & PARSING                            */
 /* -------------------------------------------------------------------------- */
@@ -219,6 +230,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
     maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0, // Cache in production
     etag: true
 }));
+
+// Serve Zoom Meeting SDK from node_modules
+app.use('/zoom-sdk', express.static(path.join(__dirname, '../node_modules/@zoom/meetingsdk/dist')));
 
 /**
  * Body parsing middleware.
@@ -507,11 +521,13 @@ app.use((err, req, res, next) => {
     // Generate unique error ID for tracking
     const errorId = crypto.randomUUID();
 
-    console.error(`❌ ERROR [${errorId}]:`, err.message);
+    // ALWAYS log details to console for admin/dev tracking
+    console.error(`❌ GLOBAL ERROR [${errorId}]: ${err.message}`);
     console.error('  Path:', req.path);
     console.error('  Method:', req.method);
-    console.error('  User:', req.session?.user?.id || 'anonymous');
-    console.error('  Stack:', err.stack);
+    if (req.session?.user) console.error('  User:', req.session.user.id, `(${req.session.user.role})`);
+    console.error('  IP:', req.ip);
+    console.error('  Stack Trace:\n', err.stack);
 
     // Return appropriate format based on request type
     if (req.accepts('json') || req.path.startsWith('/api')) {

@@ -36,6 +36,7 @@ const { getUserPurchasedCourses } = require('../utils/helpers');
 const fs = require('fs');
 const path = require('path');
 const { compressImage } = require('../utils/upload.utils');
+const { GLOBAL_CHAT_ID, GLOBAL_CHAT_DEFAULTS } = require('../utils/constants');
 
 /* -------------------------------------------------------------------------- */
 /*                              CONFIGURATION                                 */
@@ -133,6 +134,32 @@ function isValidFilename(filename) {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Attaches lastActivityAt (timestamp of most recent message) to each course object.
+ * Courses with no messages will have lastActivityAt = null.
+ * @param {Array} courses - Array of course objects to mutate in-place
+ */
+async function attachLastActivity(courses) {
+    const courseIds = courses.map(c => c.id).filter(Boolean);
+    if (courseIds.length === 0) return;
+
+    // Fetch the latest message timestamp for each course in one query
+    const latestMessages = await prisma.chatMessage.findMany({
+        where: { courseId: { in: courseIds } },
+        orderBy: { timestamp: 'desc' },
+        distinct: ['courseId'],
+        select: { courseId: true, timestamp: true }
+    });
+
+    // Build a lookup map: courseId → latest timestamp
+    const activityMap = new Map(latestMessages.map(m => [m.courseId, m.timestamp]));
+
+    // Attach lastActivityAt to each course
+    courses.forEach(course => {
+        course.lastActivityAt = activityMap.get(course.id) || null;
+    });
+}
+
+/**
  * Renders the chat rooms page for authenticated users.
  * 
  * Behavior:
@@ -153,9 +180,17 @@ exports.getChatRooms = async (req, res) => {
         // 2. Admin users get access to ALL courses
         if (String(req.session.user.role || '').toUpperCase() === 'ADMIN') {
             const courses = await withRetry(() => prisma.course.findMany(), 2);
+            
+            // Ensure Global Chat is at the top if it exists in DB, otherwise add it from defaults
+            const hasGlobal = courses.some(c => c.id === GLOBAL_CHAT_ID);
+            const displayCourses = hasGlobal ? courses : [GLOBAL_CHAT_DEFAULTS, ...courses];
+
+            // Attach last activity timestamp to each course
+            await attachLastActivity(displayCourses);
+
             res.render('layouts/chat-rooms', {
                 user: req.session.user,
-                purchasedCourses: courses,
+                purchasedCourses: displayCourses,
                 isAdmin: true
             });
             return;
@@ -169,11 +204,6 @@ exports.getChatRooms = async (req, res) => {
         // 4. Fetch courses purchased by this user
         const purchasedIds = await getUserPurchasedCourses(req.session.user.id);
 
-        // 5. Redirect if no purchases found
-        if (purchasedIds.size === 0) {
-            return res.redirect('/courses?message=purchase_required');
-        }
-
         // 6. Retrieve full course details for purchased courses with retry
         const purchasedCourses = await withRetry(
             () => prisma.course.findMany({
@@ -184,7 +214,16 @@ exports.getChatRooms = async (req, res) => {
             2
         );
 
-        // 7. Render chat rooms page with user's purchased courses
+        // Always add Global Chat to the list for regular users
+        // Check if it's already in purchased (unlikely but possible if they 'bought' a free course with that ID)
+        if (!purchasedIds.has(GLOBAL_CHAT_ID)) {
+            purchasedCourses.unshift(GLOBAL_CHAT_DEFAULTS);
+        }
+
+        // Attach last activity timestamp to each course
+        await attachLastActivity(purchasedCourses);
+
+        // 7. Render chat rooms page with user's purchased courses + Global Chat
         res.render('layouts/chat-rooms', {
             user: req.session.user,
             purchasedCourses,
@@ -229,8 +268,13 @@ exports.getCourseChat = async (req, res) => {
     }
 
     try {
-        // 2. Verify course exists
-        const course = await prisma.course.findUnique({ where: { id: courseId } });
+        // 2. Verify course exists (Bypass DB lookup for Global Chat)
+        let course;
+        if (courseId === GLOBAL_CHAT_ID) {
+            course = GLOBAL_CHAT_DEFAULTS;
+        } else {
+            course = await prisma.course.findUnique({ where: { id: courseId } });
+        }
 
         if (!course) {
             return res.render('layouts/chat-room', {
@@ -241,7 +285,8 @@ exports.getCourseChat = async (req, res) => {
             });
         }
 
-        if (!isAdmin) {
+        // 3. Access control check (Global Chat is always accessible)
+        if (!isAdmin && courseId !== GLOBAL_CHAT_ID) {
             const purchasedCourses = await getUserPurchasedCourses(req.session.user.id);
             if (!purchasedCourses.has(courseId)) {
                 return res.render('layouts/chat-room', {

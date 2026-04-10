@@ -243,6 +243,11 @@ model Course {
   startDate          DateTime? // Course availability start
   endDate            DateTime? // Course availability end -  App-level validation
   enrollmentDeadline DateTime? // Last day to enroll (after this: Enrollment Closed)
+  level              String?   // [New] Course categorization level
+  dailyLiveTime      String?   // [New] Daily time for live class (Admin only)
+  thumbnailUrl       String?   // [New] Main banner image for the course card
+  isPublished        Boolean   @default(true) // [New] Show/Hide course from users
+  isPromoted         Boolean   @default(false) // [New] Featured/Promoted status
   deletedAt          DateTime? //  Soft delete timestamp (null = active)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -273,19 +278,46 @@ model Course {
  * - Dashboard: Show enrolled users the video content
  * - Admin: Add/edit/delete course videos
  * - Learning: users watch videos in course after enrollment
+/**
+ * CourseFolder Model - Organization units for course content
+ * RELATIONSHIP: Course ||--o{ CourseFolder
  */
-model CourseVideo {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  courseId     String   @db.ObjectId // FK to Course -  App-level validation
-  title        String // Video lesson title
-  description  String? // What's covered in this video
-  youtubeUrl   String // YouTube URL (watch or embed format)
-  thumbnailUrl String? // [New] Custom thumbnail image URL
-  order        Int      @default(0) // Lesson sequence number (1, 2, 3...)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model CourseFolder {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  courseId  String   @db.ObjectId
+  parentId  String?  @db.ObjectId // For nested folders
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([courseId, order]) //  Unique order per course
+  resources CourseResource[]
+}
+
+enum ResourceType {
+  VIDEO
+  IMAGE
+  DOCUMENT
+}
+
+/**
+ * CourseResource Model - Individual curriculum items (Videos, Images, Docs)
+ * RELATIONSHIP: Folder ||--o{ CourseResource
+ */
+model CourseResource {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  type         ResourceType
+  url          String?      // For external links (e.g. YouTube)
+  path         String?      // For local uploaded files (/uploads/resources/...)
+  thumbnailUrl String?      // Optional thumbnail for the resource
+  description  String?
+  folderId     String       @db.ObjectId
+  courseId     String       @db.ObjectId
+  order        Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  folder       CourseFolder @relation(fields: [folderId], references: [id])
 }
 
 // ============================================================================
@@ -519,6 +551,16 @@ model Purchase {
   // Fast lookup by user, course, and status
   @@index([status, date(sort: Desc)]) // Support admin dashboard verification feed
   @@index([userId, courseId, status])
+}
+
+/**
+ * Expense Model - Used to track business expenses that count against revenue
+ */
+model Expense {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  amount      Int      // Enforced as positive int at app level
+  description String   // What the expense was for
+  date        DateTime @default(now())
 }
 
 /**

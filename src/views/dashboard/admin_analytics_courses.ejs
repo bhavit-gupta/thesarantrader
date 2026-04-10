@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Analytics — The Saran Trader</title>
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="font-sans antialiased text-slate-700 bg-slate-50 min-h-screen">
+<%- include('../partials/layout_wrapper_top', { pageTitle: 'Courses' }) %>
+
+<main class="flex-grow pb-24">
+<div class="max-w-[1500px] mx-auto px-4 lg:px-8 pt-6">
+
+    <!-- Header & nav -->
+    <div class="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a href="/admin/analytics" class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-brand-gold/10 hover:text-brand-gold transition-all"><i class="fa-solid fa-arrow-left text-xs"></i></a>
+            <div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight leading-none">Course Performance</h1>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Every course ever created • All time data</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="/admin/analytics" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-gauge-high text-xs"></i> Overview</a>
+            <a href="/admin/analytics/revenue" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-indian-rupee-sign text-xs"></i> Revenue</a>
+            <a href="/admin/analytics/courses" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-brand-gold/10 text-brand-gold"><i class="fa-solid fa-book-open text-xs"></i> Courses</a>
+            <a href="/admin/analytics/users" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-users text-xs"></i> Users</a>
+            <a href="/admin/analytics/engagement" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-heart text-xs"></i> Engagement</a>
+        </div>
+    </div>
+
+    <!-- KPI Strip -->
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <% [
+            { label:'Total Created',  val: allCourses.length,  sub:'Including Deleted', color:'teal', icon:'fa-layer-group' },
+            { label:'Active',         val: activeCourses,      sub:'Not Deleted', color:'green', icon:'fa-circle-check' },
+            { label:'Soft Deleted',   val: deletedCourses,     sub:'Archived', color:'red', icon:'fa-trash' },
+            { label:'Total Revenue',  val:'₹'+Number(totalRevenue).toLocaleString('en-IN'), sub:'All Courses', color:'emerald', icon:'fa-indian-rupee-sign' },
+            { label:'Total Enrolled', val: totalEnrollments,   sub:'All Seats Filled', color:'blue', icon:'fa-users-viewfinder' },
+            { label:'Avg Revenue',    val:'₹'+Number(avgRevenue).toLocaleString('en-IN'), sub:'Per Course', color:'indigo', icon:'fa-calculator' }
+        ].forEach(k => { %>
+        <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+            <div class="w-8 h-8 rounded-xl bg-<%= k.color %>-100 text-<%= k.color %>-600 flex items-center justify-center text-xs mb-3"><i class="fa-solid <%= k.icon %>"></i></div>
+            <p class="text-xl font-black text-slate-900"><%= k.val %></p>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-1"><%= k.label %></p>
+            <p class="text-[9px] text-slate-300 font-semibold mt-0.5"><%= k.sub %></p>
+        </div>
+        <% }) %>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="font-black text-slate-900 mb-1">Revenue per Course</h3>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Sorted High → Low</p>
+            <canvas id="revenueBar" height="<%= Math.max(60, allCourses.length * 18) %>"></canvas>
+        </div>
+        <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="font-black text-slate-900 mb-1">Enrollments per Course</h3>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Total Students</p>
+            <canvas id="enrollBar" height="<%= Math.max(60, allCourses.length * 18) %>"></canvas>
+        </div>
+    </div>
+
+    <!-- Sort + Filter Controls -->
+    <div class="bg-white border border-slate-100 rounded-2xl p-4 mb-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sort:</span>
+                <% [['revenue','Most Revenue'],['enrollments','Most Enrolled'],['revenuePerSeat','Rev/Seat'],['newest','Newest'],['oldest','Oldest'],['price','Price']].forEach(([s,l]) => { %>
+                    <a href="?sort=<%= s %>&filter=<%= filter %>" class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all <%= sort === s ? 'bg-brand-gold text-slate-900' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' %>"><%= l %></a>
+                <% }) %>
+            </div>
+            <div class="sm:ml-auto flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filter:</span>
+                <% [['all','All'],['active','Active'],['deleted','Deleted'],['published','Published'],['unpublished','Unpublished'],['promoted','Promoted'],['live','Live Now']].forEach(([f,l]) => { %>
+                    <a href="?sort=<%= sort %>&filter=<%= f %>" class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all <%= filter === f ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' %>"><%= l %></a>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <% if (courses.length === 0) { %>
+            <div class="col-span-3 bg-white border border-dashed border-slate-200 rounded-2xl p-12 text-center">
+                <i class="fa-solid fa-book-open text-slate-200 text-4xl mb-3"></i>
+                <p class="text-slate-400 font-bold">No courses match this filter</p>
+            </div>
+        <% } %>
+        <% courses.forEach((c, idx) => { %>
+        <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all relative overflow-hidden group">
+            <!-- Rank badge -->
+            <div class="absolute top-4 right-4 w-7 h-7 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center text-[10px] font-black">#<%= idx + 1 %></div>
+
+            <!-- Status Badges -->
+            <div class="flex flex-wrap gap-1.5 mb-3">
+                <% if (c.isDeleted) { %>
+                    <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest bg-red-100 text-red-500">🗑 Deleted</span>
+                <% } else { %>
+                    <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest bg-green-100 text-green-600">Active</span>
+                <% } %>
+                <% if (c.isLive) { %><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest bg-red-500 text-white animate-pulse">● LIVE</span><% } %>
+                <% if (!c.isPublished && !c.isDeleted) { %><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-500">Draft</span><% } %>
+                <% if (c.isPromoted) { %><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest bg-brand-gold/20 text-brand-gold">⭐ Promoted</span><% } %>
+            </div>
+
+            <!-- Title -->
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl flex-shrink-0"><%= c.icon || '📚' %></div>
+                <div>
+                    <h3 class="font-black text-slate-900 text-sm leading-tight"><a href="/courses/<%= c.id %>" class="hover:text-brand-gold transition-colors"><%= c.title %></a></h3>
+                    <% if (c.badge) { %><span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest"><%= c.badge %></span><% } %>
+                </div>
+            </div>
+
+            <!-- Metrics Grid -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-emerald-50 rounded-xl p-3">
+                    <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Revenue</p>
+                    <p class="text-lg font-black text-slate-900">₹<%= Number(c.revenue).toLocaleString('en-IN') %></p>
+                </div>
+                <div class="bg-blue-50 rounded-xl p-3">
+                    <p class="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Students</p>
+                    <p class="text-lg font-black text-slate-900"><%= c.users || 0 %></p>
+                </div>
+                <div class="bg-purple-50 rounded-xl p-3">
+                    <p class="text-[9px] font-black text-purple-600 uppercase tracking-widest mb-1">Rev/Seat</p>
+                    <p class="text-base font-black text-slate-900">₹<%= Number(c.revenuePerSeat).toLocaleString('en-IN') %></p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3">
+                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Price</p>
+                    <p class="text-base font-black text-slate-900">₹<%= Number(c.price).toLocaleString('en-IN') %> <% if (c.discountPct > 0) { %><span class="text-[9px] text-green-500">-<%= c.discountPct %>%</span><% } %></p>
+                </div>
+            </div>
+
+            <!-- Extra Info -->
+            <div class="flex flex-wrap gap-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2 border-t border-slate-50 pt-3">
+                <% if (c.folderCount > 0) { %><span><i class="fa-solid fa-folder text-[8px]"></i> <%= c.folderCount %> Folders</span><% } %>
+                <% if (c.resourceCount > 0) { %><span><i class="fa-solid fa-file text-[8px]"></i> <%= c.resourceCount %> Resources</span><% } %>
+                <span class="ml-auto"><i class="fa-solid fa-calendar text-[8px]"></i> <%= new Date(c.createdAt).toLocaleDateString('en-IN',{month:'short',year:'numeric'}) %></span>
+            </div>
+        </div>
+        <% }) %>
+    </div>
+
+</div>
+</main>
+<%- include('../partials/layout_wrapper_bottom', { hideFooter: true }) %>
+    <script src="/javascripts/main.js"></script>
+    <script>
+    const allCourses = <%- JSON.stringify(allCourses.sort((a,b) => b.revenue - a.revenue)) %>;
+    const sortedByEnrollment = <%- JSON.stringify(allCourses.sort((a,b) => b.users - a.users)) %>;
+
+    new Chart(document.getElementById('revenueBar'), {
+        type: 'bar',
+        data: { labels: allCourses.map(c => (c.icon||'📚')+' '+c.title.substring(0,20)),
+            datasets: [{ label: 'Revenue (₹)', data: allCourses.map(c => c.revenue),
+                backgroundColor: '#D4AF37', borderRadius: 6, borderSkipped: false }] },
+        options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, ticks: { callback: v => '₹'+Number(v).toLocaleString('en-IN'), font:{size:10} }, grid:{color:'#f1f5f9'} }, y: { ticks:{font:{size:10}}, grid:{display:false} } } }
+    });
+
+    new Chart(document.getElementById('enrollBar'), {
+        type: 'bar',
+        data: { labels: sortedByEnrollment.map(c => (c.icon||'📚')+' '+c.title.substring(0,20)),
+            datasets: [{ label: 'Students', data: sortedByEnrollment.map(c => c.users||0),
+                backgroundColor: '#3b82f6', borderRadius: 6, borderSkipped: false }] },
+        options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, ticks: { stepSize: 1, font:{size:10} }, grid:{color:'#f1f5f9'} }, y: { ticks:{font:{size:10}}, grid:{display:false} } } }
+    });
+    </script>
+</body>
+</html>

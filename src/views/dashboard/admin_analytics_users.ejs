@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Analytics — The Saran Trader</title>
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="font-sans antialiased text-slate-700 bg-slate-50 min-h-screen">
+<%- include('../partials/layout_wrapper_top', { pageTitle: 'Users' }) %>
+
+<main class="flex-grow pb-24">
+<div class="max-w-[1500px] mx-auto px-4 lg:px-8 pt-6">
+
+    <!-- Header -->
+    <div class="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a href="/admin/analytics" class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-brand-gold/10 hover:text-brand-gold transition-all"><i class="fa-solid fa-arrow-left text-xs"></i></a>
+            <div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight leading-none">User Analytics</h1>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Leaderboards • Geography • Growth</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="/admin/analytics" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-gauge-high text-xs"></i> Overview</a>
+            <a href="/admin/analytics/revenue" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-indian-rupee-sign text-xs"></i> Revenue</a>
+            <a href="/admin/analytics/courses" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-book-open text-xs"></i> Courses</a>
+            <a href="/admin/analytics/users" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-brand-gold/10 text-brand-gold"><i class="fa-solid fa-users text-xs"></i> Users</a>
+            <a href="/admin/analytics/engagement" class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"><i class="fa-solid fa-heart text-xs"></i> Engagement</a>
+        </div>
+    </div>
+
+    <!-- KPI Strip -->
+    <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-8">
+        <% [
+            { label:'Registered', val: totalUsers, color:'blue', icon:'fa-user-plus' },
+            { label:'Paying', val: payingCount, color:'emerald', icon:'fa-graduation-cap' },
+            { label:'Non-Paying', val: nonPayingCount, color:'slate', icon:'fa-user-clock' },
+            { label:'Conversion', val: conversionRate + '%', color:'purple', icon:'fa-percent' },
+            { label:'Total Spent', val:'₹' + Number(totalRevenue).toLocaleString('en-IN'), color:'gold', icon:'fa-indian-rupee-sign' },
+            { label:'Avg Spend', val:'₹' + Number(avgSpend).toLocaleString('en-IN'), color:'indigo', icon:'fa-calculator' },
+            { label:'Top State', val: topState, color:'teal', icon:'fa-map-location-dot' },
+            { label:'Top City', val: topCity, color:'sky', icon:'fa-city' }
+        ].forEach(k => { %>
+        <div class="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm">
+            <div class="w-7 h-7 rounded-lg bg-<%= k.color === 'gold' ? 'yellow' : k.color %>-100 text-<%= k.color === 'gold' ? 'yellow' : k.color %>-600 flex items-center justify-center text-[10px] mb-2"><i class="fa-solid <%= k.icon %>"></i></div>
+            <p class="text-lg font-black text-slate-900 truncate"><%= k.val %></p>
+            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wide mt-0.5"><%= k.label %></p>
+        </div>
+        <% }) %>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="font-black text-slate-900 mb-1">User Registration Trend</h3>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">New Signups per Month (Last 12 Months)</p>
+            <canvas id="userGrowthChart" height="80"></canvas>
+        </div>
+        <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="font-black text-slate-900 mb-1">Conversion Funnel</h3>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Registered → Paying</p>
+            <canvas id="funnelChart" height="140"></canvas>
+        </div>
+        <div class="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="font-black text-slate-900 mb-1">Users by State</h3>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Top 15 States</p>
+            <canvas id="stateChart" height="<%= Math.max(80, stateData.length * 22) %>"></canvas>
+        </div>
+        <div class="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="font-black text-slate-900 mb-1">Users by City</h3>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Top 10 Cities</p>
+            <canvas id="cityChart" height="180"></canvas>
+        </div>
+    </div>
+
+    <!-- Leaderboard Tabs -->
+    <div class="flex gap-2 mb-4 flex-wrap" id="userTabsContainer">
+        <button type="button" onclick="switchUserTab('buyers')" id="tabBtn-buyers" class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all <%= tab === 'buyers' ? 'bg-brand-gold text-slate-900 shadow-md' : 'bg-white border border-slate-200 text-slate-500 hover:border-brand-gold/30' %>">
+            <i class="fa-solid fa-trophy mr-1"></i> Top Buyers
+        </button>
+        <button type="button" onclick="switchUserTab('enrollers')" id="tabBtn-enrollers" class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all <%= tab === 'enrollers' ? 'bg-brand-gold text-slate-900 shadow-md' : 'bg-white border border-slate-200 text-slate-500 hover:border-brand-gold/30' %>">
+            <i class="fa-solid fa-graduation-cap mr-1"></i> Top Enrollers
+        </button>
+        <button type="button" onclick="switchUserTab('community')" id="tabBtn-community" class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all <%= tab === 'community' ? 'bg-brand-gold text-slate-900 shadow-md' : 'bg-white border border-slate-200 text-slate-500 hover:border-brand-gold/30' %>">
+            <i class="fa-solid fa-fire mr-1"></i> Most Active
+        </button>
+        <button type="button" onclick="switchUserTab('all')" id="tabBtn-all" class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ml-auto <%= tab === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-400' %>">
+            <i class="fa-solid fa-table mr-1"></i> All Users
+        </button>
+    </div>
+
+    <!-- Leaderboard Table: Buyers -->
+    <div id="tabContent-buyers" class="tab-section <%= tab === 'buyers' ? '' : 'hidden' %>">
+    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 text-slate-400 font-black uppercase tracking-widest text-[9px] border-b border-slate-100">
+                    <tr><th class="px-6 py-4">Rank</th><th class="px-6 py-4">User</th><th class="px-6 py-4">Email</th><th class="px-6 py-4">State</th><th class="px-6 py-4">Total Spent</th><th class="px-6 py-4">Purchases</th><th class="px-6 py-4">Joined</th><th class="px-6 py-4">Profile</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    <% topBuyers.forEach((u, i) => { %>
+                    <tr class="hover:bg-slate-50/70 transition-all">
+                        <td class="px-6 py-4"><span class="w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm <%= i === 0 ? 'bg-brand-gold text-slate-900' : i === 1 ? 'bg-slate-300 text-slate-700' : i === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-500' %>">#<%= i+1 %></span></td>
+                        <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center text-xs font-black"><%= (u.name||u.username||'?').charAt(0).toUpperCase() %></div><span class="font-bold text-slate-800 text-sm"><%= u.name || u.username %></span></div></td>
+                        <td class="px-6 py-4 text-xs text-slate-500"><%= u.email %></td>
+                        <td class="px-6 py-4 text-xs text-slate-500"><%= u.state || '—' %></td>
+                        <td class="px-6 py-4 font-black text-emerald-600">₹<%= Number(u.totalSpent).toLocaleString('en-IN') %></td>
+                        <td class="px-6 py-4 font-bold text-slate-700"><%= u.purchaseCount %></td>
+                        <td class="px-6 py-4 text-[11px] text-slate-400 font-semibold"><%= new Date(u.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) %></td>
+                        <td class="px-6 py-4"><a href="/admin/users/<%= u.id %>" class="text-[9px] font-black text-brand-gold uppercase tracking-widest hover:underline">View →</a></td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+
+    <!-- Leaderboard: Top Enrollers -->
+    <div id="tabContent-enrollers" class="tab-section <%= tab === 'enrollers' ? '' : 'hidden' %>">
+    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 text-slate-400 font-black uppercase tracking-widest text-[9px] border-b border-slate-100">
+                    <tr><th class="px-6 py-4">Rank</th><th class="px-6 py-4">User</th><th class="px-6 py-4">Email</th><th class="px-6 py-4">City</th><th class="px-6 py-4">Courses</th><th class="px-6 py-4">Joined</th><th class="px-6 py-4">Profile</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    <% topEnrollers.forEach((u, i) => { %>
+                    <tr class="hover:bg-slate-50/70 transition-all">
+                        <td class="px-6 py-4"><span class="w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm <%= i === 0 ? 'bg-brand-gold text-slate-900' : i === 1 ? 'bg-slate-300 text-slate-700' : i === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-500' %>">#<%= i+1 %></span></td>
+                        <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-black"><%= (u.name||u.username||'?').charAt(0).toUpperCase() %></div><span class="font-bold text-slate-800 text-sm"><%= u.name || u.username %></span></div></td>
+                        <td class="px-6 py-4 text-xs text-slate-500"><%= u.email %></td>
+                        <td class="px-6 py-4 text-xs text-slate-500"><%= u.city || '—' %></td>
+                        <td class="px-6 py-4 font-black text-blue-600"><%= u.enrollmentCount %> courses</td>
+                        <td class="px-6 py-4 text-[11px] text-slate-400 font-semibold"><%= new Date(u.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) %></td>
+                        <td class="px-6 py-4"><a href="/admin/users/<%= u.id %>" class="text-[9px] font-black text-brand-gold uppercase tracking-widest hover:underline">View →</a></td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+
+    <!-- Leaderboard: Most Active Community -->
+    <div id="tabContent-community" class="tab-section <%= tab === 'community' ? '' : 'hidden' %>">
+    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 text-slate-400 font-black uppercase tracking-widest text-[9px] border-b border-slate-100">
+                    <tr><th class="px-6 py-4">Rank</th><th class="px-6 py-4">User</th><th class="px-6 py-4">Email</th><th class="px-6 py-4">Posts</th><th class="px-6 py-4">Comments</th><th class="px-6 py-4">Total Activity</th><th class="px-6 py-4">Profile</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    <% topCommunity.forEach((u, i) => { %>
+                    <tr class="hover:bg-slate-50/70 transition-all">
+                        <td class="px-6 py-4"><span class="w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm <%= i === 0 ? 'bg-brand-gold text-slate-900' : i === 1 ? 'bg-slate-300 text-slate-700' : i === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-500' %>">#<%= i+1 %></span></td>
+                        <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center text-xs font-black"><%= (u.name||u.username||'?').charAt(0).toUpperCase() %></div><span class="font-bold text-slate-800 text-sm"><%= u.name || u.username %></span></div></td>
+                        <td class="px-6 py-4 text-xs text-slate-500"><%= u.email %></td>
+                        <td class="px-6 py-4 font-bold text-violet-600"><%= u.postCount %></td>
+                        <td class="px-6 py-4 font-bold text-pink-500"><%= u.commentCount %></td>
+                        <td class="px-6 py-4 font-black text-slate-800"><%= u.postCount + u.commentCount %></td>
+                        <td class="px-6 py-4"><a href="/admin/users/<%= u.id %>" class="text-[9px] font-black text-brand-gold uppercase tracking-widest hover:underline">View →</a></td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+
+    <!-- All Users Table -->
+    <div id="tabContent-all" class="tab-section <%= tab === 'all' ? '' : 'hidden' %>">
+    <div class="mb-4">
+        <input type="text" id="userSearch" placeholder="Search by name, email, city, state..." oninput="filterUsers()" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-brand-gold/40 focus:ring-2 focus:ring-brand-gold/10">
+    </div>
+    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left" id="usersTable">
+                <thead class="bg-slate-50 text-slate-400 font-black uppercase tracking-widest text-[9px] border-b border-slate-100">
+                    <tr><th class="px-6 py-4">User</th><th class="px-6 py-4">Email</th><th class="px-6 py-4">Phone</th><th class="px-6 py-4">State</th><th class="px-6 py-4">City</th><th class="px-6 py-4">Courses</th><th class="px-6 py-4">Spent</th><th class="px-6 py-4">Joined</th><th class="px-6 py-4">Status</th><th class="px-6 py-4">Profile</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50" id="usersTableBody">
+                    <% allUsers.forEach(u => { %>
+                    <tr class="hover:bg-slate-50/70 transition-all user-row" data-search="<%= (u.name||'') + ' ' + (u.email||'') + ' ' + (u.city||'') + ' ' + (u.state||'') %>">
+                        <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center text-xs font-black"><%= (u.name||u.username||'?').charAt(0).toUpperCase() %></div><span class="font-bold text-slate-800 text-sm"><%= u.name || u.username %></span></div></td>
+                        <td class="px-6 py-4 text-xs text-slate-500"><%= u.email %></td>
+                        <td class="px-6 py-4 text-xs text-slate-500"><%= u.phone || '—' %></td>
+                        <td class="px-6 py-4 text-xs text-slate-500"><%= u.state || '—' %></td>
+                        <td class="px-6 py-4 text-xs text-slate-500"><%= u.city || '—' %></td>
+                        <td class="px-6 py-4 font-bold text-blue-600 text-sm"><%= u.enrollmentCount %></td>
+                        <td class="px-6 py-4 font-black text-emerald-600 text-sm">₹<%= Number(u.totalSpent).toLocaleString('en-IN') %></td>
+                        <td class="px-6 py-4 text-[11px] text-slate-400 font-semibold"><%= new Date(u.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) %></td>
+                        <td class="px-6 py-4"><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase <%= u.isDeleted ? 'bg-red-100 text-red-500' : 'bg-green-100 text-green-600' %>"><%= u.isDeleted ? 'Deleted' : 'Active' %></span></td>
+                        <td class="px-6 py-4"><a href="/admin/users/<%= u.id %>" class="text-[9px] font-black text-brand-gold uppercase tracking-widest hover:underline">View →</a></td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+
+</div>
+</main>
+<%- include('../partials/layout_wrapper_bottom', { hideFooter: true }) %>
+    <script src="/javascripts/main.js"></script>
+    <script>
+    const userGrowth = <%- JSON.stringify(userGrowth) %>;
+    const stateData = <%- JSON.stringify(stateData) %>;
+    const cityData = <%- JSON.stringify(cityData) %>;
+    const totalUsers = <%= totalUsers %>;
+    const payingCount = <%= payingCount %>;
+    const nonPayingCount = <%= nonPayingCount %>;
+
+    const labels12 = Object.keys(userGrowth).map(k => {
+        const [y,m] = k.split('-');
+        return new Date(y,m-1).toLocaleDateString('en-IN',{month:'short',year:'2-digit'});
+    });
+
+    new Chart(document.getElementById('userGrowthChart'), {
+        type: 'bar',
+        data: { labels: labels12, datasets: [{ label: 'New Users', data: Object.values(userGrowth), backgroundColor: 'rgba(99,102,241,0.8)', borderRadius: 6, borderSkipped: false }] },
+        options: { responsive: true, plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font:{size:10} }, grid:{color:'#f1f5f9'} }, x: { ticks:{font:{size:10}}, grid:{display:false} } } }
+    });
+
+    new Chart(document.getElementById('funnelChart'), {
+        type: 'bar',
+        data: { labels: ['Registered','Paying','Non-Paying'],
+            datasets: [{ data: [totalUsers, payingCount, nonPayingCount], backgroundColor: ['#6366f1','#10b981','#94a3b8'], borderRadius: 6, borderSkipped: false }] },
+        options: { responsive: true, plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font:{size:10} }, grid:{color:'#f1f5f9'} }, x: { ticks:{font:{size:10}}, grid:{display:false} } } }
+    });
+
+    if (stateData.length) {
+        new Chart(document.getElementById('stateChart'), {
+            type: 'bar',
+            data: { labels: stateData.map(d=>d[0]), datasets: [{ label: 'Users', data: stateData.map(d=>d[1]), backgroundColor: '#0ea5e9', borderRadius: 4, borderSkipped: false }] },
+            options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, ticks: { stepSize: 1, font:{size:10} }, grid:{color:'#f1f5f9'} }, y: { ticks:{font:{size:10}}, grid:{display:false} } } }
+        });
+    }
+
+    if (cityData.length) {
+        new Chart(document.getElementById('cityChart'), {
+            type: 'doughnut',
+            data: { labels: cityData.map(d=>d[0]), datasets: [{ data: cityData.map(d=>d[1]),
+                backgroundColor: ['#D4AF37','#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16','#f97316'], borderWidth: 2, borderColor: '#fff' }] },
+            options: { responsive: true, cutout: '55%', plugins: { legend: { position: 'bottom', labels: { font:{size:9}, padding:6 } } } }
+        });
+    }
+
+    function filterUsers() {
+        const q = document.getElementById('userSearch').value.toLowerCase();
+        document.querySelectorAll('.user-row').forEach(row => {
+            const txt = row.getAttribute('data-search').toLowerCase();
+            row.style.display = txt.includes(q) ? '' : 'none';
+        });
+    }
+    </script>
+    <script>
+        function switchUserTab(targetTab) {
+            document.querySelectorAll('.tab-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tabContent-${targetTab}`).classList.remove('hidden');
+
+            const inactiveCls = 'bg-white border border-slate-200 text-slate-500 hover:border-brand-gold/30';
+            const inactiveAllCls = 'bg-white border border-slate-200 text-slate-500 hover:border-slate-400';
+            
+            document.querySelectorAll('[id^="tabBtn-"]').forEach(btn => {
+                const isAll = btn.id === 'tabBtn-all';
+                btn.className = `px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isAll ? 'ml-auto ' + inactiveAllCls : inactiveCls}`;
+            });
+
+            const activeBtn = document.getElementById(`tabBtn-${targetTab}`);
+            const isAllActive = targetTab === 'all';
+            activeBtn.className = `px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isAllActive ? 'ml-auto bg-slate-800 text-white shadow-md' : 'bg-brand-gold text-slate-900 shadow-md'}`;
+            
+            // Rewrite URL without reload
+            window.history.replaceState({}, '', '?tab=' + targetTab);
+        }
+    </script>
+</body>
+</html>

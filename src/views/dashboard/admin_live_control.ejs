@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= csrfToken %>">
+    <title>Live Session Controls - The Saran Trader</title>
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+</head>
+<body class="bg-slate-50 font-sans antialiased text-slate-900">
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'Live Session Controls' }) %>
+
+    <main class="flex-grow pb-20">
+        <div class="max-w-[1200px] mx-auto px-6 pt-10">
+            
+            <!-- Header Section -->
+            <div class="flex items-center justify-between mb-10">
+                <div class="flex flex-col gap-1">
+                    <h1 class="text-2xl font-black text-slate-800 tracking-tight">Live Session Controls</h1>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full bg-slate-200/50 text-slate-500 text-[10px] font-bold tracking-wider">
+                            <%= ongoing.length + upcoming.length %> Programs
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ongoing & Courses Section -->
+            <div class="space-y-6 mb-12">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm shadow-lg shadow-emerald-500/20">
+                        <i class="fa-solid fa-play ml-0.5"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-slate-800">Ongoing & Courses</h2>
+                    <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-[10px] font-black"><%= ongoing.length %></span>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4">
+                    <% if (ongoing.length === 0) { %>
+                        <div class="py-12 bg-white rounded-3xl border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-400 italic">
+                            <i class="fa-solid fa-wind text-3xl mb-3 opacity-20"></i>
+                            <p class="text-sm font-medium">No active courses found.</p>
+                        </div>
+                    <% } else { %>
+                        <% ongoing.forEach(course => { %>
+                            <div class="group bg-white rounded-3xl border border-slate-100 p-6 flex items-center justify-between hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
+                        <a href="/courses/<%= course.id %>/view" class="flex items-center gap-6 group/item hover:opacity-80 transition-opacity">
+                                    <!-- Course Icon/Thumbnail -->
+                                    <div class="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-inner overflow-hidden relative group-hover/item:border-amber-400/50 transition-colors">
+                                        <% if (course.thumbnailUrl) { %>
+                                            <img src="<%= course.thumbnailUrl %>" class="w-full h-full object-cover">
+                                        <% } else { %>
+                                            <span class="text-3xl"><%= course.icon || '📚' %></span>
+                                        <% } %>
+                                    </div>
+
+                                    <!-- Course Info -->
+                                    <div class="flex flex-col gap-1">
+                                            <h3 class="text-xl font-bold text-slate-800 leading-none group-hover/item:text-amber-600 transition-colors underline-offset-4 hover:underline decoration-amber-400">
+                                                <%= course.title %>
+                                            </h3>
+                                        <div class="flex items-center gap-4 mt-2">
+                                            <div class="flex items-center gap-1.5 text-slate-400 text-xs font-semibold">
+                                                <i class="fa-solid fa-users text-[10px]"></i>
+                                                <span><%= course.users %> users</span>
+                                            </div>
+                                            
+                                            <div id="status-container-<%= course.id %>" class="flex items-center gap-1.5 font-black uppercase tracking-widest text-[10px]">
+                                                <% if (course.isLive) { %>
+                                                    <span class="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                    <span class="text-emerald-500 status-text">Live Now</span>
+                                                    <span id="timer-<%= course.id %>" class="text-slate-300 ml-1 live-timer font-mono" data-start-time="<%= course.lastLiveStartedAt %>">00:00:00</span>
+                                                <% } else { %>
+                                                    <span class="text-slate-300 status-text">Offline</span>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+
+                                <!-- Actions -->
+                                <div id="actions-<%= course.id %>" class="flex items-center gap-3">
+                                    <% if (course.isLive) { %>
+                                        <button data-course-id="<%= course.id %>" data-is-live="false"
+                                            class="toggle-live-action px-6 py-2.5 rounded-full bg-red-500 text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-lg shadow-red-500/20">
+                                            <i class="fa-solid fa-stop text-[8px]"></i> End Live
+                                        </button>
+                                        <button onclick="launchZoom('<%= course.zoomMeetingId %>', '<%= course.zoomPassword %>')"
+                                            class="px-6 py-2.5 rounded-full bg-amber-400 text-slate-900 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-400/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                                            <i class="fa-solid fa-desktop text-[8px]"></i> Launch Console
+                                        </button>
+                                    <% } else { %>
+                                        <button data-course-id="<%= course.id %>" data-is-live="true"
+                                            class="toggle-live-action px-8 py-2.5 rounded-full bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+                                            <i class="fa-solid fa-tower-broadcast text-[8px]"></i> Go Live
+                                        </button>
+                                    <% } %>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Upcoming Courses Section -->
+            <div class="space-y-6">
+                <div class="flex items-center gap-3 text-indigo-500">
+                    <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-slate-800">Upcoming Courses</h2>
+                    <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-[10px] font-black"><%= upcoming.length %></span>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4">
+                    <% if (upcoming.length === 0) { %>
+                        <div class="py-12 bg-white/50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 italic">
+                            <i class="fa-regular fa-calendar text-3xl mb-3 opacity-20"></i>
+                            <p class="text-sm font-medium">No upcoming courses scheduled.</p>
+                        </div>
+                    <% } else { %>
+                        <% upcoming.forEach(course => { %>
+                            <div class="bg-white/70 rounded-3xl border border-slate-100 p-6 flex items-center justify-between opacity-75 hover:opacity-100 transition-opacity">
+                                <div class="flex items-center gap-6">
+                                    <div class="w-16 h-16 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-3xl shadow-sm">
+                                        <%= course.icon || '📚' %>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <a href="/courses/<%= course.id %>/view" class="hover:text-amber-600 transition-colors">
+                                            <h3 class="text-lg font-bold text-slate-800"><%= course.title %></h3>
+                                        </a>
+                                        <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">
+                                            Starts: <%= course.startDate ? new Date(course.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'No Date' %>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="px-6 py-2 rounded-full border border-slate-200 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                                    Standby
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } %>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <%- include('../partials/layout_wrapper_bottom', { hideFooter: true }) %>
+
+    <!-- Course Metadata (Hidden for JS) -->
+    <script id="course-data" type="application/json">
+        <%- JSON.stringify([...ongoing, ...upcoming].reduce((acc, c) => ({ ...acc, [c.id]: { id: c.id, meetingId: c.zoomMeetingId, password: c.zoomPassword } }), {})) %>
+    </script>
+
+    <script src="/javascripts/admin.js?v=<%= Date.now() %>"></script>
+    <script>
+        // --- ADMIN LIVE CONTROL INITIALIZATION ---
+        const dataElement = document.getElementById('course-data');
+        const COURSE_METADATA = dataElement ? JSON.parse(dataElement.textContent) : {};
+        console.log('[Live Control] Specialized metadata loaded:', Object.keys(COURSE_METADATA).length, 'programs');
+
+        /**
+         * Handler called by admin.js after a successful toggle.
+         * Specialized for this page's layout.
+         */
+        window.updateAdminLiveUI = function(courseId, isLive, startTime) {
+            console.log(`[Live Control] specialized UI update for ${courseId}, isLive=${isLive}`);
+            
+            const statusContainer = document.getElementById(`status-container-${courseId}`);
+            const actionContainer = document.getElementById(`actions-${courseId}`);
+            
+            if (!statusContainer || !actionContainer) {
+                console.error(`[Live Control] FAILED to update UI: Containers not found for ${courseId}`, {
+                    statusContainerFound: !!statusContainer,
+                    actionContainerFound: !!actionContainer
+                });
+                return;
+            }
+
+            console.log(`[Live Control] Updating containers for ${courseId}. statusContainer:`, statusContainer, 'actionContainer:', actionContainer);
+
+            const meta = COURSE_METADATA[courseId];
+
+            if (isLive) {
+                const now = startTime || Date.now();
+                statusContainer.innerHTML = `
+                    <span class="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-emerald-500 status-text">Live Now</span>
+                    <span id="timer-${courseId}" class="text-slate-300 ml-1 live-timer font-mono" data-start="${now}">00:00:00</span>
+                `;
+
+                const meetingId = meta ? meta.meetingId : '';
+                const password = meta ? meta.password : '';
+                
+                actionContainer.innerHTML = `
+                    <button data-course-id="${courseId}" data-is-live="false"
+                        class="toggle-live-action px-6 py-2.5 rounded-full bg-red-500 text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-lg shadow-red-500/20">
+                        <i class="fa-solid fa-stop text-[8px]"></i> End Live
+                    </button>
+                    <button onclick="launchZoom('${meetingId}', '${password}')"
+                        class="px-6 py-2.5 rounded-full bg-amber-400 text-slate-900 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-400/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-desktop text-[8px]"></i> Launch Console
+                    </button>
+                `;
+            } else {
+                statusContainer.innerHTML = `<span class="text-slate-300 status-text">Offline</span>`;
+                actionContainer.innerHTML = `
+                    <button data-course-id="${courseId}" data-is-live="true"
+                        class="toggle-live-action px-8 py-2.5 rounded-full bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+                        <i class="fa-solid fa-tower-broadcast text-[8px]"></i> Go Live
+                    </button>
+                `;
+            }
+
+            // Trigger timer update if admin.js is loaded
+            if (typeof updateTimers === 'function') updateTimers();
+        };
+
+        window.launchZoom = function(meetingId, password) {
+            if (!meetingId || meetingId === 'null') {
+                alert('No meeting credentials configured for this course.');
+                return;
+            }
+            window.location.href = `/live-meeting?id=${meetingId}&pwd=${password}`;
+        };
+    </script>
+</body>
+</html>

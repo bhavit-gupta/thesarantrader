@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= csrfToken %>">
+    <title>Verification Center — The Saran Trader</title>
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="font-sans antialiased text-slate-700 bg-slate-50 min-h-screen">
+<%- include('../partials/layout_wrapper_top', { pageTitle: 'Verification Center' }) %>
+
+<main class="flex-grow pb-24">
+<div class="max-w-[1400px] mx-auto px-4 lg:px-8 pt-6">
+
+    <!-- Header -->
+    <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-3 mb-2">
+                <a href="/admin/analytics" class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-brand-gold/10 hover:text-brand-gold transition-all"><i class="fa-solid fa-arrow-left text-[10px]"></i></a>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Dashboard / Operations</span>
+            </div>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight leading-none">Payment Verifications</h1>
+            <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                Processing Queue • <%= pending.length %> Requests Waiting
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="px-4 py-2 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
+                <div class="text-right">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Pending</p>
+                    <p class="text-sm font-black text-slate-900">₹<%= pending.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString('en-IN') %></p>
+                </div>
+                <div class="w-px h-6 bg-slate-100"></div>
+                <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center text-xs"><i class="fa-solid fa-clock"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <% if (pending.length === 0) { %>
+        <div class="bg-white border border-dashed border-slate-200 rounded-[2.5rem] p-20 text-center shadow-sm">
+            <div class="w-20 h-20 bg-slate-50 text-slate-200 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
+                <i class="fa-solid fa-check-double"></i>
+            </div>
+            <h2 class="text-2xl font-black text-slate-900 mb-2">Queue is Empty</h2>
+            <p class="text-slate-400 font-medium">All payment requests have been verified. Excellent work!</p>
+            <a href="/admin/analytics" class="inline-flex items-center gap-2 mt-8 px-6 py-3 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-brand-gold transition-all shadow-lg hover:shadow-brand-gold/20">Return to Analytics</a>
+        </div>
+    <% } else { %>
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            
+            <!-- Left: List -->
+            <div class="xl:col-span-5 space-y-4">
+                <% pending.forEach((p, idx) => { %>
+                    <div class="verification-card group cursor-pointer bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-brand-gold/30 transition-all <%= idx === 0 ? 'ring-2 ring-brand-gold bg-brand-gold/[0.02]' : '' %>" 
+                         onclick="focusRequest('<%= JSON.stringify(p).replace(/'/g, "\\'") %>')"
+                         id="card-<%= p.id %>">
+                        <div class="flex items-start justify-between gap-4 mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl shadow-sm"><%= p.icon || '👤' %></div>
+                                <div>
+                                    <h4 class="font-black text-slate-900 text-sm leading-tight"><%= p.userName %></h4>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest"><%= p.userEmail %></p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-black text-slate-900 leading-none">₹<%= Number(p.amount).toLocaleString('en-IN') %></p>
+                                <p class="text-[9px] text-amber-500 font-black uppercase tracking-widest mt-1">Pending Approval</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 group-hover:border-brand-gold/10 transition-colors">
+                            <i class="fa-solid fa-book-open text-xs text-slate-400 mr-1"></i>
+                            <p class="text-[11px] font-bold text-slate-600 truncate"><%= p.courseTitle %></p>
+                            <span class="ml-auto text-[9px] font-black text-slate-300 uppercase tracking-widest"><%= new Date(p.date).toLocaleDateString('en-IN', {day:'2-digit', month:'short'}) %></span>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+
+            <!-- Right: Focus Area -->
+            <div class="xl:col-span-7 sticky top-24 h-fit">
+                <div class="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-lg" id="focus-area">
+                    <!-- Default State / Loading -->
+                    <div id="focus-empty" class="p-20 text-center <%= pending.length > 0 ? 'hidden' : '' %>">
+                        <p class="text-slate-400 font-bold">Select a request to verify</p>
+                    </div>
+
+                    <!-- Focused Content -->
+                    <div id="focus-content" class="<%= pending.length === 0 ? 'hidden' : '' %>">
+                        <div class="p-6 border-b border-slate-50 flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div id="focus-icon" class="w-12 h-12 rounded-2xl bg-brand-gold/10 text-brand-gold flex items-center justify-center text-2xl shadow-inner">👤</div>
+                                <div>
+                                    <h3 id="focus-name" class="text-xl font-black text-slate-900 tracking-tight">Select a request</h3>
+                                    <p id="focus-email" class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.15em]">No record selected</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p id="focus-price" class="text-2xl font-black text-emerald-600 tracking-tighter leading-none">₹0</p>
+                                <p class="text-[9px] text-slate-300 font-black uppercase tracking-widest mt-1">Order Amount</p>
+                            </div>
+                        </div>
+
+                        <div class="p-8 bg-slate-950/2 flex items-center justify-center min-h-[400px]">
+                            <div class="relative group cursor-zoom-in" onclick="openFullscreen()">
+                                <img id="focus-screenshot" src="" alt="Payment Proof" class="max-h-[500px] w-auto rounded-xl shadow-2xl border border-white/20 transition-transform duration-500 hover:scale-[1.02]">
+                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                    <div class="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-xl border border-white/50">
+                                        <i class="fa-solid fa-magnifying-glass-plus mr-1.5"></i> Click to Enlarge
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-4">
+                            <div class="flex-1 w-full">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Purchasing Course</p>
+                                <div class="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl border border-slate-200">
+                                    <i class="fa-solid fa-graduation-cap text-brand-gold"></i>
+                                    <p id="focus-course" class="text-sm font-bold text-slate-700 truncate">Course Name here</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 w-full sm:w-auto">
+                                <button id="focus-reject-btn" class="flex-1 sm:flex-none px-6 py-4 rounded-2xl bg-white border border-red-100 text-red-500 hover:bg-red-500 hover:text-white transition-all text-xs font-black uppercase tracking-widest shadow-sm">
+                                    <i class="fa-solid fa-xmark mr-1.5"></i> Reject
+                                </button>
+                                <button id="focus-approve-btn" class="flex-1 sm:flex-none px-8 py-4 rounded-2xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/25">
+                                    <i class="fa-solid fa-check-double mr-1.5"></i> Approve & Enroll
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <% } %>
+
+</div>
+</main>
+
+<!-- Fullscreen Viewer -->
+<div id="fullscreen" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <button onclick="closeFullscreen()" class="absolute top-8 right-8 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all">
+        <i class="fa-solid fa-xmark text-xl"></i>
+    </button>
+    <img id="fullscreen-img" src="" alt="Fullscreen Proof" class="max-h-full max-w-full object-contain rounded shadow-2xl">
+</div>
+
+<%- include('../partials/layout_wrapper_bottom', { hideFooter: true }) %>
+    <script src="/javascripts/main.js"></script>
+    <script src="/javascripts/admin.js"></script>
+    <script>
+    let currentId = null;
+
+    function focusRequest(dataStr) {
+        const p = JSON.parse(dataStr);
+        currentId = p.id;
+        
+        // Update UI
+        document.getElementById('focus-empty').classList.add('hidden');
+        document.getElementById('focus-content').classList.remove('hidden');
+        document.getElementById('focus-name').innerText = p.userName;
+        document.getElementById('focus-email').innerText = p.userEmail;
+        document.getElementById('focus-price').innerText = '₹' + Number(p.amount).toLocaleString('en-IN');
+        document.getElementById('focus-course').innerText = p.courseTitle;
+        document.getElementById('focus-screenshot').src = p.screenshotUrl || '/images/placeholder-receipt.png';
+        
+        // Highlight active card
+        document.querySelectorAll('.verification-card').forEach(c => {
+            c.classList.remove('ring-2', 'ring-brand-gold', 'bg-brand-gold/[0.02]');
+        });
+        document.getElementById('card-' + p.id).classList.add('ring-2', 'ring-brand-gold', 'bg-brand-gold/[0.02]');
+
+        // Update actions
+        document.getElementById('focus-reject-btn').onclick = () => rejectPayment(p.id);
+        document.getElementById('focus-approve-btn').onclick = () => approvePayment(p.id);
+    }
+
+    function openFullscreen() {
+        const src = document.getElementById('focus-screenshot').src;
+        document.getElementById('fullscreen-img').src = src;
+        document.getElementById('fullscreen').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeFullscreen() {
+        document.getElementById('fullscreen').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    // Auto-focus first one
+    <% if (pending.length > 0) { %>
+        document.addEventListener('DOMContentLoaded', () => {
+            const first = <%- JSON.stringify(pending[0]) %>;
+            focusRequest(JSON.stringify(first));
+        });
+    <% } %>
+    </script>
+</body>
+</html>

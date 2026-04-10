@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Center | TheSaranTrader Admin</title>
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+</head>
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen">
+
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'Management Hub', wrapperBg: 'bg-slate-50' }) %>
+
+    <main class="flex-grow pt-16 pb-20 px-6 lg:px-12">
+        <div class="max-w-7xl mx-auto">
+            
+            <!-- Page Header -->
+            <div class="mb-10 sm:mb-14">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-gold/10 text-brand-gold font-bold text-[10px] uppercase tracking-widest mb-6">
+                    <i class="fa-solid fa-screwdriver-wrench"></i> Dashboard / Management Center
+                </div>
+                <h1 class="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tighter leading-tight">Platform <span class="bg-gradient-to-r from-brand-gold to-orange-500 bg-clip-text text-transparent italic">Management</span></h1>
+                <p class="text-slate-400 mt-2 font-medium text-base sm:text-lg">Central hub for overall platform administration and control.</p>
+            </div>
+
+            <!-- Management Blocks Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
+                
+                <!-- Academy Architect (Formerly Curriculum) -->
+                <div class="p-6 sm:p-10 rounded-[2rem] bg-white border border-slate-100 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.02)] transition-all duration-500 cursor-pointer flex flex-col items-start relative overflow-hidden group hover:border-brand-gold/40 hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(184,146,64,0.12)]" onclick="window.location.href='/admin/courses'">
+                    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-[60px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 bg-emerald-500"></div>
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-lg sm:text-xl mb-6 sm:mb-8 border border-transparent transition-all duration-500 bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-400">
+                        <i class="fa-solid fa-book-open-reader"></i>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-2 tracking-tight">Academy Architect</h3>
+                    <p class="text-slate-500 text-xs sm:text-sm font-medium leading-relaxed mb-6 sm:mb-10">The core of your ecosystem. Sculpt your curriculum, manage video modules, and refine your educational programs.</p>
+                    <div class="mt-auto flex items-center gap-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-gold transition-colors">
+                        Manage Programs <i class="fa-solid fa-arrow-right opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500"></i>
+                    </div>
+                </div>
+
+                <!-- Brand Hub (Formerly 2nd slot) -->
+                <div class="p-6 sm:p-10 rounded-[2rem] bg-white border border-slate-100 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.02)] transition-all duration-500 cursor-pointer flex flex-col items-start relative overflow-hidden group hover:border-brand-gold/40 hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(184,146,64,0.12)]" onclick="window.location.href='/admin/landing-page'">
+                    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-[60px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 bg-sky-500"></div>
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-lg sm:text-xl mb-6 sm:mb-8 border border-transparent transition-all duration-500 bg-sky-50 text-sky-600 group-hover:bg-sky-600 group-hover:text-white group-hover:border-sky-400">
+                        <i class="fa-solid fa-palette"></i>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-2 tracking-tight">Brand Hub</h3>
+                    <p class="text-slate-500 text-xs sm:text-sm font-medium leading-relaxed mb-6 sm:mb-10">Sculpt your digital identity. Manage hero imagery, landing assets, and homepage visual narrative.</p>
+                    <div class="mt-auto flex items-center gap-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-gold transition-colors">
+                        Manage Identity <i class="fa-solid fa-arrow-right opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500"></i>
+                    </div>
+                </div>
+
+                <!-- Chat Rooms (Moved down) -->
+                <div class="p-6 sm:p-10 rounded-[2rem] bg-white border border-slate-100 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.02)] transition-all duration-500 cursor-pointer flex flex-col items-start relative overflow-hidden group hover:border-brand-gold/40 hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(184,146,64,0.12)]" onclick="window.location.href='/chat'">
+                    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-[60px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 bg-indigo-500"></div>
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-lg sm:text-xl mb-6 sm:mb-8 border border-transparent transition-all duration-500 bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-400">
+                        <i class="fa-solid fa-comments"></i>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-2 tracking-tight">Chat Rooms</h3>
+                    <p class="text-slate-500 text-xs sm:text-sm font-medium leading-relaxed mb-6 sm:mb-10">Monitor live room activity and community engagement across all active programs.</p>
+                    <div class="mt-auto flex items-center gap-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-gold transition-colors">
+                        Access Rooms <i class="fa-solid fa-arrow-right opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500"></i>
+                    </div>
+                </div>
+
+                <!-- Reviews -->
+                <div class="p-6 sm:p-10 rounded-[2rem] bg-white border border-slate-100 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.02)] transition-all duration-500 cursor-pointer flex flex-col items-start relative overflow-hidden group hover:border-brand-gold/40 hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(184,146,64,0.12)]" onclick="window.location.href='/admin/testimonials'">
+                    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-[60px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 bg-amber-500"></div>
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-lg sm:text-xl mb-6 sm:mb-8 border border-transparent transition-all duration-500 bg-amber-50 text-amber-500 group-hover:bg-amber-500 group-hover:text-white group-hover:border-amber-400">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-2 tracking-tight">Reviews</h3>
+                    <p class="text-slate-500 text-xs sm:text-sm font-medium leading-relaxed mb-6 sm:mb-10">Moderate user testimonials and public feedback.</p>
+                    <div class="mt-auto flex items-center gap-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-gold transition-colors">
+                        Moderate <i class="fa-solid fa-arrow-right opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500"></i>
+                    </div>
+                </div>
+
+                <!-- Users -->
+                <div class="p-6 sm:p-10 rounded-[2rem] bg-white border border-slate-100 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.02)] transition-all duration-500 cursor-pointer flex flex-col items-start relative overflow-hidden group hover:border-brand-gold/40 hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(184,146,64,0.12)]" onclick="window.location.href='/admin/users'">
+                    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-[60px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 bg-blue-500"></div>
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-lg sm:text-xl mb-6 sm:mb-8 border border-transparent transition-all duration-500 bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-400">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-2 tracking-tight">Users</h3>
+                    <p class="text-slate-500 text-xs sm:text-sm font-medium leading-relaxed mb-6 sm:mb-10">Comprehensive trader database and role management.</p>
+                    <div class="mt-auto flex items-center gap-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-gold transition-colors">
+                        User Base <i class="fa-solid fa-arrow-right opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500"></i>
+                    </div>
+                </div>
+
+                <!-- Verification Vault -->
+                <div class="p-6 sm:p-10 rounded-[2rem] bg-white border border-slate-100 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.02)] transition-all duration-500 cursor-pointer flex flex-col items-start relative overflow-hidden group hover:border-brand-gold/40 hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(184,146,64,0.12)]" onclick="window.location.href='/admin/verifications'">
+                    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-[60px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 bg-amber-500"></div>
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-lg sm:text-xl mb-6 sm:mb-8 border border-transparent transition-all duration-500 bg-amber-50 text-amber-500 group-hover:bg-amber-500 group-hover:text-white group-hover:border-amber-400">
+                        <i class="fa-solid fa-shield-check"></i>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-2 tracking-tight">Verification Vault</h3>
+                    <p class="text-slate-500 text-xs sm:text-sm font-medium leading-relaxed mb-6 sm:mb-10">Administer the pending payment queue. Verify screenshots and unlock course access for new students.</p>
+                    <div class="mt-auto flex items-center gap-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-gold transition-colors">
+                        Process Requests <i class="fa-solid fa-arrow-right opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500"></i>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6 sm:p-10 rounded-[2rem] bg-white border border-slate-100 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.02)] transition-all duration-500 cursor-pointer flex flex-col items-start relative overflow-hidden group hover:border-brand-gold/40 hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(184,146,64,0.12)]" onclick="window.location.href='/admin/dashboard#content-manager'">
+                    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full blur-[60px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 bg-rose-500"></div>
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-lg sm:text-xl mb-6 sm:mb-8 border border-transparent transition-all duration-500 bg-rose-50 text-rose-500 group-hover:bg-rose-500 group-hover:text-white group-hover:border-rose-400">
+                        <i class="fa-solid fa-file-pen"></i>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-2 tracking-tight">Content</h3>
+                    <p class="text-slate-500 text-xs sm:text-sm font-medium leading-relaxed mb-6 sm:mb-10">Manage hero images, site text, and branding items.</p>
+                    <div class="mt-auto flex items-center gap-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 group-hover:text-brand-gold transition-colors">
+                        Branding <i class="fa-solid fa-arrow-right opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500"></i>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <%- include('../partials/layout_wrapper_bottom') %>
+
+</body>
+</html>

@@ -1,4 +1,8 @@
 // Admin Dashboard Scripts
+if (window.__ADMIN_JS_LOADED__) {
+    console.log('[Admin:JS] ALREADY LOADED - Skipping redundant initialization');
+} else {
+    window.__ADMIN_JS_LOADED__ = true;
 
 /* ---------------- HELPER FUNCTIONS ---------------- */
 function getLiveSessions() {
@@ -27,7 +31,11 @@ function getAllCourses() {
     }
 }
 function getCsrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (!token) {
+        console.warn('[Admin] CSRF token not found in meta tag');
+    }
+    return token || '';
 }
 
 function showToast(message, type = 'info') {
@@ -197,17 +205,33 @@ function updateNavbarLiveStatus() {
     }
 }
 
-async function toggleCourseLive(courseId) {
-    const btn = document.querySelector(`button[data-course-id="${courseId}"]`);
+/**
+ * Toggles the live status of a course.
+ * Centralized logic for all admin views.
+ */
+window.toggleCourseLive = async function(courseId, targetState) {
+    // Prevent recursive calls or double-processing
+    if (window.__IS_TOGGLING_LIVE__) return;
+    
+    // 1. Find the triggering button
+    const btn = document.querySelector(`.toggle-live-action[data-course-id="${courseId}"]`);
     if (!btn || btn.disabled) return;
 
-    // Capture state BEFORE changing button content to spinner
-    const isCurrentlyLive = btn.innerText.includes('End Live');
-    const targetState = !isCurrentlyLive;
+    window.__IS_TOGGLING_LIVE__ = true;
 
-    btn.disabled = true;
+    console.log(`[Admin:Live] Toggling Course=${courseId} to ${targetState ? 'LIVE' : 'OFFLINE'}`);
+
+    // 2. User Confirmation (Bypassed due to environment blocks)
+    // In many embedded contexts (iframes, Zoom Apps, aggressive browser blocks), 
+    // window.confirm returns false silently without ever rendering to the user.
+    // For robust admin controls, we proceed directly or use a custom modal later.
+    // Proceeding straight to the API call.
+
+    // 3. UI State: Loading
     const originalContent = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    const originalClass = btn.className;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Updating...';
 
     try {
         const response = await fetch('/admin/toggle-live', {
@@ -222,22 +246,49 @@ async function toggleCourseLive(courseId) {
         const data = await response.json();
 
         if (data.success) {
-            // SUCCESS: Update UI immediately without reload
-            updateLiveStatus(courseId, data.isLive, data.startTime);
-            showToast(data.isLive ? 'Stream started!' : 'Stream ended.', 'success');
+            console.log(`[Admin:Live] Toggle success for ${courseId}`);
+            
+            // Set a global flag to prevent main.js polling from reverting the UI
+            window.__LAST_LIVE_TOGGLE__ = {
+                courseId: courseId,
+                timestamp: Date.now(),
+                state: data.isLive
+            };
+
+            // Specialized Live Control Page Handler
+            if (typeof window.updateAdminLiveUI === 'function') {
+                window.updateAdminLiveUI(courseId, data.isLive, data.startTime);
+            } else {
+                // Default Admin Dashboard Handler
+                updateLiveStatus(courseId, data.isLive, data.startTime);
+            }
+            
+            showToast(data.isLive ? 'Stream started!' : 'Stream stopped.', 'success');
         } else {
             throw new Error(data.message || 'Toggle failed');
         }
     } catch (error) {
-        console.error('Live toggle error:', error);
-        showToast(error.message, 'error');
-        btn.innerHTML = originalContent;
+        console.error('[Admin:Live] Toggle Error:', error);
+        showToast(error.message || 'Network error.', 'error');
+        // REVERT UI on error
         btn.disabled = false;
+        btn.innerHTML = originalContent;
+        btn.className = originalClass;
+    } finally {
+        window.__IS_TOGGLING_LIVE__ = false;
     }
-}
+};
 
 /* ---------------- EVENT LISTENERS ---------------- */
 function setupEventListeners() {
+    // Prevent multiple registrations of delegated listeners
+    if (window.__ADMIN_HANDLERS_SET__) {
+        console.log('[Admin:Event] Handlers already set. Skipping registration.');
+        return;
+    }
+    window.__ADMIN_HANDLERS_SET__ = true;
+
+    console.log('[Admin:Event] Initializing delegated event handlers...');
     // Delete Confirmations
     document.addEventListener('submit', (e) => {
         const form = e.target;
@@ -285,13 +336,30 @@ function setupEventListeners() {
             return;
         }
 
-        // Live Toggle Button
+        // Live Toggle Action (Delegated)
+        const liveActionBtn = target.closest('.toggle-live-action');
+        if (liveActionBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (liveActionBtn.disabled) return;
+            
+            const courseId = liveActionBtn.getAttribute('data-course-id');
+            const targetState = liveActionBtn.getAttribute('data-is-live') === 'true';
+            
+            window.toggleCourseLive(courseId, targetState);
+            return;
+        }
+
+        // Legacy Toggle Button (Compatibility)
         const toggleBtn = target.closest('.toggle-live-btn');
         if (toggleBtn) {
             e.preventDefault();
+            e.stopPropagation();
             if (toggleBtn.hasAttribute('disabled')) return;
             const courseId = toggleBtn.getAttribute('data-course-id');
-            toggleCourseLive(courseId);
+            // Dashboard buttons toggle based on current text
+            const isLive = toggleBtn.innerText.toLowerCase().includes('end');
+            window.toggleCourseLive(courseId, !isLive);
             return;
         }
 
@@ -465,6 +533,8 @@ window.openEditModal = function (course) {
         setVal('edit-startDate', formatDate(course.startDate));
         setVal('edit-endDate', formatDate(course.endDate));
         setVal('edit-enrollmentDeadline', formatDate(course.enrollmentDeadline));
+        setVal('edit-level', course.level);
+        setVal('edit-dailyLiveTime', course.dailyLiveTime);
 
         // Initialize Icon
         const icon = course.icon || '📚';
@@ -587,6 +657,55 @@ function openCropModal(file) {
     reader.readAsDataURL(file);
 }
 
+// Intercept form submissions to prevent navigation and provide UX feedback
+document.addEventListener('DOMContentLoaded', () => {
+    const editForm = document.getElementById('editCourseForm');
+    if (editForm) {
+        editForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.innerText : 'Save Changes';
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
+                submitBtn.disabled = true;
+            }
+
+            try {
+                const formData = new FormData(this);
+                const response = await fetch(this.action, {
+                    method: this.method || 'POST',
+                    headers: {
+                        'X-CSRF-Token': getCsrfToken()
+                    },
+                    body: formData
+                });
+
+                if (response.ok || response.redirected) {
+                    window.closeEditModal();
+                    setTimeout(() => {
+                        alert('Course saved successfully! Changes will reflect upon next refresh.');
+                    }, 100);
+                } else {
+                    let errorMessage = 'Error saving course. Please check inputs.';
+                    try {
+                        const data = await response.json();
+                        if (data.message) errorMessage = data.message;
+                    } catch(e) {}
+                    alert(errorMessage);
+                }
+            } catch (err) {
+                console.error('Save error:', err);
+                alert('Network error while saving course.');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            }
+        });
+    }
+});
+
 function closeCropModal() {
     const modal = document.getElementById('cropModal');
     if (modal) modal.classList.add('hidden');
@@ -673,3 +792,75 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelBtn2) cancelBtn2.addEventListener('click', closeCropModal);
     if (confirmBtn) confirmBtn.addEventListener('click', cropAndUpload);
 });
+
+} // End of window.__ADMIN_JS_LOADED__ guard
+
+/* ---------------- ADMIN DAILY SCHEDULE ---------------- */
+
+window.openAddScheduleEvent = function () {
+    const label = prompt('Stream / Event Name:', 'YouTube Live Stream');
+    if (!label) return;
+    const time = prompt('What time will this stream happen daily?\n(e.g. "10:30 AM", "Evening 7 PM")', '');
+    if (!time) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    fetch('/admin/schedule/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ label: label.trim(), time: time.trim(), type: 'youtube' })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { alert(data.message || 'Failed to add event'); return; }
+        const list = document.getElementById('schedule-list');
+        const empty = document.getElementById('schedule-empty');
+        if (empty) empty.remove();
+
+        const item = data.event;
+        const div = document.createElement('div');
+        div.className = 'schedule-item flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-amber-50 border border-transparent hover:border-amber-100 transition-all group';
+        div.dataset.id = item.id;
+        div.dataset.type = item.type;
+        div.innerHTML = `
+            <div class="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-sm flex-none shadow-sm">▶️</div>
+            <div class="flex-1 min-w-0">
+                <p class="text-[11px] font-black text-slate-900 truncate uppercase tracking-tight">${item.label}</p>
+                <p class="text-[9px] font-bold text-amber-500 uppercase tracking-wider mt-0.5 flex items-center gap-1">
+                    <i class="fa-solid fa-clock text-[7px]"></i> ${item.time}
+                </p>
+            </div>
+            <button onclick="deleteScheduleEvent('${item.id}')"
+                class="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all flex-none" title="Remove">
+                <i class="fa-solid fa-times text-[9px]"></i>
+            </button>`;
+        list.appendChild(div);
+    })
+    .catch(err => { console.error(err); alert('Network error adding event.'); });
+};
+
+window.deleteScheduleEvent = function (id) {
+    if (!confirm('Remove this schedule event?')) return;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    fetch(`/admin/schedule/events/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-Token': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { alert('Failed to remove event'); return; }
+        const el = document.querySelector(`.schedule-item[data-id="${id}"]`);
+        if (el) el.remove();
+        const list = document.getElementById('schedule-list');
+        if (list && list.querySelectorAll('.schedule-item').length === 0) {
+            list.innerHTML = `<div id="schedule-empty" class="py-6 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-200">
+                <i class="fa-regular fa-calendar text-slate-300 text-xl mb-2"></i>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">No schedule yet</p>
+                <p class="text-[8px] text-slate-300 mt-1">Set live times on courses or add a YouTube stream</p>
+            </div>`;
+        }
+    })
+    .catch(err => { console.error(err); alert('Network error removing event.'); });
+};
+

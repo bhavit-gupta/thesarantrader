@@ -36,6 +36,32 @@ const { isAdmin, isAuthenticated } = require('../middleware/auth.middleware');
 const csrfProtection = require('../middleware/csrfProtection');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { requireCoursePurchase } = require('../utils/helpers');
+const multer = require('multer');
+const path = require('path');
+const fsSync = require('fs');
+
+// [NEW] Thumbnail Upload Configuration
+const THUMBNAIL_DIR = path.join(__dirname, '../public/uploads/thumbnails');
+if (!fsSync.existsSync(THUMBNAIL_DIR)) {
+    fsSync.mkdirSync(THUMBNAIL_DIR, { recursive: true, mode: 0o755 });
+}
+
+const thumbnailUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, THUMBNAIL_DIR),
+        filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+            cb(null, 'course-' + uniqueSuffix + path.extname(file.originalname).toLowerCase());
+        }
+    }),
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+    fileFilter: (req, file, cb) => {
+        const allowed = ['.webp', '.jpg', '.jpeg', '.png'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (!allowed.includes(ext)) return cb(new Error('Only images (JPG, PNG, WebP) are allowed'));
+        cb(null, true);
+    }
+});
 
 // Validate middleware exists at startup
 if (typeof isAuthenticated !== 'function') {
@@ -54,17 +80,13 @@ try {
     courseController = require('../controllers/course.controller');
 } catch (error) {
     console.error('[COURSE ROUTES] Failed to load course.controller:', error.message);
-    courseController = {
-        getAllCourses: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        getLiveStatus: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        enrollCourse: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        viewCourseVideos: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        getAdminCourses: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        addCourse: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        editCourse: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        deleteCourse: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' }),
-        toggleLiveStatus: (req, res) => res.status(500).json({ success: false, message: 'Service unavailable' })
-    };
+}
+
+let resourceController;
+try {
+    resourceController = require('../controllers/resource.controller');
+} catch (error) {
+    console.error('[COURSE ROUTES] Failed to load resource.controller:', error.message);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -73,7 +95,7 @@ try {
 
 const CONFIG = {
     // CourseId validation pattern (MongoDB ObjectId)
-    OBJECTID_REGEX: /^[0-9a-fA-F]{24}$/,
+    OBJECTID_REGEX: /^[0-9a-fA-F]{10,64}$/,
 
     // Course field limits
     MAX_TITLE_LENGTH: 500,
@@ -300,6 +322,30 @@ function validateCourseData(req, res, next) {
         req.body.category = category.trim().toLowerCase();
     }
 
+    // Level validation
+    const { level, startDate, endDate, enrollmentDeadline } = req.body || {};
+    if (level !== undefined && typeof level === 'string') {
+        req.body.level = level.trim();
+    }
+
+    // Date validation
+    // Date validation with proper time components
+    if (startDate) {
+        const date = new Date(startDate);
+        date.setHours(0, 0, 0, 0); // Start of day
+        req.body.startDate = date;
+    }
+    if (endDate) {
+        const date = new Date(endDate);
+        date.setHours(23, 59, 59, 999); // End of day
+        req.body.endDate = date;
+    }
+    if (enrollmentDeadline) {
+        const date = new Date(enrollmentDeadline);
+        date.setHours(23, 59, 59, 999); // End of day
+        req.body.enrollmentDeadline = date;
+    }
+
     next();
 }
 
@@ -379,13 +425,44 @@ router.post('/api/courses/enroll',
 /*                              USER ROUTES                                   */
 /* -------------------------------------------------------------------------- */
 
-// Video Access with purchase verification in middleware chain
+// Folder Explorer Entry Point
 router.get('/courses/:id/view',
     isAuthenticated,
     validateCourseId,
-    requireCoursePurchase('id'), // Explicitly pass 'id' since it matched the route param
-    asyncHandler(courseController.viewCourseVideos)
+    requireCoursePurchase('id'),
+    asyncHandler(resourceController.viewCourseExplorer)
 );
+
+// Folder Detail View
+router.get('/courses/:id/folders/:folderId',
+    isAuthenticated,
+    validateCourseId,
+    requireCoursePurchase('id'),
+    asyncHandler(resourceController.viewFolderDetail)
+);
+
+// Admin Resource API
+router.post('/api/admin/folders', isAdmin, asyncHandler(resourceController.createFolder));
+router.delete('/api/admin/folders/:folderId', isAdmin, asyncHandler(resourceController.deleteFolder));
+
+const resourceUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, path.join(__dirname, '../public/uploads/resources')),
+        filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+            cb(null, 'res-' + uniqueSuffix + path.extname(file.originalname).toLowerCase());
+        }
+    }),
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+});
+
+router.post('/api/admin/resources', 
+    isAdmin, 
+    resourceUpload.single('file'), 
+    asyncHandler(resourceController.addResource)
+);
+
+router.delete('/api/admin/resources/:resourceId', isAdmin, asyncHandler(resourceController.deleteResource));
 
 /* -------------------------------------------------------------------------- */
 /*                              ADMIN ROUTES                                  */
@@ -399,9 +476,18 @@ router.get('/admin/courses',
     asyncHandler(courseController.getAdminCourses)
 );
 
+// Get single course data for API
+router.get('/admin/courses/api/:id',
+    isAuthenticated,
+    isAdmin,
+    validateCourseId,
+    asyncHandler(courseController.getCourseById)
+);
+
 // Create Course with validation and audit
 router.post('/admin/courses/add',
     isAdmin,
+    thumbnailUpload.single('thumbnailUrl'),
     csrfProtection,
     authLimiter,
     requireTitle,
@@ -413,6 +499,7 @@ router.post('/admin/courses/add',
 // Edit Course with validation
 router.post('/admin/courses/edit/:id',
     isAdmin,
+    thumbnailUpload.single('thumbnailUrl'),
     csrfProtection,
     validateCourseId,
     validateCourseData,
@@ -437,6 +524,53 @@ router.post('/admin/toggle-live',
     auditLog('TOGGLE_LIVE'),
     asyncHandler(courseController.toggleLiveStatus)
 );
+
+/* -------------------------------------------------------------------------- */
+/*                        ADMIN SCHEDULE EVENTS API                           */
+/* -------------------------------------------------------------------------- */
+
+const { PrismaClient } = require('@prisma/client');
+const schedPrisma = new PrismaClient();
+const SCHEDULE_KEY = 'admin_custom_schedule';
+
+// GET all custom schedule events
+router.get('/admin/schedule/events', isAdmin, asyncHandler(async (req, res) => {
+    const setting = await schedPrisma.siteSetting.findUnique({ where: { key: SCHEDULE_KEY } });
+    const events = setting ? JSON.parse(setting.value) : [];
+    res.json({ success: true, events });
+}));
+
+// POST add a custom schedule event
+router.post('/admin/schedule/events', isAdmin, csrfProtection, asyncHandler(async (req, res) => {
+    const { label, time, type } = req.body;
+    if (!label || !time) return res.status(400).json({ success: false, message: 'label and time are required' });
+
+    const setting = await schedPrisma.siteSetting.findUnique({ where: { key: SCHEDULE_KEY } });
+    const events = setting ? JSON.parse(setting.value) : [];
+    const newEvent = { id: Date.now().toString(), label: label.trim(), time: time.trim(), type: type || 'youtube' };
+    events.push(newEvent);
+
+    await schedPrisma.siteSetting.upsert({
+        where: { key: SCHEDULE_KEY },
+        update: { value: JSON.stringify(events) },
+        create: { key: SCHEDULE_KEY, value: JSON.stringify(events) }
+    });
+    res.json({ success: true, event: newEvent });
+}));
+
+// DELETE a custom schedule event by id
+router.delete('/admin/schedule/events/:id', isAdmin, csrfProtection, asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const setting = await schedPrisma.siteSetting.findUnique({ where: { key: SCHEDULE_KEY } });
+    const events = setting ? JSON.parse(setting.value) : [];
+    const filtered = events.filter(e => e.id !== id);
+    await schedPrisma.siteSetting.upsert({
+        where: { key: SCHEDULE_KEY },
+        update: { value: JSON.stringify(filtered) },
+        create: { key: SCHEDULE_KEY, value: JSON.stringify(filtered) }
+    });
+    res.json({ success: true });
+}));
 
 /* -------------------------------------------------------------------------- */
 /*                                  EXPORTS                                   */
