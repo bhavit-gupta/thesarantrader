@@ -40,9 +40,9 @@
             DELETE_BTN: '.delete-testimonial-btn'
         }),
         CLASSES: Object.freeze({
-            CARD: 'mb-4 p-4 rounded-xl border border-blue-100 bg-blue-50',
-            STAR_SELECTED: 'text-yellow-400',
-            STAR_UNSELECTED: 'text-slate-300',
+            CARD: 'mb-4 p-5 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/[0.08]',
+            STAR_SELECTED: 'text-amber-400',
+            STAR_UNSELECTED: 'text-white/10',
             HIDDEN: 'hidden',
             SUCCESS_FEEDBACK: ['bg-green-50', 'border', 'border-green-200', 'text-green-700'],
             ERROR_FEEDBACK: ['bg-red-50', 'border', 'border-red-200', 'text-red-700']
@@ -426,7 +426,7 @@
     function createStarsHtml(rating) {
         const safeRating = Math.max(0, Math.min(CONFIG.MAX_RATING, rating || 0));
         return Array.from({ length: safeRating }, () =>
-            '<i class="fa-solid fa-star text-yellow-400 text-sm"></i>'
+            '<i class="fa-solid fa-star text-amber-400 text-[10px] mr-0.5"></i>'
         ).join('');
     }
 
@@ -627,8 +627,11 @@
 
             // Header
             const header = document.createElement('div');
-            header.className = 'mb-4';
-            header.innerHTML = `<h3 class="text-sm font-bold text-slate-800">${escapeHtml(STRINGS.YOUR_TESTIMONIALS)}</h3>`;
+            header.className = 'mb-6 flex items-center gap-3';
+            header.innerHTML = `
+                <div class="h-1 w-8 bg-amber-400/50 rounded-full"></div>
+                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-white/50">${escapeHtml(STRINGS.YOUR_TESTIMONIALS)}</h3>
+            `;
             existingDiv.appendChild(header);
 
             // Fix index display order
@@ -722,7 +725,7 @@
 
         // Message with escaping via textContent
         const messageP = document.createElement('p');
-        messageP.className = 'text-slate-600 text-sm leading-relaxed italic';
+        messageP.className = 'text-white/60 text-xs leading-relaxed italic mt-1';
         messageP.textContent = `"${testimonial.message}"`;
         card.appendChild(messageP);
 

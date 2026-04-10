@@ -344,8 +344,18 @@ exports.getAdminCourses = async (req, res) => {
     }
 
     try {
-        // 2. Fetch all courses (including ended ones for admin visibility) with retry
-        const courses = await withRetry(() => prisma.course.findMany(), 2);
+        // 2. Fetch only non-deleted courses for admin visibility
+        const courses = await withRetry(
+            () => prisma.course.findMany({
+                where: {
+                    OR: [
+                        { deletedAt: null },
+                        { deletedAt: { isSet: false } }
+                    ]
+                }
+            }),
+            2
+        );
 
         // 3. Render admin dashboard
         res.render("dashboard/admin_courses", {

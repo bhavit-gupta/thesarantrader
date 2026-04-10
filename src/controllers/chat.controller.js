@@ -224,9 +224,19 @@ exports.getChatRooms = async (req, res) => {
     }
 
     try {
-        // 2. Admin users get access to ALL courses
+        // 2. Admin users get access to ALL non-deleted courses
         if (String(req.session.user.role || '').toUpperCase() === 'ADMIN') {
-            const courses = await withRetry(() => prisma.course.findMany(), 2);
+            const courses = await withRetry(
+                () => prisma.course.findMany({
+                    where: {
+                        OR: [
+                            { deletedAt: null },
+                            { deletedAt: { isSet: false } }
+                        ]
+                    }
+                }),
+                2
+            );
             
             // Ensure Global Chat is at the top if it exists in DB, otherwise add it from defaults
             const hasGlobal = courses.some(c => c.id === GLOBAL_CHAT_ID);
@@ -252,11 +262,19 @@ exports.getChatRooms = async (req, res) => {
         // 4. Fetch courses purchased by this user
         const purchasedIds = await getUserPurchasedCourses(req.session.user.id);
 
-        // 6. Retrieve full course details for purchased courses with retry
+        // 6. Retrieve full course details for purchased courses with retry (Excluding deleted)
         const purchasedCourses = await withRetry(
             () => prisma.course.findMany({
                 where: {
-                    id: { in: Array.from(purchasedIds) }
+                    AND: [
+                        { id: { in: Array.from(purchasedIds) } },
+                        {
+                            OR: [
+                                { deletedAt: null },
+                                { deletedAt: { isSet: false } }
+                            ]
+                        }
+                    ]
                 }
             }),
             2
@@ -325,12 +343,12 @@ exports.getCourseChat = async (req, res) => {
             course = await prisma.course.findUnique({ where: { id: courseId } });
         }
 
-        if (!course) {
+        if (!course || course.deletedAt) {
             return res.render('layouts/chat-room', {
                 user: req.session.user,
-                course: { id: '', title: 'Course Not Found', icon: '❓' },
+                course: { id: '', title: 'Archived / Not Found', icon: '❓' },
                 isAdmin,
-                errorMessage: 'Course not found. Please check the link or contact support.'
+                errorMessage: 'This chat room is no longer accessible as the course has been archived or removed.'
             });
         }
 

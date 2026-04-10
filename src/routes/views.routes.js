@@ -297,6 +297,32 @@ router.get('/my-courses',
 );
 
 /**
+ * User Testimonial Submission Page
+ * 
+ * @route GET /dashboard/testimonials
+ * @access Private (users only)
+ */
+router.get('/dashboard/testimonials',
+    isAuthenticated,
+    (req, res) => {
+        if (!isValidSession(req.session)) {
+            return res.redirect(URLS.LOGIN);
+        }
+        // Redirect admins away
+        if (req.session.user.role === 'ADMIN') {
+            return res.redirect('/admin/testimonials');
+        }
+        res.render('dashboard/user_testimonials', {
+            user: req.session.user,
+            path: '/dashboard/testimonials',
+            csrfToken: res.locals.csrfToken || '',
+            version: process.env.npm_package_version || '2.0'
+        });
+    }
+);
+
+
+/**
  * User dashboard - Main page for enrolled users.
  * 
  * Security:

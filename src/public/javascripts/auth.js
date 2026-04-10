@@ -653,6 +653,49 @@
         }
     }
 
+    /**
+     * Validate if two fields match in real-time
+     * @param {string} inputId - Primary password field ID
+     * @param {string} matchId - Confirm password field ID
+     */
+    function validateMatch(inputId, matchId) {
+        const input = document.getElementById(inputId);
+        const match = document.getElementById(matchId);
+        
+        if (!input || !match) return;
+
+        const val = input.value;
+        const matchVal = match.value;
+        const container = match.parentElement;
+        
+        // Find or create mismatch message element
+        let messageEl = container.querySelector('.password-match-msg');
+        if (!messageEl) {
+            messageEl = document.createElement('div');
+            messageEl.className = 'password-match-msg text-[10px] font-bold uppercase mt-1 transition-all duration-300';
+            container.appendChild(messageEl);
+        }
+
+        if (!matchVal) {
+            match.classList.remove('border-green-500', 'border-red-500', 'ring-green-500/20', 'ring-red-500/20');
+            messageEl.textContent = '';
+            messageEl.className = 'password-match-msg text-[10px] font-bold uppercase mt-1 opacity-0';
+            return;
+        }
+
+        if (val === matchVal) {
+            match.classList.remove('border-red-500', 'ring-red-500/20', 'border-slate-200');
+            match.classList.add('border-green-500', 'ring-2', 'ring-green-500/20');
+            messageEl.textContent = '✓ Passwords Match';
+            messageEl.className = 'password-match-msg text-[10px] font-bold uppercase mt-1 text-green-500 opacity-100';
+        } else {
+            match.classList.remove('border-green-500', 'ring-green-500/20', 'border-slate-200');
+            match.classList.add('border-red-500', 'ring-2', 'ring-red-500/20');
+            messageEl.textContent = '× Passwords do not match';
+            messageEl.className = 'password-match-msg text-[10px] font-bold uppercase mt-1 text-red-500 opacity-100';
+        }
+    }
+
     // =========================================================================
     // SIGNUP VALIDATION
     // =========================================================================
@@ -1029,6 +1072,23 @@
         if (submitResetBtn) {
             submitResetBtn.removeAttribute('onclick');
             submitResetBtn.addEventListener('click', submitPasswordReset);
+        }
+
+        // Setup Real-time Password Matching
+        const signupConfirmPw = document.getElementById('confirm-password');
+        if (signupConfirmPw) {
+            const signupPw = document.getElementById('password');
+            const handler = () => validateMatch('password', 'confirm-password');
+            signupPw.addEventListener('input', handler);
+            signupConfirmPw.addEventListener('input', handler);
+        }
+
+        const resetConfirmPw = document.getElementById('confirm-new-password');
+        if (resetConfirmPw) {
+            const resetPw = document.getElementById('new-password');
+            const handler = () => validateMatch('new-password', 'confirm-new-password');
+            resetPw.addEventListener('input', handler);
+            resetConfirmPw.addEventListener('input', handler);
         }
 
 

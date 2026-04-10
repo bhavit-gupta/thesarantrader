@@ -529,6 +529,12 @@ app.use((err, req, res, next) => {
     console.error('  IP:', req.ip);
     console.error('  Stack Trace:\n', err.stack);
 
+    // If headers have already been sent, don't try to send another response
+    if (res.headersSent) {
+        console.warn(`⚠️ Warning: Error occurred after headers were sent [${errorId}]. Response already delivered.`);
+        return next(err);
+    }
+
     // Return appropriate format based on request type
     if (req.accepts('json') || req.path.startsWith('/api')) {
         if (process.env.NODE_ENV === 'production') {

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <title>Submit Testimonial - The Saran Trader</title>
+
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+
+    <style>
+        :root {
+            --brand-gold: #fbbf24;
+            --brand-gold-glow: rgba(251, 191, 36, 0.5);
+            --bg-deep: #05070a;
+            --card-glass: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #ffffff;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* --- Ambient Background --- */
+        .ambient-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .ambient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.12;
+        }
+        .orb-1 { top: -10%; left: -10%; width: 600px; height: 600px; background: var(--brand-gold); }
+        .orb-2 { bottom: -10%; right: -10%; width: 500px; height: 500px; background: #3b82f6; }
+
+        /* --- Layout --- */
+        .main-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 2.5rem 2rem;
+        }
+
+        /* --- Glass Cards --- */
+        .glass-card {
+            background: var(--card-glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--card-border);
+            border-radius: 28px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover { border-color: rgba(255, 255, 255, 0.15); }
+
+        /* --- Star Rating --- */
+        .star-container {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .star-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            font-size: 2.5rem;
+            color: rgba(255, 255, 255, 0.15); /* Keep visible but dark when empty */
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            line-height: 1;
+        }
+        .star-btn:hover { transform: scale(1.2); color: rgba(255, 255, 255, 0.4); }
+        .star-btn.active {
+            color: var(--brand-gold) !important;
+            text-shadow: 0 0 25px var(--brand-gold-glow);
+            transform: scale(1.1);
+        }
+
+        /* --- Inputs --- */
+        .premium-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            color: #ffffff;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .premium-input:focus {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: var(--brand-gold);
+            box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.15);
+        }
+        .premium-input::placeholder { color: rgba(255, 255, 255, 0.25); }
+
+        /* --- Submit Button --- */
+        .submit-btn {
+            background: var(--brand-gold);
+            color: #000;
+            font-weight: 800;
+            padding: 1.4rem;
+            border-radius: 18px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 12px 30px -8px rgba(251, 191, 36, 0.4);
+            font-size: 0.85rem;
+        }
+        .submit-btn:hover:not(:disabled) {
+            background: #ffffff;
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 20px 40px -12px rgba(255, 255, 255, 0.4);
+        }
+        .submit-btn:active { transform: translateY(-1px); }
+        .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* --- Status Badges (Consistency with JS) --- */
+        .status-badge {
+            font-size: 0.65rem;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* --- Sidebar Helper --- */
+        .tip-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 20px;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+        .tip-card:hover { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.08); }
+
+        /* --- Header Glow --- */
+        .header-glow {
+            text-shadow: 0 0 40px rgba(255, 255, 255, 0.15);
+        }
+
+        /* --- Animations --- */
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-up { animation: slideInUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+        @media (max-width: 1024px) {
+            .main-container { padding: 4rem 1.5rem 2rem; }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="ambient-bg">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+    </div>
+
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <%- include('../partials/dashboard_sidebar', {
+            path: '/dashboard/testimonials',
+            user: user,
+            version: version || '2.0',
+            csrfToken: typeof csrfToken !== 'undefined' ? csrfToken : ''
+        }) %>
+
+        <!-- Main Content -->
+        <main class="flex-1 lg:ml-80">
+            <div class="main-container">
+                
+                <!-- Breadcrumbs -->
+                <nav class="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mb-8 animate-slide-up">
+                    <a href="/dashboard" class="hover:text-brand-gold transition-colors">Dashboard</a>
+                    <i class="fa-solid fa-chevron-right text-[8px] opacity-30"></i>
+                    <span class="text-white/60">Submit Testimonial</span>
+                </nav>
+
+                <!-- Header -->
+                <header class="flex flex-col mb-12 animate-slide-up" style="animation-delay: 0.1s">
+                    <div class="flex items-center gap-4 mb-2 lg:hidden">
+                        <button id="open-sidebar-btn" class="p-3 rounded-2xl bg-white/5 text-white/70 hover:bg-white/10 transition-all border border-white/5">
+                            <i class="fa-solid fa-bars-staggered text-xl"></i>
+                        </button>
+                    </div>
+                    <h1 class="text-5xl font-black tracking-tighter text-white mb-2 header-glow">Share Your <span class="text-brand-gold">Success.</span></h1>
+                    <p class="text-white/40 text-sm font-medium max-w-xl leading-relaxed">Your story inspires thousands of upcoming traders. Share your experience with The Saran Trader Academy and help others find their path.</p>
+                </header>
+
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-10 items-start">
+                    
+                    <!-- Left Column: Primary Form -->
+                    <div class="xl:col-span-8 space-y-10 animate-slide-up" style="animation-delay: 0.2s">
+                        
+                        <div class="glass-card p-10 lg:p-14 relative overflow-hidden group">
+                            <!-- Background Decoration -->
+                            <div class="absolute -top-32 -right-32 w-80 h-80 bg-brand-gold/10 blur-[100px] rounded-full group-hover:bg-brand-gold/15 transition-all duration-1000"></div>
+                            
+                            <form id="testimonial-form" class="relative z-10 space-y-12">
+                                
+                                <!-- Star Rating Section -->
+                                <section class="space-y-6">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-2xl bg-brand-gold/10 flex items-center justify-center text-brand-gold border border-brand-gold/20 shadow-[0_0_15px_rgba(251,191,36,0.1)]">
+                                            <i class="fa-solid fa-ranking-star"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-sm font-black uppercase tracking-[0.2em] text-white">Overall Experience</h3>
+                                            <p class="text-white/30 text-[11px] font-bold uppercase tracking-widest mt-0.5">How would you rate our academy?</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="star-container py-2" id="star-container">
+                                        <% for(let i=1; i<=5; i++) { %>
+                                            <button type="button" class="star-btn" data-rating="<%= i %>" aria-label="Rate <%= i %> stars">
+                                                <i class="fa-solid fa-star"></i>
+                                            </button>
+                                        <% } %>
+                                    </div>
+                                    <input type="hidden" id="rating-input" name="rating" required>
+                                    <div class="h-8 flex items-center">
+                                        <p id="rating-label" class="text-sm font-black text-brand-gold uppercase tracking-[0.2em] animate-pulse"></p>
+                                    </div>
+                                </section>
+
+                                <!-- Identity Section -->
+                                <section class="space-y-6">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                                            <i class="fa-solid fa-circle-user"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-sm font-black uppercase tracking-[0.2em] text-white">Your Identity</h3>
+                                            <p class="text-white/30 text-[11px] font-bold uppercase tracking-widest mt-0.5">Submitting as <%= user.name %></p>
+                                        </div>
+                                    </div>
+
+                                    <div class="relative group">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-brand-gold text-white/20">
+                                            <i class="fa-solid fa-briefcase text-sm"></i>
+                                        </div>
+                                        <input type="text" id="user-role" name="userRole" 
+                                               placeholder="Your Profession (e.g. Mechanical Engineer, IT Professional, Student)"
+                                               class="premium-input pl-12" required>
+                                    </div>
+                                </section>
+
+                                <!-- Message Section -->
+                                <section class="space-y-6">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                                            <i class="fa-solid fa-quote-left"></i>
+                                        </div>
+                                        <div class="flex-1 flex items-center justify-between">
+                                            <div>
+                                                <h3 class="text-sm font-black uppercase tracking-[0.2em] text-white">Your Story</h3>
+                                                <p class="text-white/30 text-[11px] font-bold uppercase tracking-widest mt-0.5">How did we help you grow?</p>
+                                            </div>
+                                            <span id="char-count" class="text-[10px] font-black text-white/20 tracking-widest">0 / 500</span>
+                                        </div>
+                                    </div>
+
+                                    <textarea id="testimonial-message" name="message" rows="8" maxlength="500"
+                                              placeholder="Write your experience here... Your review will be featured on our public wall of love!"
+                                              class="premium-input resize-none leading-relaxed" required></textarea>
+                                </section>
+
+                                <!-- Footer Actions -->
+                                <div class="pt-6 border-t border-white/5 flex flex-col gap-6">
+                                    <!-- Feedback Area -->
+                                    <div id="testimonial-feedback" class="hidden animate-slide-up"></div>
+
+                                    <button type="submit" id="submit-testimonial-btn" class="submit-btn group w-full flex items-center justify-center gap-3">
+                                        <span class="group-hover:translate-x-1 transition-transform">Publish Testimonial</span>
+                                        <i class="fa-solid fa-arrow-right-long text-sm opacity-50"></i>
+                                    </button>
+                                    
+                                    <p class="text-center text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">
+                                        <i class="fa-solid fa-lock text-[8px] mr-1"></i> 
+                                        Manual Review process active for quality control
+                                    </p>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Context & Feedback -->
+                    <div class="xl:col-span-4 space-y-8 animate-slide-up" style="animation-delay: 0.3s">
+                        
+                        <!-- Status/Existing Testimonials -->
+                        <div class="glass-card p-8 group">
+                            <div class="flex justify-between items-center mb-8">
+                                <h3 class="text-xs font-black uppercase tracking-[0.3em] text-white/30">Review Status</h3>
+                                <div class="w-2 h-2 rounded-full bg-brand-gold animate-pulse"></div>
+                            </div>
+                            
+                            <div id="existing-testimonial" class="space-y-4">
+                                <!-- JS Populated -->
+                                <div class="flex flex-col items-center justify-center py-10 text-center opacity-20">
+                                    <i class="fa-solid fa-inbox text-3xl mb-4"></i>
+                                    <p class="text-xs font-bold uppercase tracking-widest">Collecting Data...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Guide Section -->
+                        <div class="glass-card p-8">
+                            <h3 class="text-xs font-black uppercase tracking-[0.3em] text-white/30 mb-8">Writing Guide</h3>
+                            <div class="space-y-6">
+                                <div class="tip-card">
+                                    <h4 class="text-[11px] font-black text-brand-gold uppercase tracking-widest mb-2 flex items-center gap-2">
+                                        <i class="fa-solid fa-lightbulb"></i> Tip #01
+                                    </h4>
+                                    <p class="text-white/50 text-[11px] font-bold leading-relaxed uppercase tracking-tighter">Share specific results or tools you learned from Kundan Sir that improved your trading.</p>
+                                </div>
+                                
+                                <div class="tip-card">
+                                    <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                        <i class="fa-solid fa-rocket"></i> Tip #02
+                                    </h4>
+                                    <p class="text-white/50 text-[11px] font-bold leading-relaxed uppercase tracking-tighter">Mention the "before" and "after" state of your trading psychology.</p>
+                                </div>
+                            </div>
+
+                            <a href="/testimonials" target="_blank" class="mt-8 flex items-center justify-center gap-3 w-full py-4 rounded-2xl bg-white/3 border border-white/5 hover:bg-white/8 hover:border-white/10 transition-all group">
+                                <span class="text-[10px] font-black text-white/40 uppercase tracking-widest group-hover:text-white transition-colors">See others' stories</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[8px] text-brand-gold"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Main JS -->
+    <script src="/javascripts/main.js" defer></script>
+    <script src="/javascripts/user-dashboard.js"></script>
+
+    <script>
+        // --- Premium Star Rating Logic ---
+        const RATING_STRINGS = {
+            1: "Needs Improvement",
+            2: "Good Foundation",
+            3: "Very Insightful!",
+            4: "Masterful Guidance!",
+            5: "Life Transforming! ✨"
+        };
+        const stars = document.querySelectorAll('.star-btn');
+        const ratingInput = document.getElementById('rating-input');
+        const labelDisplay = document.getElementById('rating-label');
+        let selectedValue = 0;
+
+        function updateStars(count) {
+            stars.forEach((s, idx) => {
+                const filled = idx < count;
+                s.classList.toggle('active', filled);
+            });
+            if (count > 0) {
+                labelDisplay.innerText = RATING_STRINGS[count];
+                labelDisplay.classList.remove('opacity-0');
+            } else {
+                labelDisplay.innerText = "";
+            }
+        }
+
+        stars.forEach((star, index) => {
+            const val = index + 1;
+            star.addEventListener('mouseenter', () => updateStars(val));
+            star.addEventListener('mouseleave', () => updateStars(selectedValue));
+            star.addEventListener('click', () => {
+                selectedValue = val;
+                ratingInput.value = val;
+                updateStars(val);
+                // Trigger feedback Haptic logic (optional)
+            });
+        });
+
+        // --- Character Tracker ---
+        const messageBox = document.getElementById('testimonial-message');
+        const countBox = document.getElementById('char-count');
+        
+        messageBox.addEventListener('input', () => {
+            const len = messageBox.value.length;
+            countBox.innerText = `${len} / 500`;
+            if(len > 450) {
+                countBox.classList.add('text-brand-gold');
+                countBox.classList.remove('text-white/20');
+            } else {
+                countBox.classList.remove('text-brand-gold');
+                countBox.classList.add('text-white/20');
+            }
+        });
+    </script>
+</body>
+</html>
