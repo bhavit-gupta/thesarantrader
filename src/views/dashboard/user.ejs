@@ -198,6 +198,50 @@ STYLING:
                     <p class="text-slate-500 mt-2 text-lg">Here's what's happening on your trading journey.</p>
                 </div>
 
+                <!-- ---------------- BROADCAST & NOTIFICATIONS ---------------- -->
+                <% if ((typeof broadcastMessage !== 'undefined' && broadcastMessage) || (typeof unreadChatStats !== 'undefined' && unreadChatStats.length > 0)) { %>
+                <div class="grid grid-cols-1 <%= (typeof broadcastMessage !== 'undefined' && broadcastMessage && typeof unreadChatStats !== 'undefined' && unreadChatStats.length > 0) ? 'lg:grid-cols-2' : '' %> gap-6 mb-8">
+                    <% if (typeof broadcastMessage !== 'undefined' && broadcastMessage) { %>
+                    <!-- Broadcast Card -->
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 shadow-sm flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 text-xl flex-shrink-0">
+                            <i class="fa-solid fa-bullhorn"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg mb-1">Announcement</h3>
+                            <p class="text-slate-600 text-sm"><%= broadcastMessage %></p>
+                        </div>
+                    </div>
+                    <% } %>
+
+                    <% if (typeof unreadChatStats !== 'undefined' && unreadChatStats.length > 0) { %>
+                    <!-- Notifications Card -->
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-center">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                                <i class="fa-solid fa-bell"></i>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-lg">Unread Messages</h3>
+                        </div>
+                        <div class="space-y-3">
+                            <% unreadChatStats.forEach(stat => { %>
+                            <a href="/chat/<%= stat.courseId %>" class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors border border-slate-100">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xl"><%= stat.icon %></span>
+                                    <div>
+                                        <p class="font-semibold text-slate-800 text-sm"><%= stat.title %></p>
+                                        <p class="text-xs text-red-500 font-medium"><%= stat.count %> new message(s)</p>
+                                    </div>
+                                </div>
+                                <span class="bg-brand-navy text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-brand-gold transition-colors">See Chat</span>
+                            </a>
+                            <% }) %>
+                        </div>
+                    </div>
+                    <% } %>
+                </div>
+                <% } %>
+
                 <!-- ---------------- LIVE SESSIONS & STATS ---------------- -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 

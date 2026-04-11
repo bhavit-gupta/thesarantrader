@@ -1073,6 +1073,134 @@ router.post('/api/admin/settings/dashboard-image/delete', isAdmin, async (req, r
 });
 
 
+/**
+ * Update Dashboard Broadcast Message
+ */
+router.post('/api/admin/settings/dashboard-message', isAdmin, express.json(), async (req, res) => {
+    try {
+        const { message } = req.body;
+        
+        await prisma.siteSetting.upsert({
+            where: { key: 'dashboard_broadcast_message' },
+            update: { value: message || '' },
+            create: { key: 'dashboard_broadcast_message', value: message || '' }
+        });
+
+        // Invalidate course cache as it might be used globally
+        invalidateCourseCache();
+
+        res.json({ success: true, message: 'Broadcast message updated successfully' });
+    } catch (error) {
+        console.error('[Settings] Dashboard broadcast message error:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+/* -------------------------------------------------------------------------- */
+/*                        COMMUNITY MODERATION ROUTES                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Render Community Moderation Page
+ */
+router.get('/admin/community/approvals', isAdmin, async (req, res) => {
+    try {
+        const pendingPosts = await prisma.communityPost.findMany({
+            where: { status: 'PENDING' },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const allPosts = await prisma.communityPost.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 1000 // limit to recent posts to avoid memory issues
+        });
+
+        const pendingComments = [];
+        allPosts.forEach(post => {
+            (post.comments || []).forEach(comment => {
+                if (comment.status === 'PENDING') {
+                    pendingComments.push({ post, comment });
+                }
+            });
+        });
+
+        res.render('dashboard/admin_community_approvals', {
+            user: req.session.user,
+            pendingPosts,
+            pendingComments,
+            csrfToken: res.locals.csrfToken
+        });
+    } catch (error) {
+        console.error('[Community] Moderation page error:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+/**
+ * Review Pending Post
+ */
+router.put('/api/admin/community/posts/:postId/review', isAdmin, express.json(), async (req, res) => {
+    try {
+        const { action } = req.body;
+        const { postId } = req.params;
+
+        if (action === 'approve') {
+            await prisma.communityPost.update({
+                where: { id: postId },
+                data: { status: 'APPROVED' }
+            });
+        } else if (action === 'reject') {
+            await prisma.communityPost.delete({
+                where: { id: postId }
+            });
+        }
+
+        res.json({ success: true, message: `Post ${action}d successfully` });
+    } catch (error) {
+        console.error('[Community] Post review error:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * Review Pending Comment
+ */
+router.put('/api/admin/community/posts/:postId/comments/:commentId/review', isAdmin, express.json(), async (req, res) => {
+    try {
+        const { postId, commentId } = req.params;
+        const { action } = req.body;
+
+        const post = await prisma.communityPost.findUnique({ where: { id: postId } });
+        if (!post) return res.status(404).json({ success: false, message: 'Post not found' });
+
+        if (action === 'approve') {
+            // Update the specific comment
+            const updatedComments = post.comments.map(c => {
+                if (c.id === commentId) {
+                    return { ...c, status: 'APPROVED' };
+                }
+                return c;
+            });
+            await prisma.communityPost.update({
+                where: { id: postId },
+                data: { comments: updatedComments }
+            });
+        } else if (action === 'reject') {
+            // Remove the comment completely
+            const updatedComments = post.comments.filter(c => c.id !== commentId);
+            await prisma.communityPost.update({
+                where: { id: postId },
+                data: { comments: updatedComments }
+            });
+        }
+
+        res.json({ success: true, message: `Comment ${action}d successfully` });
+    } catch (error) {
+        console.error('[Community] Comment review error:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
 /* -------------------------------------------------------------------------- */
 /*                                  EXPORTS                                  */
 /* -------------------------------------------------------------------------- */

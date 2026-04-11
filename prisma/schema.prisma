@@ -420,6 +420,7 @@ model CommunityPost {
   likes     Int       @default(0) // Like count
   likedBy   String[]  @db.ObjectId //  May grow large - monitor
   comments  Comment[] //  Nested comments - paginate if needed
+  status    String    @default("APPROVED") // Post moderation status
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -446,6 +447,7 @@ type Comment {
   userId    String   @db.ObjectId // Foreign key to User
   userName  String // Commenter's name
   content   String // Comment text
+  status    String   @default("APPROVED") // Comment moderation status
   createdAt DateTime @default(now())
 }
 

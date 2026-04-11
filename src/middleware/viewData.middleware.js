@@ -67,6 +67,8 @@
 const prisma = require('../utils/prisma');
 const { withTimeout } = require('../utils/prisma');
 const { getUserPurchasedCourses } = require('../utils/helpers');
+const fs = require('fs');
+const path = require('path');
 
 /* -------------------------------------------------------------------------- */
 /*                              CONFIGURATION                                 */
@@ -644,7 +646,14 @@ const viewDataMiddleware = async (req, res, next) => {
         res.locals.pendingCourseIds = purchaseData.pendingCourseIds;
         res.locals.rejectedPurchases = purchaseData.rejectedPurchases;
         res.locals.standardTopPadding = user ? 'pt-20 lg:pt-10' : 'pt-24 lg:pt-32';
-        res.locals.version = "2.0.0";
+        res.locals.version = "Unknown";
+        try {
+            const pkgPath = path.join(__dirname, '../../package.json');
+            const pkgData = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+            res.locals.version = pkgData.version;
+        } catch (e) {
+            console.error('[ViewData] Failed to read package.json version:', e.message);
+        }
 
         next();
 

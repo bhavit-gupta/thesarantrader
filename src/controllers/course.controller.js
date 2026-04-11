@@ -1237,10 +1237,13 @@ exports.renderLiveControlPage = async (req, res) => {
  */
 exports.renderLandingPageManagement = async (req, res) => {
     try {
-        const heroSetting = await prisma.siteSetting.findUnique({
-            where: { key: 'hero_image' }
+        const settings = await prisma.siteSetting.findMany({
+            where: {
+                key: { in: ['hero_image', 'dashboard_images', 'dashboard_broadcast_message'] }
+            }
         });
 
+        const heroSetting = settings.find(s => s.key === 'hero_image');
         let heroImages = [];
         if (heroSetting && heroSetting.value) {
             try {
@@ -1253,9 +1256,25 @@ exports.renderLandingPageManagement = async (req, res) => {
             heroImages = ['/images/hero-image.png'];
         }
 
+        const dashSetting = settings.find(s => s.key === 'dashboard_images');
+        let dashboardImages = [];
+        if (dashSetting && dashSetting.value) {
+            try {
+                dashboardImages = JSON.parse(dashSetting.value);
+                if (!Array.isArray(dashboardImages)) dashboardImages = [];
+            } catch (e) {
+                dashboardImages = [];
+            }
+        }
+
+        const broadcastSetting = settings.find(s => s.key === 'dashboard_broadcast_message');
+        const dashboardBroadcastMessage = broadcastSetting ? broadcastSetting.value : '';
+
         res.render('dashboard/admin_landing_page', {
             user: req.session.user,
             heroImages: heroImages,
+            dashboardImages: dashboardImages,
+            dashboardBroadcastMessage: dashboardBroadcastMessage,
             csrfToken: res.locals.csrfToken
         });
     } catch (error) {

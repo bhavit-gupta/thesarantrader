@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <title>Community Moderation - Admin</title>
+    <link rel="icon" type="image/jpeg" href="/images/favicon.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/stylesheets/output.css">
+</head>
+<body class="font-sans antialiased text-slate-600 bg-slate-50 min-h-screen">
+    <%- include('../partials/layout_wrapper_top', { pageTitle: 'Community Moderation' }) %>
+    <main class="flex-grow pb-12 pt-16">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-10">
+            <!-- Header -->
+            <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">Community Moderation 🛡️</h1>
+                    <p class="text-slate-500 mt-1">Review and approve community posts and comments</p>
+                </div>
+                <a href="/admin/dashboard" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-semibold hover:bg-slate-200 transition-colors">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600 text-xl"><i class="fa-solid fa-file-alt"></i></div>
+                    <div><p class="text-2xl font-bold text-slate-800"><%= pendingPosts.length %></p><p class="text-sm text-slate-500">Pending Posts</p></div>
+                </div>
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 text-xl"><i class="fa-solid fa-comments"></i></div>
+                    <div><p class="text-2xl font-bold text-slate-800"><%= pendingComments.length %></p><p class="text-sm text-slate-500">Pending Comments</p></div>
+                </div>
+            </div>
+
+            <!-- Pending Posts Section -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2"><i class="fa-solid fa-file-alt text-yellow-600"></i> Pending Posts</h2>
+                <% if (pendingPosts.length === 0) { %>
+                    <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center"><p class="text-slate-500">No pending posts to review.</p></div>
+                <% } else { %>
+                    <div class="space-y-4">
+                        <% pendingPosts.forEach(post => { %>
+                        <div class="bg-white rounded-2xl border border-yellow-200 shadow-sm p-6" data-post-id="<%= post.id %>">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600"><%= (post.userName && post.userName.length > 0) ? post.userName.charAt(0).toUpperCase() : 'U' %></div>
+                                    <div><p class="font-bold"><%= post.userName %></p><p class="text-xs text-slate-500"><%= new Date(post.createdAt).toLocaleDateString() %></p></div>
+                                </div>
+                                <span class="px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">Pending</span>
+                            </div>
+                            <h3 class="font-bold mb-2 text-lg text-slate-800"><%= post.title || 'Untitled Post' %></h3>
+                            <p class="text-slate-600 mb-4 whitespace-pre-wrap"><%= post.content %></p>
+                            <% if (post.imageUrl) { %><img src="<%= post.imageUrl %>" class="max-h-64 object-cover rounded-lg mb-4 border border-slate-100"><% } %>
+                            <div class="flex gap-2">
+                                <button onclick="reviewItem('post', '<%= post.id %>', 'approve')" class="px-6 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20"><i class="fa-solid fa-check"></i> Approve</button>
+                                <button onclick="reviewItem('post', '<%= post.id %>', 'reject')" class="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20"><i class="fa-solid fa-times"></i> Reject</button>
+                            </div>
+                        </div>
+                        <% }) %>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- Pending Comments Section -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2"><i class="fa-solid fa-comments text-orange-600"></i> Pending Comments</h2>
+                <% if (pendingComments.length === 0) { %>
+                    <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center"><p class="text-slate-500">No pending comments to review.</p></div>
+                <% } else { %>
+                    <div class="space-y-4">
+                        <% pendingComments.forEach(item => { %>
+                        <div class="bg-white rounded-2xl border border-orange-200 shadow-sm p-6" data-comment-id="<%= item.comment.id %>">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600"><%= (item.comment.userName && item.comment.userName.length > 0) ? item.comment.userName.charAt(0).toUpperCase() : 'U' %></div>
+                                    <div><p class="font-bold"><%= item.comment.userName %></p><p class="text-[10px] uppercase tracking-widest text-slate-400">On Post: <%= item.post.title || 'Untitled' %></p></div>
+                                </div>
+                                <span class="px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">Pending</span>
+                            </div>
+                            <p class="text-slate-600 mb-6 bg-slate-50 p-4 border border-slate-100 rounded-xl whitespace-pre-wrap">"<%= item.comment.content %>"</p>
+                            <div class="flex gap-2">
+                                <button onclick="reviewItem('comment', '<%= item.comment.id %>', 'approve', '<%= item.post.id %>')" class="px-6 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20"><i class="fa-solid fa-check"></i> Approve</button>
+                                <button onclick="reviewItem('comment', '<%= item.comment.id %>', 'reject', '<%= item.post.id %>')" class="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20"><i class="fa-solid fa-times"></i> Reject</button>
+                            </div>
+                        </div>
+                        <% }) %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </main>
+    <%- include('../partials/layout_wrapper_bottom', { hideFooter: true }) %>
+    <script src="/javascripts/main.js" defer></script>
+    <script>
+        function reviewItem(type, itemId, action, postId = null) {
+            if(!confirm(`Are you sure you want to ${action} this ${type}?`)) return;
+
+            const endpoint = type === 'post' 
+                ? `/api/admin/community/posts/${itemId}/review`
+                : `/api/admin/community/posts/${postId}/comments/${itemId}/review`;
+            
+            fetch(endpoint, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, _csrf: document.querySelector('meta[name="csrf-token"]').content })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    window.showToast(data.message, 'success');
+                    if(type === 'post') document.querySelector(`[data-post-id="${itemId}"]`).remove();
+                    else document.querySelector(`[data-comment-id="${itemId}"]`).remove();
+                } else {
+                    window.showToast(data.message || 'Error', 'error');
+                }
+            })
+            .catch(err => {
+                window.showToast('Server error', 'error');
+            });
+        }
+    </script>
+</body>
+</html>

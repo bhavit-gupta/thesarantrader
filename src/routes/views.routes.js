@@ -33,6 +33,7 @@ const { authLimiter } = require('../middleware/rateLimiter');
 const { generateSignature, getZAKToken } = require('../utils/zoom');
 const { isAuthenticated, isAdmin: isUserAdmin } = require('../middleware/auth.middleware');
 const courseController = require('../controllers/course.controller');
+const { GLOBAL_CHAT_ID, GLOBAL_CHAT_DEFAULTS } = require('../utils/constants');
 
 
 /* -------------------------------------------------------------------------- */
@@ -346,6 +347,59 @@ router.get('/dashboard',
         }
 
         try {
+            // Fetch broadcast message
+            const setting = await prisma.siteSetting.findUnique({ where: { key: 'dashboard_broadcast_message' } });
+            const broadcastMessage = setting ? setting.value : null;
+
+            // Compute unread chat counts
+            const unreadChatStats = [];
+            const purchasedIds = Array.from(res.locals.purchasedCourseIds || []);
+            const allChatIds = [GLOBAL_CHAT_ID, ...purchasedIds];
+            
+            if (allChatIds.length > 0) {
+                const readStatuses = await prisma.chatReadStatus.findMany({
+                    where: { userId: req.session.user.id, courseId: { in: allChatIds } }
+                });
+                const readMap = new Map(readStatuses.map(rs => [rs.courseId, rs.lastReadAt]));
+                
+                for (const courseId of allChatIds) {
+                    const lastReadAt = readMap.get(courseId) || new Date(0);
+                    // Do not count messages sent by the user themselves
+                    const unreadCount = await prisma.chatMessage.count({
+                        where: { 
+                            courseId, 
+                            timestamp: { gt: lastReadAt },
+                            userId: { not: req.session.user.id }
+                        }
+                    });
+                    
+                    if (unreadCount > 0) {
+                        let courseTitle = '';
+                        let courseIcon = '💬';
+
+                        if (courseId === GLOBAL_CHAT_ID) {
+                            courseTitle = GLOBAL_CHAT_DEFAULTS.title;
+                            courseIcon = GLOBAL_CHAT_DEFAULTS.icon;
+                        } else {
+                            const course = res.locals.courses.find(c => c.id === courseId);
+                            if (course) {
+                                courseTitle = course.title;
+                                courseIcon = course.icon || '💬';
+                            } else {
+                                continue;
+                            }
+                        }
+
+                        unreadChatStats.push({ 
+                            courseId, 
+                            title: courseTitle, 
+                            count: unreadCount,
+                            icon: courseIcon
+                        });
+                    }
+                }
+            }
+
             // All necessary data (liveSessions, courses, purchasedCourseIds, etc.)
             // is already populated in res.locals by the viewData middleware.
             res.render("dashboard/user", {
@@ -354,7 +408,9 @@ router.get('/dashboard',
                 courses: res.locals.courses,
                 purchasedCourseIds: res.locals.purchasedCourseIds,
                 pendingCourseIds: res.locals.pendingCourseIds,
-                rejectedPurchases: res.locals.rejectedPurchases
+                rejectedPurchases: res.locals.rejectedPurchases,
+                broadcastMessage,
+                unreadChatStats
             });
         } catch (error) {
             console.error('[User Dashboard] Error:', error.message);

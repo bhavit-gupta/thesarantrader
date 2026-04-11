@@ -157,13 +157,7 @@ exports.createPost = async (req, res) => {
         return res.status(401).json({ success: false, message: 'Please log in to post' });
     }
 
-    // 2. Authorization check (Admin Only)
-    if (req.session.user.role !== 'ADMIN') {
-        return res.status(403).json({ 
-            success: false, 
-            message: 'Only Administrators can create posts in the community.' 
-        });
-    }
+    // 2. Removed Admin-Only Check to allow users to post
 
     const userId = req.session.user.id;
     const { title, content } = req.body;
@@ -255,7 +249,8 @@ exports.createPost = async (req, res) => {
                     title: sanitizedTitle,
                     content: sanitizedContent,
                     imageUrl: finalImageUrl,
-                    likes: 0
+                    likes: 0,
+                    status: req.session.user.role === 'ADMIN' ? 'APPROVED' : 'PENDING'
                 }
             }),
             2 // Max 2 retries for user-facing operations
@@ -332,7 +327,7 @@ exports.getPosts = async (req, res) => {
             // 1. Fetch only new posts created after the given timestamp with retry
             const newPosts = await withRetry(
                 () => prisma.communityPost.findMany({
-                    where: { createdAt: { gt: afterDate } },
+                    where: { createdAt: { gt: afterDate }, status: 'APPROVED' },
                     orderBy: { createdAt: 'asc' } // Ascending for chronological order
                 }),
                 2
@@ -350,6 +345,12 @@ exports.getPosts = async (req, res) => {
                 postsWithLikeStatus = newPosts.map(p => ({ ...p, isLiked: likedPostIds.has(p.id) }));
             }
 
+            // Filter approved comments
+            postsWithLikeStatus = postsWithLikeStatus.map(p => ({
+                ...p,
+                comments: (p.comments || []).filter(c => c.status === 'APPROVED')
+            }));
+
             return res.json({ success: true, posts: postsWithLikeStatus, isPollingUpdate: true });
         }
 
@@ -363,11 +364,12 @@ exports.getPosts = async (req, res) => {
         const [posts, totalPosts] = await withRetry(
             () => prisma.$transaction([
                 prisma.communityPost.findMany({
+                    where: { status: 'APPROVED' },
                     orderBy: { createdAt: 'desc' }, // Descending for newest first
                     skip,
                     take: limit
                 }),
-                prisma.communityPost.count()
+                prisma.communityPost.count({ where: { status: 'APPROVED' } })
             ]),
             2
         );
@@ -389,6 +391,12 @@ exports.getPosts = async (req, res) => {
             // Guest users - all posts marked as not liked
             postsWithLikeStatus = posts.map(post => ({ ...post, isLiked: false }));
         }
+
+        // Filter approved comments
+        postsWithLikeStatus = postsWithLikeStatus.map(p => ({
+            ...p,
+            comments: (p.comments || []).filter(c => c.status === 'APPROVED')
+        }));
 
         // 5. Return paginated response
         res.json({
@@ -576,6 +584,7 @@ exports.addComment = async (req, res) => {
             userId: req.session.user.id,
             userName: req.session.user.name,      // Denormalized for display
             content: sanitizedComment,
+            status: req.session.user.role === 'ADMIN' ? 'APPROVED' : 'PENDING',
             createdAt: new Date()
         };
 
