@@ -68,11 +68,13 @@ process.on('unhandledRejection', (reason, promise) => {
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const envPath = path.join(__dirname, '..', '.env');
 
 if (!fs.existsSync(envPath)) {
+    console.warn('⚠️  Warning: .env file not found at', envPath);
 }
 
-require('dotenv').config({ override: true }); // Load environment variables from .env file (force override stale system vars)
+require('dotenv').config({ path: envPath, override: true }); // Load environment variables from .env file (force override stale system vars)
 
 /* -------------------------------------------------------------------------- */
 /*                        DEPENDENCY VALIDATION                               */
