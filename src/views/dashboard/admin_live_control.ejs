@@ -160,14 +160,14 @@
         // --- ADMIN LIVE CONTROL INITIALIZATION ---
         const dataElement = document.getElementById('course-data');
         const COURSE_METADATA = dataElement ? JSON.parse(dataElement.textContent) : {};
-        console.log('[Live Control] Specialized metadata loaded:', Object.keys(COURSE_METADATA).length, 'programs');
+
 
         /**
          * Handler called by admin.js after a successful toggle.
          * Specialized for this page's layout.
          */
         window.updateAdminLiveUI = function(courseId, isLive, startTime) {
-            console.log(`[Live Control] specialized UI update for ${courseId}, isLive=${isLive}`);
+
             
             const statusContainer = document.getElementById(`status-container-${courseId}`);
             const actionContainer = document.getElementById(`actions-${courseId}`);
@@ -180,7 +180,7 @@
                 return;
             }
 
-            console.log(`[Live Control] Updating containers for ${courseId}. statusContainer:`, statusContainer, 'actionContainer:', actionContainer);
+
 
             const meta = COURSE_METADATA[courseId];
 

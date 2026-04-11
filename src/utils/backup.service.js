@@ -33,7 +33,7 @@ async function createZip(sourceDir, outPath) {
         const archive = archiver('zip', { zlib: { level: 9 } });
 
         output.on('close', () => {
-            console.log(`📦 Archive created: ${archive.pointer()} total bytes`);
+
             resolve();
         });
 
@@ -58,14 +58,14 @@ async function exportDatabaseJson(outDir) {
         fs.mkdirSync(outDir, { recursive: true });
     }
 
-    console.log('🗄️ Exporting database models to JSON...');
+
 
     for (const model of models) {
         try {
             const data = await prisma[model].findMany();
             const filePath = path.join(outDir, `${model}.json`);
             fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-            console.log(`  ✓ Exported ${model} (${data.length} records)`);
+
         } catch (error) {
             console.error(`  ❌ Failed to export ${model}:`, error.message);
         }
@@ -80,7 +80,7 @@ async function runFullBackup() {
     const backupDir = path.join(__dirname, '../../backups', `backup-${timestamp}`);
     const zipPath = `${backupDir}.zip`;
 
-    console.log(`🚀 Starting full backup: backup-${timestamp}`);
+
 
     try {
         // 1. Create temporary directory for DB exports
@@ -101,7 +101,7 @@ async function runFullBackup() {
 
         return new Promise((resolve, reject) => {
             output.on('close', () => {
-                console.log(`✅ Final backup complete: ${finalZipArchive}`);
+
                 // Cleanup temp dir
                 fs.rmSync(backupDir, { recursive: true, force: true });
                 resolve(finalZipArchive);
@@ -128,7 +128,7 @@ async function runFullBackup() {
 
 async function uploadToGDrive(filePath) {
     if (process.env.GOOGLE_DRIVE_ENABLED !== 'true') {
-        console.log(`☁️ [GDrive] Backup upload skipped: GOOGLE_DRIVE_ENABLED is false`);
+
         return false;
     }
 
@@ -137,15 +137,13 @@ async function uploadToGDrive(filePath) {
         return false;
     }
 
-    console.log(`☁️ [GDrive] Uploading ${path.basename(filePath)} to Google Drive...`);
-    console.log(`   Using Folder ID: ${process.env.GOOGLE_DRIVE_FOLDER_ID}`);
-    console.log(`   Using Key Path: ${process.env.GOOGLE_DRIVE_KEY_PATH || 'Not Specified'}`);
+
 
     // TODO: Implement actual googleapis.drive.files.create()
-    console.log('   (Waiting for Service Account JSON key provided by user)');
+
 
     // TODO: Implement old GDrive backup cleanup (drive.files.list & drive.files.delete)
-    console.log(`☁️ [GDrive] Retention policy: Will remove Google Drive backups older than ${process.env.BACKUP_RETENTION_DAYS || '7'} days.`);
+
 
     return true;
 }
@@ -172,14 +170,14 @@ function cleanOldLocalBackups(keepDays = 3) {
         const stats = fs.statSync(filePath);
         
         if (now - stats.mtimeMs > maxAgeMs) {
-            console.log(`🗑️ [Backup] Removing old local backup: ${file}`);
+
             fs.unlinkSync(filePath);
             deletedCount++;
         }
     }
     
     if (deletedCount > 0) {
-        console.log(`✅ [Backup] Cleaned up ${deletedCount} old backup archives.`);
+
     }
 }
 

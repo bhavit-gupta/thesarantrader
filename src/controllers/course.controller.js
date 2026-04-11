@@ -258,7 +258,7 @@ exports.getAllCourses = async (req, res) => {
                 data: { isPublished: false }
             });
         } catch (unpublishErr) {
-            console.warn("⚠️ [JIT Unpublish] Failed to auto-unpublish expired courses:", unpublishErr.message);
+
         }
 
         // Fetch only active, published courses for students
@@ -410,7 +410,7 @@ exports.addCourse = async (req, res) => {
                     thumbnailUrl = `/uploads/thumbnails/${compressedFilename}`;
                 }
             } catch (compErr) {
-                console.error('⚠️ [Thumbnail] Compression failed:', compErr.message);
+
             }
         }
 
@@ -445,7 +445,7 @@ exports.addCourse = async (req, res) => {
 
 
         // 4. Log creation for monitoring
-        console.log(`✅ [NEW COURSE] Added: ${title} (#${newCourse.id})`);
+
 
         // 5. Invalidate cache and respond
         invalidateCourseCache();
@@ -662,7 +662,7 @@ exports.editCourse = async (req, res) => {
                 updateData.thumbnailUrl = `/uploads/thumbnails/${compressedFilename}`;
             }
         } catch (compErr) {
-            console.error('⚠️ [Thumbnail] Edit compression failed:', compErr.message);
+
         }
     } else if (req.body.thumbnailUrl !== undefined) {
         // Fallback for manual URL entry if file wasn't provided
@@ -683,7 +683,7 @@ exports.editCourse = async (req, res) => {
             () => prisma.course.update({ where: { id: courseId }, data: updateData }),
             2
         );
-        console.log(`✏️ [COURSE UPDATED] ${courseId}`);
+
         invalidateCourseCache();
 
         // AJAX response check (Safe header check)
@@ -813,7 +813,7 @@ exports.toggleLiveStatus = async (req, res) => {
         invalidateCourseCache();
 
         // 6. Log status change for monitoring
-        console.log(`🔴 [LIVE TOGGLE] Course ${courseId} is now ${newIsLive ? 'LIVE' : 'OFFLINE'}`);
+
 
         res.json({
             success: true,
@@ -938,7 +938,7 @@ exports.enrollCourse = async (req, res) => {
         });
 
         // 7. Log enrollment for monitoring
-        console.log(`🎓 [ENROLLMENT] ${req.session.user.name} joined ${course.title}`);
+
         // Invalidate caches immediately so user sees "Enrolled" and has access
         try {
             clearUserCourseCache(userId);
@@ -1046,7 +1046,7 @@ exports.renderMyCourses = async (req, res) => {
         try {
             await exports.cleanupExpiredCourses();
         } catch (cleanupErr) {
-            console.warn("⚠️ [JIT Unpublish] Cleanup failed during renderMyCourses:", cleanupErr.message);
+
         }
 
         if (isAdmin) {
@@ -1162,7 +1162,7 @@ exports.cleanupExpiredCourses = async () => {
         });
 
         if (liveResult.count > 0 || publishResult.count > 0) {
-            console.log(`🧹 [CLEANUP] Stopped ${liveResult.count} live streams and unpublished ${publishResult.count} expired courses.`);
+
             // Invalidate cache if courses were updated
             invalidateCourseCache();
         }
@@ -1216,7 +1216,7 @@ exports.renderLiveControlPage = async (req, res) => {
 
         // 3. Render the control panel
         if (!res.locals.csrfToken) {
-            console.warn('⚠️ [Live Control] No CSRF token in res.locals! AJAX controls may fail.');
+
         }
 
         res.render('dashboard/admin_live_control', {

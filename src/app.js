@@ -59,9 +59,6 @@ if (missingVars.length > 0) {
     throw new Error(`CRITICAL: Missing environment variables: ${missingVars.join(', ')}`);
 }
 
-// Log configuration validation
-console.log('✓ Environment variables validated');
-
 /* -------------------------------------------------------------------------- */
 /*                          TRUST PROXY                                       */
 /* -------------------------------------------------------------------------- */
@@ -72,7 +69,6 @@ console.log('✓ Environment variables validated');
  */
 if (process.env.NODE_ENV === 'production') {
     app.set('trust proxy', 1); // Trust first proxy
-    console.log('✓ Trust proxy enabled for production');
 }
 
 /* -------------------------------------------------------------------------- */
@@ -98,9 +94,6 @@ const noLogUrls = [
 app.use((req, res, next) => {
     // Skip noisy polling requests
     const shouldSkipLog = noLogUrls.some(url => req.url.startsWith(url));
-    if (!shouldSkipLog) {
-        console.log(`📡 [${req.method}] ${req.url}`);
-    }
     next();
 });
 
@@ -117,9 +110,6 @@ app.use((req, res, next) => {
 
     res.on('finish', () => {
         const duration = Date.now() - startTime;
-        if (duration > 1000) { // Log requests taking > 1 second
-            console.warn(`⚠️ SLOW REQUEST [${duration}ms]: ${req.method} ${req.path}`);
-        }
     });
 
     next();
@@ -177,9 +167,6 @@ app.use(helmet({
             workerSrc: ["'self'", "blob:", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
             childSrc: ["'self'", "blob:", "*.zoom.us", "zoom.us", "https://source.zoom.us", "https://*.cloudfront.net"],
             mediaSrc: ["'self'", "blob:", "*.zoom.us", "zoom.us", "https://source.zoom.us"]
-
-
-
         },
     },
     crossOriginEmbedderPolicy: false, // Allow YouTube and Zoom embeds
@@ -422,10 +409,6 @@ app.use(session({
 // Only apply to dynamic routes that need it
 const csrfProtection = require('./middleware/csrfProtection');
 app.use((req, res, next) => {
-    // Skip CSRF for health check
-    if (req.path === '/health') {
-        return next();
-    }
     csrfProtection(req, res, next);
 });
 
@@ -531,7 +514,6 @@ app.use((err, req, res, next) => {
 
     // If headers have already been sent, don't try to send another response
     if (res.headersSent) {
-        console.warn(`⚠️ Warning: Error occurred after headers were sent [${errorId}]. Response already delivered.`);
         return next(err);
     }
 

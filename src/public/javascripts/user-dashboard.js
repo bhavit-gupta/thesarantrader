@@ -95,9 +95,9 @@
     // LOGGER
     // =========================================================================
     const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Dashboard:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Dashboard:Info]', ...args),
-        warn: (...args) => console.warn('[Dashboard:Warn]', ...args),
+        debug: (...args) => {},
+        info: (...args) => {},
+        warn: (...args) => {},
         // [22.7, 22.30] Only log safe messages, not sensitive data
         error: (msg) => console.error('[Dashboard:Error]', msg)
     };

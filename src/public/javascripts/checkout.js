@@ -70,9 +70,9 @@
     // LOGGER (conditional debug logging)
     // =========================================================================
     const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Checkout:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Checkout:Info]', ...args),
-        warn: (...args) => console.warn('[Checkout:Warn]', ...args),
+        debug: (...args) => {},
+        info: (...args) => {},
+        warn: (...args) => {},
         error: (...args) => console.error('[Checkout:Error]', ...args)
     };
 

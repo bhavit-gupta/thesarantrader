@@ -210,7 +210,7 @@ function logAdminAction(action) {
     return (req, res, next) => {
         const adminId = req.session?.user?.id || 'unknown';
         const testimonialId = req.params.id || req.body.id || 'unknown';
-        console.log(`[Testimonial Audit] Admin: ${adminId}, Action: ${action}, Testimonial: ${testimonialId}, Time: ${new Date().toISOString()}`);
+        // Audit log action locally or to DB if needed
         next();
     };
 }
@@ -222,7 +222,7 @@ function auditLog(action) {
             if (res.statusCode < 400) {
                 const adminId = req.session?.user?.id || 'unknown';
                 const testimonialId = req.params.id || 'unknown';
-                console.log(`[Testimonial Audit] Admin: ${adminId}, Action: ${action}, Testimonial: ${testimonialId}, Status: ${res.statusCode}`);
+                // Audit log status code locally or to DB if needed
             }
         });
         next();

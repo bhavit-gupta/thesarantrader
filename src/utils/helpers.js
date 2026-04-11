@@ -170,8 +170,7 @@ async function getUserPurchasedCourses(userId) {
     // Guard clause - validate userId
     if (!userId || !isValidObjectId(userId)) {
         if (userId) {
-            const timestamp = new Date().toISOString();
-            console.warn(`[${timestamp}] Invalid userId format: ${userId}`);
+
         }
         return new Set();
     }
@@ -223,8 +222,7 @@ async function getUserPurchasedCourses(userId) {
 
         } catch (e) {
             // Log error with timestamp, don't reveal internals
-            const timestamp = new Date().toISOString();
-            console.error(`[${timestamp}] Course fetch error for user ${userId}:`, e.message);
+
             return new Set();
         }
     })();
@@ -296,16 +294,14 @@ function requireCoursePurchase(courseIdParam = 'courseId') {
 
         // Validate role is a known value
         if (userRole && !VALID_ROLES.includes(userRole)) {
-            const timestamp = new Date().toISOString();
-            console.warn(`[${timestamp}] Unexpected user role: ${req.session.user.role} for user ${userId}`);
+
         }
 
         // Admin bypass with audit logging
         const isAdmin = userRole === 'ADMIN';
         if (isAdmin) {
             const courseId = req.params[courseIdParam] || req.params.id || req.params.courseId;
-            const timestamp = new Date().toISOString();
-            console.log(`[${timestamp}] 🔓 Admin bypass: ${userId} → ${courseId}`);
+
             accessMetrics.accessGranted++;
             return next();
         }
@@ -319,8 +315,7 @@ function requireCoursePurchase(courseIdParam = 'courseId') {
         }
 
         if (!courseId) {
-            const timestamp = new Date().toISOString();
-            console.error(`[${timestamp}] Route config error: param '${courseIdParam}' (and fallbacks) not found in ${req.originalUrl}`);
+
             return res.status(500).json({ success: false, message: 'Server configuration error' });
         }
 
@@ -356,8 +351,7 @@ function requireCoursePurchase(courseIdParam = 'courseId') {
         }
 
         // Log failed access attempt for audit
-        const timestamp = new Date().toISOString();
-        console.warn(`[${timestamp}] ⚠️ Access denied: User ${userId} → Course ${courseId}`);
+
         accessMetrics.accessDenied++;
 
         // Generic redirect without revealing info

@@ -73,9 +73,9 @@
     // LOGGER
     // =========================================================================
     const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Courses:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Courses:Info]', ...args),
-        warn: (...args) => console.warn('[Courses:Warn]', ...args),
+        debug: (...args) => {},
+        info: (...args) => {},
+        warn: (...args) => {},
         error: (...args) => console.error('[Courses:Error]', ...args)
     };
 

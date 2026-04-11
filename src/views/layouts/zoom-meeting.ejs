@@ -89,7 +89,7 @@
                 leaveUrl: window.location.origin + '/dashboard',
                 patchJsMedia: true,
                 success: (success) => {
-                    console.log('✅ Zoom SDK Initialized');
+
                     
                     // Show Root and Hide Loading once initialized
                     document.getElementById('zmmtg-root').style.display = 'block';
@@ -104,7 +104,7 @@
                         passWord: password,
                         tk: '', 
                         success: (success) => {
-                            console.log('🚀 Successfully joined the meeting');
+
                         },
                         error: (error) => {
                             console.error('❌ Error joining meeting:', error);

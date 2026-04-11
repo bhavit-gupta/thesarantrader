@@ -36,7 +36,7 @@ function generateSignature(meetingNumber, role) {
     tokenExp: exp 
   };
 
-  console.log(`[Zoom] 🔑 Generating signature for Meeting: ${mn}, Role: ${roleValue}`);
+
   
   try {
     // Zoom strictly requires typ: 'JWT' in the header
@@ -136,7 +136,6 @@ async function getZAKToken(hostEmail) {
               resolve(parsed.token);
             } else {
               const errMsg = parsed.message || JSON.stringify(parsed);
-              console.warn(`[Zoom] ZAK token missing for ${userId}:`, errMsg);
               resolve(`ERROR_${errMsg}`); // Pass the error back so we can see it in the UI log
             }
           } catch (e) {

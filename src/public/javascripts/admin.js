@@ -1,6 +1,6 @@
 // Admin Dashboard Scripts
 if (window.__ADMIN_JS_LOADED__) {
-    console.log('[Admin:JS] ALREADY LOADED - Skipping redundant initialization');
+
 } else {
     window.__ADMIN_JS_LOADED__ = true;
 
@@ -32,15 +32,12 @@ function getAllCourses() {
 }
 function getCsrfToken() {
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (!token) {
-        console.warn('[Admin] CSRF token not found in meta tag');
-    }
     return token || '';
 }
 
 function showToast(message, type = 'info') {
     // Basic fallback if toast library isn't loaded
-    console.log(`[Toast ${type}]: ${message}`);
+
 
     // Check for custom toast container
     const container = document.getElementById('toast-container');
@@ -219,7 +216,7 @@ window.toggleCourseLive = async function(courseId, targetState) {
 
     window.__IS_TOGGLING_LIVE__ = true;
 
-    console.log(`[Admin:Live] Toggling Course=${courseId} to ${targetState ? 'LIVE' : 'OFFLINE'}`);
+
 
     // 2. User Confirmation (Bypassed due to environment blocks)
     // In many embedded contexts (iframes, Zoom Apps, aggressive browser blocks), 
@@ -246,7 +243,7 @@ window.toggleCourseLive = async function(courseId, targetState) {
         const data = await response.json();
 
         if (data.success) {
-            console.log(`[Admin:Live] Toggle success for ${courseId}`);
+
             
             // Set a global flag to prevent main.js polling from reverting the UI
             window.__LAST_LIVE_TOGGLE__ = {
@@ -359,12 +356,12 @@ window.deleteCourse = async function (courseId, btn) {
 function setupEventListeners() {
     // Prevent multiple registrations of delegated listeners
     if (window.__ADMIN_HANDLERS_SET__) {
-        console.log('[Admin:Event] Handlers already set. Skipping registration.');
+
         return;
     }
     window.__ADMIN_HANDLERS_SET__ = true;
 
-    console.log('[Admin:Event] Initializing delegated event handlers...');
+
     // Delete Confirmations
     document.addEventListener('submit', (e) => {
         const form = e.target;

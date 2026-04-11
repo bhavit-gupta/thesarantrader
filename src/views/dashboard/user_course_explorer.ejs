@@ -118,7 +118,7 @@ PURPOSE: Cinematic Folder-Based Curriculum Explorer
                                 <% if (isAdmin && !['Videos', 'Images', 'Documents'].includes(folder.name)) { %>
                                     <button 
                                         type="button"
-                                        onclick="event.preventDefault(); event.stopPropagation(); console.log('Delete triggered for:', '<%= folder.id %>'); openDeleteModal('<%= folder.id %>'); return false;" 
+                                        onclick="event.preventDefault(); event.stopPropagation(); openDeleteModal('<%= folder.id %>'); return false;" 
                                         class="absolute top-6 right-6 z-[60] p-3 rounded-xl bg-slate-900/90 backdrop-blur-md border border-white/10 text-slate-400 hover:text-red-500 hover:border-red-500/50 transition-all opacity-0 group-hover:opacity-100 shadow-2xl pointer-events-auto"
                                     >
                                         <i class="fa-solid fa-trash-can pointer-events-none"></i>

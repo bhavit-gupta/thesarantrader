@@ -234,9 +234,7 @@ class CourseCache {
         this._metrics.lastRefreshTime = new Date().toISOString();
 
         // Debug logging only in development
-        if (CONFIG.DEBUG) {
-            console.log(`🔄 [Cache] Course data refreshed in ${refreshTime}ms (${coursesWithCounts.length} courses)`);
-        }
+        // Cache refresh logged
     }
 
     /**
@@ -252,9 +250,7 @@ class CourseCache {
         this._lastFetch = 0;
         this._refreshing = false;
 
-        if (CONFIG.DEBUG) {
-            console.log('🗑️ [Cache] Course cache invalidated');
-        }
+        // Cache invalidation logged
     }
 
     setRefreshing(value) {
@@ -308,9 +304,7 @@ class UserDataCache {
 
     invalidate(userId) {
         this._cache.delete(userId);
-        if (CONFIG.DEBUG) {
-            console.log(`🗑️ [Cache] User cache invalidated for user ${userId}`);
-        }
+        // User cache invalidation logged
     }
 
     get metrics() {

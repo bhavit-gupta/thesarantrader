@@ -79,9 +79,9 @@
     // LOGGER
     // =========================================================================
     const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Testimonials:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Testimonials:Info]', ...args),
-        warn: (...args) => console.warn('[Testimonials:Warn]', ...args),
+        debug: (...args) => {},
+        info: (...args) => {},
+        warn: (...args) => {},
         //  Only log safe message, not full error object
         error: (msg) => console.error('[Testimonials:Error]', msg)
     };

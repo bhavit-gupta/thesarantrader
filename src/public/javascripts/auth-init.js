@@ -59,11 +59,7 @@
         // Parse and store pending course IDs globally (empty array if element missing)
         window.__PENDING_COURSES__ = pendingEl ? JSON.parse(pendingEl.textContent) : [];
 
-        // Log successful initialization with user status
-        console.log('🛡️ Auth State Loaded:', {
-            loggedIn: Boolean(window.__AUTH_USER__),
-            username: window.__AUTH_USER__ ? window.__AUTH_USER__.username : 'guest'
-        });
+
     } catch (e) {
         // Log parsing error if JSON is malformed
         console.error('❌ Auth State Error:', e);
@@ -83,7 +79,7 @@
 window.logoutUser = function (e) {
     // Prevent default link navigation
     e.preventDefault();
-    console.log("Attempting logout...");
+
 
     // Try to submit existing logout form
     const form = document.getElementById('logout-form');

@@ -105,7 +105,7 @@ const logCleanup = (status, data) => {
     const logEntry = JSON.stringify({ timestamp, status, ...data }) + '\n';
 
     // Console log
-    console.log(`[Scheduler] ${status}:`, data);
+
 
     // Persistent log
     try {
@@ -116,7 +116,7 @@ const logCleanup = (status, data) => {
         const logFile = path.join(logsDir, 'scheduler.log');
         fs.appendFileSync(logFile, logEntry);
     } catch (err) {
-        console.warn('Failed to write scheduler log:', err.message);
+        // Log write failed
     }
 };
 
@@ -132,13 +132,8 @@ const logCleanup = (status, data) => {
 const initScheduler = () => {
     // Distributed scheduler support - only run on designated instance
     if (process.env.SCHEDULER_ENABLED === 'false') {
-        console.log('⏰ [Scheduler] Disabled on this instance (SCHEDULER_ENABLED=false)');
         return;
     }
-
-    console.log('⏰ [Scheduler] Initializing background tasks...');
-    console.log('  📋 Config:', CLEANUP_CONFIG);
-    console.log(`  ⏱️  Interval: ${INTERVAL_MS / 1000 / 60} minutes`);
 
     // Run immediately if CLEANUP_ON_STARTUP enabled (default: true)
     if (process.env.CLEANUP_ON_STARTUP !== 'false') {
@@ -165,7 +160,7 @@ const initScheduler = () => {
     setInterval(async () => {
         if (!isShuttingDown) {
             try {
-                console.log('⏰ [Scheduler] Starting automated daily backup...');
+
                 const { runFullBackup, uploadToGDrive, cleanOldLocalBackups } = require('./backup.service');
                 const zipPath = await runFullBackup();
                 await uploadToGDrive(zipPath);
@@ -178,16 +173,14 @@ const initScheduler = () => {
         }
     }, DAILY_BACKUP_MS);
 
-    console.log(`⏰ [Scheduler] Cleanup task scheduled every ${INTERVAL_MS / 1000 / 60} minutes.`);
-    console.log(`⏰ [Scheduler] Weekly maintenance scheduled every 7 days.`);
-    console.log(`⏰ [Scheduler] Automated backups scheduled every 24 hours.`);
+
 };
 
 /**
  * Stops the scheduler gracefully
  */
 const stopScheduler = async () => {
-    console.log('🔌 [Scheduler] Initiating graceful shutdown...');
+
     isShuttingDown = true;
 
     // Wait for running cleanup to complete
@@ -201,10 +194,10 @@ const stopScheduler = async () => {
     if (cleanupInterval) {
         clearInterval(cleanupInterval);
         cleanupInterval = null;
-        console.log('✓ [Scheduler] Interval cleared');
+
     }
 
-    console.log('✓ [Scheduler] Shutdown complete');
+
 };
 
 // Register shutdown handlers
@@ -222,13 +215,12 @@ process.on('SIGINT', stopScheduler);
 const runCleanup = async () => {
     // Skip mechanism
     if (cleanupDisabled) {
-        console.log('⏭️  [Cleanup] Skipped (disabled by operator)');
+
         return null;
     }
 
     // Prevent overlapping executions
     if (isRunning) {
-        console.warn('⚠️  [Cleanup] Previous cleanup still running, skipping...');
         return null;
     }
 
@@ -246,7 +238,7 @@ const runCleanup = async () => {
         timestamp: new Date().toISOString()
     };
 
-    console.log('🧹 [Cleanup] Starting daily cleanup task...');
+
 
     // Individual error handling for each task
     // Retry logic for messages cleanup
@@ -280,7 +272,6 @@ const runCleanup = async () => {
         console.error(`🚨 [Cleanup] CRITICAL: Cleanup took ${results.duration}ms (>${PERFORMANCE_BASELINE.maxTolerance}ms)`);
         results.performanceStatus = 'critical';
     } else if (results.duration > PERFORMANCE_BASELINE.maxDuration) {
-        console.warn(`⚠️  [Cleanup] SLOW: Cleanup took ${results.duration}ms (>${PERFORMANCE_BASELINE.maxDuration}ms)`);
         results.performanceStatus = 'slow';
     } else {
         results.performanceStatus = 'normal';
@@ -289,13 +280,9 @@ const runCleanup = async () => {
     // Final status
     if (results.errors.length === 0) {
         lastCleanupStatus = 'success';
-        console.log(`✅ [Cleanup] Completed in ${results.duration}ms`, {
-            messagesDeleted: results.messagesDeleted,
-            postsDeleted: results.postsDeleted
-        });
+
     } else {
         lastCleanupStatus = 'partial';
-        console.warn(`⚠️  [Cleanup] Completed with errors in ${results.duration}ms`, results.errors);
     }
 
     // Persistent logging
@@ -310,7 +297,7 @@ const runCleanup = async () => {
  * Orphan files are files on disk that are no longer referenced in the database.
  */
 const runWeeklyMaintenance = async () => {
-    console.log('🧹 [Maintenance] Starting weekly maintenance (orphan file cleanup)...');
+
     const startTime = Date.now();
     let deletedCount = 0;
 
@@ -338,7 +325,7 @@ const runWeeklyMaintenance = async () => {
                 });
 
                 if (!reference) {
-                    console.log(`🗑️ [Maintenance] Deleting orphan file: ${relativePath}`);
+
                     fs.unlinkSync(path.join(dirPath, file));
                     deletedCount++;
                 }
@@ -346,7 +333,7 @@ const runWeeklyMaintenance = async () => {
         }
 
         const duration = Date.now() - startTime;
-        console.log(`✅ [Maintenance] Completed. Deleted ${deletedCount} orphan files in ${duration}ms.`);
+
     } catch (error) {
         console.error('❌ [Maintenance] Failed:', error.message);
     }
@@ -361,13 +348,12 @@ const runTaskWithRetry = async (taskName, taskFn, errorArray) => {
     while (attempt < MAX_RETRIES) {
         try {
             const result = await taskFn();
-            console.log(`  ✓ ${taskName}: deleted ${result || 0} records`);
+
             return result || 0;
         } catch (error) {
             attempt++;
             if (attempt < MAX_RETRIES) {
                 const delay = Math.pow(2, attempt) * RETRY_BASE_DELAY;
-                console.warn(`  ⚠️  ${taskName} failed (attempt ${attempt}/${MAX_RETRIES}), retrying in ${delay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
             } else {
                 console.error(`  ❌ ${taskName} failed after ${MAX_RETRIES} attempts:`, error.message);
@@ -385,12 +371,12 @@ const runTaskWithRetry = async (taskName, taskFn, errorArray) => {
 
 const disableCleanup = () => {
     cleanupDisabled = true;
-    console.log('🛑 [Cleanup] Disabled by operator');
+
 };
 
 const enableCleanup = () => {
     cleanupDisabled = false;
-    console.log('✓ [Cleanup] Enabled');
+
 };
 
 /* -------------------------------------------------------------------------- */

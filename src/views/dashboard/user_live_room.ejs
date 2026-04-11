@@ -145,8 +145,7 @@
 
         async function startMeeting() {
             // Diagnostic Logs
-            console.log('[Zoom:Health] Secure Context:', window.isSecureContext);
-            console.log('[Zoom:Health] Cross-Origin Isolated:', window.crossOriginIsolated);
+
             
             // Wait 500ms for strict isolation headers and DOM to settle
             setTimeout(async () => {
@@ -179,7 +178,7 @@
                         userEmail: userEmail,
                     });
                     
-                    console.log('🚀 Connected to Classroom');
+
                 } catch (error) {
                     console.error('❌ Classroom Connection Error:', error);
                     // Only alert if it's a real failure, not an abort

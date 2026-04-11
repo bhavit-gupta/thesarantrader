@@ -65,9 +65,9 @@ const DEBUG = window.location.hostname === 'localhost' ||
     window.location.search.includes('debug=true');
 
 const logger = {
-    log: (...args) => DEBUG && console.log('[Admin]', ...args),
+    log: (...args) => {},
     error: (...args) => console.error('[Admin]', ...args),
-    warn: (...args) => DEBUG && console.warn('[Admin]', ...args)
+    warn: (...args) => {}
 };
 
 //  Centralized CSRF token retrieval with validation

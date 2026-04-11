@@ -445,7 +445,7 @@ function logAuthAttempt(action) {
             timestamp: new Date().toISOString()
         };
 
-        console.log(`[AUTH] ${action}:`, JSON.stringify(logData));
+        // Audit log attempt locally or to DB if needed
         next();
     };
 }

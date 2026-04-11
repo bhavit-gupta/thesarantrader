@@ -65,9 +65,9 @@
     // LOGGER
     // =========================================================================
     const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Main:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Main:Info]', ...args),
-        warn: (...args) => console.warn('[Main:Warn]', ...args),
+        debug: (...args) => {},
+        info: (...args) => {},
+        warn: (...args) => {},
         error: (...args) => console.error('[Main:Error]', ...args)
     };
 

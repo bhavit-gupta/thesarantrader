@@ -158,7 +158,6 @@ async function deleteScreenshot(screenshotUrl) {
     // Validate path to prevent traversal
     const safePath = validateScreenshotPath(screenshotUrl);
     if (!safePath) {
-        console.warn('[Cleanup] Invalid screenshot path rejected');
         return false;
     }
 
@@ -170,14 +169,12 @@ async function deleteScreenshot(screenshotUrl) {
         const publicDir = path.resolve(__dirname, '../public');
 
         if (!resolvedPath.startsWith(publicDir)) {
-            console.warn('[Cleanup] Path traversal attempt blocked');
             return false;
         }
 
         // Use fs.promises for proper async/await
         if (fsSync.existsSync(filePath)) {
             await fs.unlink(filePath);
-            console.log(`[Cleanup] Deleted screenshot: ${sanitizeForLog(safePath)}`);
             return true;
         }
 
@@ -200,7 +197,6 @@ async function deleteVideoThumbnail(thumbnailUrl) {
 
         // Basic security check: must be in thumbnails directory
         if (!relativePath.startsWith(CONFIG.THUMBNAIL_UPLOAD_DIR)) {
-            console.warn('[Cleanup] Invalid thumbnail path rejected:', relativePath);
             return false;
         }
 
@@ -213,7 +209,6 @@ async function deleteVideoThumbnail(thumbnailUrl) {
 
         if (fsSync.existsSync(filePath)) {
             await fs.unlink(filePath);
-            console.log(`[Cleanup] Deleted thumbnail: ${sanitizeForLog(relativePath)}`);
             return true;
         }
         return false;
@@ -336,7 +331,6 @@ router.post('/api/admin/approve-payment', isAdmin, async (req, res) => {
         }
 
         // Audit log (console for now, should be database)
-        console.log(`[Approval] User ${sanitizeForLog(purchase.userId)} enrolled in course ${sanitizeForLog(purchase.courseId)}`);
 
         // 4. Cleanup: Delete payment screenshot and clear URL in DB
         if (purchase.screenshotUrl) {
@@ -348,7 +342,6 @@ router.post('/api/admin/approve-payment', isAdmin, async (req, res) => {
                     data: { screenshotUrl: null }
                 });
             } catch (cleanupErr) {
-                console.warn('[Approval] Screenshot cleanup failed:', cleanupErr.message);
             }
         }
 
@@ -426,12 +419,10 @@ router.post('/api/admin/reject-payment', isAdmin, async (req, res) => {
                     data: { screenshotUrl: null }
                 });
             } catch (cleanupErr) {
-                console.warn('[Rejection] Screenshot cleanup failed:', cleanupErr.message);
             }
         }
 
         // Sanitize log output
-        console.log(`[Rejection] Purchase ${sanitizeForLog(purchaseId)} rejected`);
 
         // Invalidate cache immediately so user sees rejection notice
         invalidateUserCache(purchase.userId);
@@ -667,7 +658,6 @@ router.post('/api/admin/courses/:id/videos', isAdmin, async (req, res) => {
                 }
             });
 
-            console.log(`[Video] Added to course ${sanitizeForLog(courseId)}`);
 
             res.json({ success: true, message: 'Video added successfully', video });
         } catch (error) {
@@ -761,7 +751,6 @@ router.post('/api/admin/courses/:id/videos/:videoId/update', isAdmin, async (req
                 return res.status(500).json({ success: false, message: 'Update failed' });
             }
 
-            console.log(`[Video] Updated ${sanitizeForLog(videoId)}`);
 
             res.json({ success: true, message: 'Video updated successfully' });
         } catch (error) {
@@ -812,7 +801,6 @@ router.delete('/api/admin/courses/:courseId/videos/:videoId', isAdmin, async (re
             await deleteVideoThumbnail(video.thumbnailUrl);
         }
 
-        console.log(`[Video] Deleted ${sanitizeForLog(videoId)}`);
 
         res.json({ success: true, message: 'Video deleted successfully' });
     } catch (error) {
@@ -865,7 +853,8 @@ router.post('/api/admin/settings/hero-image', isAdmin, settingsUpload.single('he
             const compressedFilename = await compressImage(req.file, SETTINGS_UPLOAD_DIR, 'course');
             if (compressedFilename) finalFilename = compressedFilename;
         } catch (compErr) {
-            console.warn('[Settings] Compression failed:', compErr.message);
+            // Silent fail
+
         }
 
         const imageUrl = `/uploads/settings/${finalFilename}`;
@@ -988,7 +977,8 @@ router.post('/api/admin/settings/dashboard-image', isAdmin, dashboardUpload.sing
             const compressedFilename = await compressImage(req.file, SETTINGS_UPLOAD_DIR, 'course');
             if (compressedFilename) finalFilename = compressedFilename;
         } catch (compErr) {
-            console.warn('[Settings] Compression failed:', compErr.message);
+            // Silent fail
+
         }
 
         const imageUrl = `/uploads/settings/${finalFilename}`;

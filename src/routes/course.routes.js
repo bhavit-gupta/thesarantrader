@@ -181,7 +181,7 @@ function logAdminOperation(req, action, courseId, details = {}) {
         ip: req.ip,
         timestamp: new Date().toISOString()
     };
-    console.log(`[COURSE ADMIN] ${action}:`, JSON.stringify(logData));
+    // Audit log operation locally or to DB if needed
 }
 
 /* -------------------------------------------------------------------------- */

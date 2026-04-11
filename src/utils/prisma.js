@@ -105,7 +105,7 @@ try {
             ]
             : logLevel
     });
-    console.log('✓ Prisma Client initialized');
+
 } catch (error) {
     console.error('❌ FATAL: Failed to initialize Prisma Client');
     console.error('   Error:', error.message);
@@ -131,7 +131,6 @@ const withRetry = async (fn, maxRetries = MAX_RETRIES) => {
             const isRetryable = RETRYABLE_CODES.includes(error.code);
             if (isLastAttempt || !isRetryable) throw error;
             const delay = Math.pow(2, attempt) * RETRY_BASE_DELAY_MS;
-            console.warn(`⚠️ Database retry ${attempt + 1}/${maxRetries} in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
@@ -170,7 +169,7 @@ const validateConnection = async () => {
 
         isConnected = true;
         connectionValidated = true;
-        console.log('✓ Database connection verified');
+
         return true;
     } catch (error) {
         console.error('❌ Database connection failed:', error.message);
@@ -189,12 +188,10 @@ validateConnection().catch((err) => {
 /* -------------------------------------------------------------------------- */
 
 const gracefulShutdown = async (signal) => {
-    console.log(`🔌 [${signal}] Closing database connection...`);
     try {
         await prisma.$disconnect();
-        console.log('✓ Database disconnected');
+
     } catch (error) {
-        console.error('Error disconnecting database:', error.message);
     }
 };
 
@@ -235,13 +232,11 @@ if (logLevel.includes('query')) {
 
         // Log in development (only if query logging is enabled)
         if (currentEnv === 'development' && process.env.PRISMA_LOG_QUERY === 'true') {
-            console.log('🔍 Query:', maskedQuery.substring(0, 100));
-            console.log('⏱️  Duration:', e.duration, 'ms');
+
         }
 
         // Warn on slow queries (>1s)
         if (e.duration > 1000) {
-            console.warn(`⚠️ SLOW QUERY (${e.duration}ms):`, maskedQuery.substring(0, 100));
         }
     });
 }
@@ -262,12 +257,11 @@ const startHealthCheck = () => {
             const duration = Date.now() - start;
 
             if (!isConnected) {
-                console.log('✓ Database reconnected');
+
                 isConnected = true;
             }
 
             if (duration > 100) {
-                console.warn('⚠️ Database ping slow:', duration, 'ms');
             }
         } catch (error) {
             if (isConnected) {
@@ -278,7 +272,7 @@ const startHealthCheck = () => {
                 setTimeout(async () => {
                     try {
                         await prisma.$connect();
-                        console.log('✓ Reconnection successful');
+
                         isConnected = true;
                     } catch (err) {
                         console.error('Reconnection failed:', err.message);
@@ -441,7 +435,7 @@ if (currentEnv === 'test') {
         await prisma.courseVideo.deleteMany();
         await prisma.course.deleteMany();
         await prisma.user.deleteMany();
-        console.log('✓ Test database cleaned');
+
     };
 }
 
@@ -452,7 +446,6 @@ if (currentEnv === 'test') {
 // Check if schema exists
 const schemaPath = path.join(__dirname, '../../prisma/schema.prisma');
 if (!fs.existsSync(schemaPath)) {
-    console.warn('⚠️ WARNING: schema.prisma not found at', schemaPath);
 }
 
 /* -------------------------------------------------------------------------- */

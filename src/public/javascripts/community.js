@@ -168,7 +168,8 @@ if (createPostForm) {
 
         try {
             // Get CSRF token for secure request
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const csrfToken = token || '';
 
             // Prepare FormData for multipart submission (supports file upload)
             const formData = new FormData();
@@ -293,7 +294,6 @@ async function pollNewPosts() {
         }
     } catch (error) {
         // Silent fail for polling — don't interrupt the user
-        console.warn('[Community Poll] Failed to fetch new posts:', error);
     }
 }
 

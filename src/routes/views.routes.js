@@ -265,7 +265,6 @@ router.get('/checkout/:courseId',
             });
 
             // Log without exposing full userId
-            console.log(`[Checkout] User: ${userId.slice(-6)} - Course: ${courseId.slice(-6)} - Pending: ${Boolean(pendingPurchase)}`);
 
             if (pendingPurchase) {
                 return res.redirect(`${URLS.DASHBOARD}?info=payment_pending`);
@@ -441,7 +440,6 @@ router.get('/live-meeting',
             // If the toggle is missing or not explicitly "true", fallback to direct Zoom redirect
             if (process.env.USE_ZOOM_SDK !== 'true') {
                 const zoomJoinUrl = `https://zoom.us/j/${meetingNumber}?pwd=${password}`;
-                console.log(`[Live Meeting] SDK Disabled - Redirecting to Zoom: ${meetingNumber}`);
                 return res.redirect(zoomJoinUrl);
             }
             // -----------------------------
@@ -463,9 +461,7 @@ router.get('/live-meeting',
                 hostEmailForZAK = process.env.ZOOM_HOST_EMAIL || req.session.user.email || '';
                 zakToken = await getZAKToken(hostEmailForZAK);
                 if (zakToken) {
-                    console.log('[Live Meeting] ZAK token fetched successfully for host:', hostEmailForZAK);
                 } else {
-                    console.warn('[Live Meeting] ZAK token unavailable, host join may fail');
                 }
             }
 
@@ -478,7 +474,6 @@ router.get('/live-meeting',
             // Render integrated dashboard view
             const viewPath = isAdmin ? 'dashboard/admin_live_studio' : 'dashboard/user_live_room';
 
-            console.log(`[Trace:Handshake] Key on Server: ${process.env.ZOOM_SDK_KEY}`);
             res.render(viewPath, {
                 sdkKey: process.env.ZOOM_SDK_KEY,
                 signature: signature,
@@ -1323,9 +1318,6 @@ router.post('/logout',
             // Clear the session cookie explicitly
             res.clearCookie('thesarantrader.sid');
             
-            if (userId) {
-                console.log(`[Logout] User ${userId.slice(-6)} logged out`);
-            }
             
             res.redirect(URLS.HOME + '?loggedOut=true');
         });

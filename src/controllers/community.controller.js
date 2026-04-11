@@ -264,7 +264,7 @@ exports.createPost = async (req, res) => {
             2 // Max 2 retries for user-facing operations
         );
 
-        console.log(`💬 [COMMUNITY] New post by ${newPost.userName} ${finalImageUrl ? '(with image)' : ''}`);
+
 
         // 6. Return success response
         res.json({ success: true, message: 'Post created successfully!', post: newPost });
@@ -685,7 +685,7 @@ exports.deletePost = async (req, res) => {
 
         // 6. Delete post from database
         await prisma.communityPost.delete({ where: { id: postId } });
-        console.log(`🗑️ [DELETE] Post #${postId} removed by ${currentUserId}`);
+
 
         res.json({ success: true, message: 'Post deleted successfully' });
     } catch (error) {
@@ -863,7 +863,7 @@ exports.cleanupOldPosts = async () => {
         const durationMs = Date.now() - startTime;
         const estimatedSpaceFreed = imagesDeleted * 50000; // ~50KB per image
 
-        console.log(`🧹 Community cleanup: ${deleted.count} posts, ${imagesDeleted} images (${deletionErrors} errors), ~${(estimatedSpaceFreed / 1024 / 1024).toFixed(2)}MB freed, ${durationMs}ms`);
+
 
         return {
             postsDeleted: deleted.count,

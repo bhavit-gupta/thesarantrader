@@ -15,7 +15,7 @@ const fs = require('fs').promises;
 const crypto = require('crypto');
 const os = require('os');
 let diskusage = null;
-try { diskusage = require('diskusage'); } catch (e) { console.warn('[Upload] diskusage not available, disk checks skipped'); }
+try { diskusage = require('diskusage'); } catch (e) { /* disk checks skipped */ }
 
 const lockfile = require('proper-lockfile');
 
@@ -119,8 +119,7 @@ async function compressImage(file, destinationDir, preset = 'chat') {
                 const usage = await diskusage.check(destinationDir);
                 if (usage.available < MIN_DISK_SPACE) throw new Error('Insufficient disk space');
             } catch (e) {
-                if (e.message !== 'Insufficient disk space') console.warn('Disk check failed:', e.message);
-                else throw e;
+                if (e.message === 'Insufficient disk space') throw e;
             }
         }
 
@@ -139,7 +138,7 @@ async function compressImage(file, destinationDir, preset = 'chat') {
         // 5. Check Cache
         try {
             await fs.stat(finalOutputPath);
-            console.log('📦 Image already compressed (cached)');
+
             await fs.unlink(inputPath).catch(() => { });
             return cachedFileName;
         } catch (e) { /* Not cached */ }
@@ -171,7 +170,7 @@ async function compressImage(file, destinationDir, preset = 'chat') {
 
         // Animated support
         if (metadata.pages && metadata.pages > 1) {
-            console.log('📽️ Animated image detected');
+
             // Logic for animated webp could be added here
         }
 
@@ -198,13 +197,7 @@ async function compressImage(file, destinationDir, preset = 'chat') {
 
         const duration = Date.now() - startTime;
         const ratio = ((1 - stats.size / file.size) * 100).toFixed(1);
-        console.log('[Image Compression]', {
-            file: sanitized,
-            original: `${(file.size / 1024).toFixed(0)}KB`,
-            compressed: `${(stats.size / 1024).toFixed(0)}KB`,
-            ratio: `${ratio}%`,
-            duration: `${duration}ms`
-        });
+
 
         return cachedFileName;
 

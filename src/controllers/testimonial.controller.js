@@ -233,7 +233,7 @@ exports.submitTestimonial = async (req, res) => {
         // Record submission for rate limiting
         recordSubmission(userId);
 
-        console.log(`📝 [NEW TESTIMONIAL] Submitted by ${newTestimonial.userName}`);
+
 
         // 11. Return success response with approval notification
         return res.json({
@@ -496,7 +496,7 @@ exports.approveTestimonial = async (req, res) => {
             2
         );
 
-        console.log(`✅ [TESTIMONIAL APPROVED] #${testimonialId}`);
+
 
         // 5. Return updated testimonial
         return res.json({
@@ -572,7 +572,7 @@ exports.rejectTestimonial = async (req, res) => {
             2
         );
 
-        console.log(`🗑️ [TESTIMONIAL DELETED/REJECTED] #${testimonialId}${reason ? ` - Reason: ${reason}` : ''}`);
+
 
         // 5. Return success
         return res.json({
@@ -627,7 +627,7 @@ exports.toggleFeatured = async (req, res) => {
             2
         );
 
-        console.log(`✨ [TESTIMONIAL FEATURED TOGGLE] #${testimonialId} is now ${updatedTestimonial.isFeatured}`);
+
 
         return res.json({
             success: true,
@@ -701,7 +701,7 @@ exports.deleteTestimonial = async (req, res) => {
             () => prisma.testimonial.delete({ where: { id: testimonialId } }),
             2
         );
-        console.log(`⚙️ [SYSTEM] Testimonial #${testimonialId} deleted by ${req.session.user.name}`);
+
 
         // 6. Return success response
         return res.json({ success: true, message: 'Testimonial deleted successfully' });

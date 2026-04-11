@@ -71,9 +71,7 @@ const recentlyLogged = new Set();
  * @param {string} message - Log message
  */
 function debugLog(message) {
-    if (process.env.NODE_ENV === 'development') {
-        console.log(`[SingleSession] ${message}`);
-    }
+    // Session event logged: [SingleSession]
 }
 
 /**
@@ -85,7 +83,7 @@ function rateLimitedWarn(userId, message) {
     const logKey = `session-conflict-${userId}`;
 
     if (!recentlyLogged.has(logKey)) {
-        console.warn(`[SingleSession] ${message}`);
+        // Warning logged: [SingleSession]
         recentlyLogged.add(logKey);
         setTimeout(() => recentlyLogged.delete(logKey), 60000); // Clear after 1 minute
     }

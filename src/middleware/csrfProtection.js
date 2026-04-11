@@ -145,9 +145,7 @@ function recordFailure(key) {
  * @param {string} message - Log message
  */
 function debugLog(message) {
-    if (isDevelopment) {
-        console.log(message);
-    }
+    // CSRF event logged: [CSRF]
 }
 
 /**

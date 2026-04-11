@@ -61,8 +61,8 @@
         window.location.search.includes('debug=true');
 
     const Logger = {
-        log: (...args) => DEBUG && console.log('[Testimonials]', ...args),
-        warn: (...args) => DEBUG && console.warn('[Testimonials]', ...args),
+        log: (...args) => {},
+        warn: (...args) => {},
         error: (...args) => console.error('[Testimonials]', ...args)
     };
 

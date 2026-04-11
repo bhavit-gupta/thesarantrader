@@ -80,9 +80,9 @@
     // LOGGER (conditional debug logging)
     // =========================================================================
     const Logger = {
-        debug: (...args) => CONFIG.DEBUG && console.log('[Auth:Debug]', ...args),
-        info: (...args) => CONFIG.DEBUG && console.info('[Auth:Info]', ...args),
-        warn: (...args) => console.warn('[Auth:Warn]', ...args),
+        debug: (...args) => {},
+        info: (...args) => {},
+        warn: (...args) => {},
         error: (...args) => console.error('[Auth:Error]', ...args)
     };
 

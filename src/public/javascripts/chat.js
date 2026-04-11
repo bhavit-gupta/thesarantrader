@@ -365,7 +365,7 @@ function createMessageElement(msg) {
  */
 async function sendMessage(e) {
     e.preventDefault();
-    console.log("📤 Sending message...");
+
 
     const input = document.getElementById('message-input');
     const imageInput = document.getElementById('chat-image');
@@ -379,7 +379,7 @@ async function sendMessage(e) {
     const hasImage = imageInput && imageInput.files && imageInput.files[0];
 
     if (!message && !hasImage) {
-        console.log("⚠️ Ignoring empty message/image");
+
         return;
     }
 
@@ -398,7 +398,7 @@ async function sendMessage(e) {
             formData.append('image', imageInput.files[0]);
         }
 
-        console.log("📡 Fetching to:", `/api/chat/${window.courseId}/messages`);
+
         const response = await fetch(`/api/chat/${window.courseId}/messages`, {
             method: 'POST',
             headers: {
@@ -409,7 +409,7 @@ async function sendMessage(e) {
         });
 
         const data = await response.json();
-        console.log("📥 Server response:", data);
+
 
         if (data.success) {
             input.value = '';

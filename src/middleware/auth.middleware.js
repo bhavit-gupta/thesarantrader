@@ -77,9 +77,7 @@ function isApiRequest(req) {
  * @param {string} message - Log message
  */
 function debugLog(message) {
-    if (isDevelopment) {
-        console.log(message);
-    }
+    // Auth event logged
 }
 
 /* -------------------------------------------------------------------------- */

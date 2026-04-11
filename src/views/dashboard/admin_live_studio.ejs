@@ -156,8 +156,7 @@
 
     <script>
         const sdkKey = "<%= sdkKey %>";
-        console.log('[Trace:Handshake] Key in Browser:', sdkKey);
-        console.log('[Trace:Handshake] Key CharCodes:', Array.from(sdkKey).map(c => `${c}:${c.charCodeAt(0)}`).join(', '));
+
         const signature = "<%= signature %>";
         const meetingNumber = "<%= meetingNumber %>";
         const password = "<%= password %>";
@@ -170,8 +169,7 @@
 
         async function startMeeting() {
             // Diagnostic Logs
-            console.log('[Zoom:Health] Secure Context:', window.isSecureContext);
-            console.log('[Zoom:Health] Cross-Origin Isolated:', window.crossOriginIsolated);
+
 
             // Wait 500ms for strict isolation headers and DOM to settle
             setTimeout(async () => {
@@ -181,18 +179,8 @@
                     return;
                 }
 
-                console.log('🎬 Starting meeting with:', {
-                    sdkKey: sdkKey ? sdkKey.substring(0, 8) + '...' : 'MISSING',
-                    meetingNumber: meetingNumber,
-                    hasPassword: !!password,
-                    role: zoomRole,
-                });
 
-                if (zakToken && (zakToken.startsWith('ERROR_') || zakToken.startsWith('FATAL_'))) {
-                    console.warn('❌ ZAK Fetch Error:', zakToken);
-                } else {
-                    console.log('✅ ZAK Token status:', !!zakToken);
-                }
+
 
                 try {
                     // Initialize the Meeting SDK
@@ -205,7 +193,7 @@
                         debug: true
                     });
 
-                    console.log('✅ SDK initialized successfully');
+
 
                     // Ensure inputs are stripped of spaces/noise for the SDK
                     const cleanMeetingNumber = String(meetingNumber || '').replace(/\s/gi, '');
@@ -227,7 +215,7 @@
 
                     // Join the meeting
                     await client.join(joinParams);
-                    console.log('🚀 Studio Session Active - Joined Successfully');
+
 
                 } catch (error) {
                     const errCode = error && error.errorCode ? error.errorCode : 'unknown';

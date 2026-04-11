@@ -384,7 +384,7 @@ exports.getCourseChat = async (req, res) => {
                     }
                 });
             } catch (readErr) {
-                console.warn(`⚠️ [ChatReadStatus] Failed to update for ${req.session.user.id}/${course.id}:`, readErr.message);
+
             }
         }
 
@@ -573,7 +573,7 @@ exports.sendMessage = async (req, res) => {
 
             // Validate filename doesn't contain path traversal
             if (!isValidFilename(compressedFilename)) {
-                console.error('⚠️ Invalid filename from compression:', compressedFilename);
+
                 throw new Error('Invalid filename from compression utility');
             }
 
@@ -595,7 +595,7 @@ exports.sendMessage = async (req, res) => {
         );
 
         // 4. Log message creation for monitoring
-        console.log(`💬 New message in course ${courseId} by ${newMessage.userName} ${finalImageUrl ? '(with image)' : ''}`);
+
 
         res.json({ success: true, message: 'Message sent!', chatMessage: newMessage });
     } catch (error) {
@@ -721,7 +721,7 @@ exports.cleanupOldMessages = async () => {
         const durationMs = Date.now() - startTime;
 
         // Consistent logging with metrics
-        console.log(`🧹 Chat Cleanup: ${totalDeleted} messages (${deletedOld.count} old, ${deletedEndedCount} from ${endedCourseIds.length} ended courses), ${imagesDeleted} images, ~${(estimatedSpaceFreed / 1024 / 1024).toFixed(2)}MB freed, ${durationMs}ms`);
+
 
         // Return metrics for scheduler tracking
         return {

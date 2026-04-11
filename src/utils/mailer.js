@@ -36,15 +36,7 @@ const transporter = nodemailer.createTransport(SMTP_CONFIG);
 async function sendEmail(to, subject, html) {
     // Check if email service is enabled in .env
     if (process.env.EMAIL_SERVICE_ENABLED !== 'true') {
-        console.warn('⚠️ [Email] Service is DISABLED. Skipping delivery to:', to);
-        
-        // Log to console in development as a fallback
-        if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production') {
-            console.log('--- EMAIL CONTENT (DISABLED) ---');
-            console.log(`To: ${to}`);
-            console.log(`Subject: ${subject}`);
-            console.log('-------------------------------');
-        }
+
         return true; // Return true to avoid blocking application flow in dev/test
     }
 
@@ -56,7 +48,7 @@ async function sendEmail(to, subject, html) {
             html
         });
         
-        console.log(`✉️ [Email] Message sent: ${info.messageId}`);
+
         return true;
     } catch (error) {
         console.error('❌ [Email] Delivery failed!');
@@ -64,13 +56,7 @@ async function sendEmail(to, subject, html) {
         console.error('   Error Code:', error.code || 'N/A');
         console.error('   Error Command:', error.command || 'N/A');
         // Fallback to console for development if needed
-        if (process.env.NODE_ENV === 'development') {
-            console.log('--- DEVELOPMENT MAIL FALLBACK ---');
-            console.log(`To: ${to}`);
-            console.log(`Subject: ${subject}`);
-            console.log(`Content: ${html}`);
-            console.log('-------------------------------');
-        }
+
         return false;
     }
 }

@@ -79,7 +79,7 @@ setInterval(() => {
         }
     }
     if (cleanedCount > 0) {
-        console.log(`🧹 [OTP Cleanup] Removed ${cleanedCount} expired OTPs from memory`);
+
     }
 }, 5 * 60 * 1000);
 
@@ -223,7 +223,7 @@ exports.sendOtp = async (req, res) => {
 
         const normalizedIdentifier = targetIdentifier.trim().toLowerCase();
         
-        console.log(`✉️ [OTP] Request for: ${normalizedIdentifier}`);
+
 
         // 1. Check Rate Limiter [Requirement: 30s, 1m, 2m]
         const limitStatus = getOtpRateLimitStatus(normalizedIdentifier);
@@ -383,7 +383,7 @@ exports.registerUser = async (req, res) => {
             3 // Critical operation: 3 retries
         );
 
-        console.log(`✅ [MongoDB] User Registered: ${newUser.username}`);
+
 
         // Clear OTP after successful registration
         delete otpStore[email];
@@ -393,7 +393,7 @@ exports.registerUser = async (req, res) => {
         // ---------------------------------------------------------
         req.session.regenerate(async (err) => {
             if (err) {
-                console.error('[AUTH ERROR] Session regeneration error after registration:', err);
+
                 return res.redirect("/login?message=Account created, please login.");
             }
 
@@ -419,13 +419,11 @@ exports.registerUser = async (req, res) => {
                     2
                 );
             } catch (error) {
-                console.error("❌ Error updating session ID in DB:", error);
             }
 
             // Save session and redirect
             req.session.save((err) => {
                 if (err) {
-                    console.error("Session save error:", err);
                     return res.redirect("/login");
                 }
                 res.redirect("/dashboard");
@@ -433,7 +431,6 @@ exports.registerUser = async (req, res) => {
         });
 
     } catch (err) {
-        console.error("❌ [Register Controller Error]:", err);
         res.render("auth/signup", {
             error: "Error creating user. Please try again.",
             formData: req.body
@@ -539,7 +536,7 @@ exports.loginUser = async (req, res) => {
 
         // Fallback or Try All: If no user found with specific type, try searching all fields
         if (!user) {
-            console.log(`[AUTH DEBUG] Login attempt for: ${loginIdentifier}`);
+
             user = await withRetry(
                 () => prisma.user.findFirst({
                     where: {
@@ -574,7 +571,7 @@ exports.loginUser = async (req, res) => {
                     where: { id: user.id },
                     data: { password: hashedPassword }
                 });
-                console.log(`✅ [Migration] Password migrated to hash for user: ${user.username}`);
+
             }
         } else {
             // Check hash
@@ -585,11 +582,11 @@ exports.loginUser = async (req, res) => {
             return res.redirect(`/login?error=${encodeURIComponent("Invalid credentials")}`);
         }
 
-        console.log(`✅ [Login Success] User: ${user.username}`);
+
         // Store user in session
         req.session.regenerate(async (err) => {
             if (err) {
-                console.error('[AUTH ERROR] Session regeneration error:', err);
+
                 return res.redirect(`/login?error=${encodeURIComponent("Login failed. Please try again.")}`);
             }
 
@@ -607,7 +604,7 @@ exports.loginUser = async (req, res) => {
 
             // Single Session Enforcement
             try {
-                console.log(`📡 [Login] Enforcing single session for ${user.id} (SID: ${req.sessionID})`);
+
                 await withRetry(
                     () => prisma.user.update({
                         where: { id: user.id },
@@ -616,13 +613,11 @@ exports.loginUser = async (req, res) => {
                     2
                 );
             } catch (error) {
-                console.error("❌ Error updating session ID in DB:", error);
             }
 
             // Force session save before redirect
             req.session.save((err) => {
                 if (err) {
-                    console.error("Session save error:", err);
                     return res.status(500).send("Login session error.");
                 }
 
@@ -636,7 +631,6 @@ exports.loginUser = async (req, res) => {
             });
         });
     } catch (err) {
-        console.error("❌ [Login Controller Error]:", err);
         res.redirect(`/login?error=${encodeURIComponent("Login error. Please try again.")}`);
     }
 };
@@ -772,7 +766,6 @@ exports.forgotPassword = async (req, res) => {
 
         res.json({ success: true, message: `Reset code sent to ${user.email.replace(/(.{2})(.*)(?=@)/, '$1***')}` });
     } catch (err) {
-        console.error("❌ Forgot Password Error:", err);
         res.status(500).json({ success: false, message: "Error sending reset code" });
     }
 };
@@ -851,7 +844,6 @@ exports.verifyResetOTP = async (req, res) => {
 
         res.json({ success: true, message: "OTP verified successfully" });
     } catch (err) {
-        console.error(err);
         res.status(500).json({ success: false, message: "Error verifying OTP" });
     }
 };
@@ -940,11 +932,10 @@ exports.resetPassword = async (req, res) => {
         // 5. Clear OTP to prevent reuse
         delete otpStore[identifier];
 
-        console.log(`✅ [Password Reset] Password updated for: ${user.username}`);
+
 
         res.json({ success: true, message: "Password reset successfully" });
     } catch (err) {
-        console.error(err);
         res.status(500).json({ success: false, message: "Error resetting password" });
     }
 };
@@ -1027,14 +1018,14 @@ exports.logoutUser = (req, res) => {
             const userId = req.session.user ? req.session.user.id : null;
             req.session.destroy(err => {
                 if (err) {
-                    console.error("Error destroying session:", err);
+
                     return res.status(500).send("Could not log out.");
                 }
                 if (userId) {
                     prisma.user.updateMany({
                         where: { id: userId, currentSessionId: req.sessionID },
                         data: { currentSessionId: null }
-                    }).catch(err => console.error("❌ Error clearing session ID on logout:", err));
+                    }).catch(err => { });
                 }
                 const cookieName = process.env.SESSION_COOKIE_NAME || 'thesarantrader.sid';
                 res.clearCookie(cookieName);

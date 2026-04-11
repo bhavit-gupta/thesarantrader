@@ -249,7 +249,7 @@ function cleanupOnError(req, res, next) {
 // Payment audit logging
 async function logPaymentAudit(userId, action, details) {
     try {
-        console.log(`[Payment Audit] User: ${userId}, Action: ${action}, Details:`, details);
+        // Audit log action locally or to DB if needed
         // In production, log to database:
         // await prisma.auditLog.create({
         //     data: { userId, action, details: JSON.stringify(details), timestamp: new Date() }

@@ -169,7 +169,7 @@ function logFileUpload(req, filename, success) {
         ip: req.ip,
         timestamp: new Date().toISOString()
     };
-    console.log(`[CHAT] ${logData.action}:`, JSON.stringify(logData));
+    // Audit log upload locally or to DB if needed
 }
 
 /* -------------------------------------------------------------------------- */

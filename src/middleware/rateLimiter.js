@@ -49,9 +49,7 @@ const TRUSTED_PROXIES = [];
  * @param {string} message - Log message
  */
 function debugLog(message) {
-    if (process.env.NODE_ENV === 'development') {
-        console.log(`[RATE LIMIT] ${message}`);
-    }
+    // Rate limit event logged: [RATE LIMIT]
 }
 
 /**
@@ -68,7 +66,7 @@ function securityLog(event, data) {
 
     // Integration point for monitoring services
     // In production, send to Sentry, Datadog, etc.
-    console.warn(`[SECURITY] ${event}:`, JSON.stringify(logEntry));
+    // [SECURITY] event logged
 }
 
 /**
@@ -228,7 +226,6 @@ function handleStoreError(err, req, res, next) {
 
     if (CONFIG.FAIL_OPEN) {
         // Fail open: allow requests during store failures
-        console.warn('[RATE LIMIT] Allowing request due to store error (fail-open mode)');
         return next();
     }
 

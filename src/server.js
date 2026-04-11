@@ -69,11 +69,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Check if .env file exists before loading
-const envPath = path.resolve(__dirname, '..', '.env');
 if (!fs.existsSync(envPath)) {
-    console.warn('⚠️ WARNING: .env file not found');
-    console.warn('   Using environment variables or defaults');
 }
 
 require('dotenv').config({ override: true }); // Load environment variables from .env file (force override stale system vars)
@@ -129,16 +125,7 @@ if (!VALID_ENVIRONMENTS.includes(NODE_ENV)) {
 /*                         APP & PRISMA LOADING                               */
 /* -------------------------------------------------------------------------- */
 
-let app;
-try {
-    // Wrap app require in error handling
-    app = require('./app');
-    console.log('✓ Express app loaded');
-} catch (error) {
-    console.error('❌ Failed to load Express app:', error.message);
-    console.error('   Check syntax in app.js');
-    process.exit(1);
-}
+let app = require('./app');
 
 // Import prisma utilities
 const { validateConnection, getStatus } = require('./utils/prisma');
@@ -293,25 +280,13 @@ function initializeScheduler() {
     const isSchedulerEnabled = process.env.SCHEDULER_ENABLED !== 'false';
 
     if (!isSchedulerEnabled) {
-        console.log('⏩ Scheduler disabled via SCHEDULER_ENABLED=false');
         return;
     }
-
-    if (instanceId !== '0' && instanceId !== undefined) {
-        console.log(`⏩ Scheduler skipped on instance ${instanceId} (only runs on instance 0)`);
-        return;
-    }
-
-    // Delay scheduler start by 30 seconds
-    console.log('⏳ Scheduler will start in 30 seconds...');
 
     setTimeout(() => {
         try {
-            // Wrap scheduler init in try/catch
-            console.log('🔧 Initializing background scheduler...');
             const { initScheduler } = require('./utils/scheduler.js');
             schedulerHandle = initScheduler();
-            console.log('✓ Background scheduler started');
         } catch (error) {
             // Don't crash server if scheduler fails
             console.error('❌ Scheduler initialization failed:', error.message);
@@ -335,12 +310,10 @@ let isShuttingDown = false;
  */
 async function gracefulShutdown(signal) {
     if (isShuttingDown) {
-        console.log('Shutdown already in progress...');
         return;
     }
 
     isShuttingDown = true;
-    console.log(`\n⏹️ ${signal} received. Shutting down gracefully...`);
 
     // Shutdown timeout
     const shutdownTimeout = setTimeout(() => {
@@ -353,7 +326,7 @@ async function gracefulShutdown(signal) {
         if (schedulerHandle && typeof schedulerHandle.stop === 'function') {
             try {
                 schedulerHandle.stop();
-                console.log('✓ Scheduler stopped');
+
             } catch (error) {
                 console.error('⚠️ Error stopping scheduler:', error.message);
             }
@@ -362,19 +335,16 @@ async function gracefulShutdown(signal) {
         // Stop accepting new connections
         if (server) {
             await new Promise((resolve) => {
-                server.close(() => {
-                    console.log('✓ HTTP server closed');
-                    resolve();
-                });
+                server.close(() => resolve());
             });
         }
 
         // Close database connection
         await prisma.$disconnect();
-        console.log('✓ Database disconnected');
+
 
         clearTimeout(shutdownTimeout);
-        console.log('✓ Graceful shutdown complete');
+
         process.exit(0);
 
     } catch (error) {
@@ -390,7 +360,6 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // SIGUSR2 for nodemon/PM2 restart
 process.on('SIGUSR2', () => {
-    console.log('⚠️ SIGUSR2 received, preparing for restart...');
     gracefulShutdown('SIGUSR2');
 });
 
@@ -408,7 +377,6 @@ function startMonitoring() {
         const heapUsedMB = parseInt(mem.heapUsed);
 
         if (heapUsedMB > 500) {
-            console.warn('⚠️ High memory usage:', mem);
         }
     }, 5 * 60 * 1000);
 
@@ -420,7 +388,6 @@ function startMonitoring() {
 
         const totalCPU = (currentCpuUsage.user + currentCpuUsage.system) / 1e6;
         if (totalCPU > 50) { // More than 50% of interval spent on CPU
-            console.warn(`⚠️ High CPU usage: ${totalCPU.toFixed(2)}s per minute`);
         }
     }, 60000);
 }
@@ -444,25 +411,13 @@ function startMonitoring() {
 (async () => {
     try {
         // Log environment variables at startup
-        console.log(`
-┌─────────────────────────────────────────────┐
-│            SERVER STARTUP                   │
-├─────────────────────────────────────────────┤
-│ PID:          ${String(process.pid).padEnd(28)}│
-│ Environment:  ${NODE_ENV.padEnd(28)}│
-│ Port:         ${String(PORT).padEnd(28)}│
-│ Node:         ${process.version.padEnd(28)}│
-│ Database:     ${process.env.DATABASE_URL ? 'CONFIGURED'.padEnd(28) : 'NOT SET'.padEnd(28)}│
-│ Session:      ${process.env.SESSION_SECRET ? 'CONFIGURED'.padEnd(28) : 'NOT SET'.padEnd(28)}│
-│ Scheduler:    ${(process.env.SCHEDULER_ENABLED !== 'false' ? 'ENABLED' : 'DISABLED').padEnd(28)}│
-└─────────────────────────────────────────────┘
-        `);
+
 
         // Log request size limits
-        console.log(`📊 Max request size: ${process.env.MAX_REQUEST_SIZE || '10kb'}`);
+
 
         // Validate database connection before accepting requests
-        console.log('🔌 Validating database connection...');
+
         const isConnected = await validateConnection();
 
         if (!isConnected) {
@@ -471,29 +426,21 @@ function startMonitoring() {
             process.exit(1);
         }
 
-        console.log('✅ Database connection validated');
-        console.log('📊 Database status:', getStatus());
+
+
 
         // Start background cleanup tasks
         initializeScheduler();
 
         // Log initial memory usage
-        console.log('💾 Initial memory:', JSON.stringify(getMemoryUsage()));
+
 
         // Start monitoring
         startMonitoring();
 
         // Start HTTP server with error handling
         server = app.listen(PORT, () => {
-            console.log(`
-🚀 SERVER READY
-────────────────────────────────────────────
-Local URL:   http://localhost:${PORT}
-Status:      Listening for requests...
-Database:    MongoDB (Prisma)
-Scheduler:   Will start in 30 seconds
-────────────────────────────────────────────
-            `);
+
         });
 
         // Handle port-in-use error

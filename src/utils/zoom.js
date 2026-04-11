@@ -39,7 +39,7 @@ function generateSignature(meetingNumber, role) {
     tokenExp: exp
   };
 
-  console.log(`[Zoom] Generating signature — Meeting: ${mn}, Role: ${roleValue}`);
+
 
   try {
     // BUG FIX 3: When passing a custom header object, you MUST include alg explicitly.
@@ -134,7 +134,6 @@ async function getZAKToken(hostEmail) {
               resolve(parsed.token);
             } else {
               const errMsg = parsed.message || JSON.stringify(parsed);
-              console.warn(`[Zoom] ZAK token missing for ${userId}:`, errMsg);
               resolve(`ERROR_${errMsg}`);
             }
           } catch (e) {
