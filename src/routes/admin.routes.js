@@ -1105,29 +1105,31 @@ router.post('/api/admin/settings/dashboard-message', isAdmin, express.json(), as
  */
 router.get('/admin/community/approvals', isAdmin, async (req, res) => {
     try {
-        const pendingPosts = await prisma.communityPost.findMany({
-            where: { status: 'PENDING' },
-            orderBy: { createdAt: 'desc' }
-        });
-
-        const allPosts = await prisma.communityPost.findMany({
+        const allPostsForComments = await prisma.communityPost.findMany({
             orderBy: { createdAt: 'desc' },
-            take: 1000 // limit to recent posts to avoid memory issues
+            take: 1000 
         });
 
         const pendingComments = [];
-        allPosts.forEach(post => {
+        let approvedCommentsCount = 0;
+        
+        allPostsForComments.forEach(post => {
             (post.comments || []).forEach(comment => {
                 if (comment.status === 'PENDING') {
                     pendingComments.push({ post, comment });
+                } else if (comment.status === 'APPROVED') {
+                    approvedCommentsCount++;
                 }
             });
         });
 
         res.render('dashboard/admin_community_approvals', {
             user: req.session.user,
-            pendingPosts,
             pendingComments,
+            stats: {
+                pendingCommentsCount: pendingComments.length,
+                approvedCommentsCount
+            },
             csrfToken: res.locals.csrfToken
         });
     } catch (error) {

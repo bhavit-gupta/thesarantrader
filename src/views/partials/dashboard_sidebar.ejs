@@ -223,6 +223,17 @@
                     <span class="font-bold text-[15px] tracking-tight group-hover:translate-x-1 transition-transform uppercase">Testimonials</span>
                 </a>
 
+                <a href="/admin/community/approvals" class="<%= navItemClass('/admin/community/approvals') %>">
+                    <%- activeIndicator('/admin/community/approvals') %>
+                    <div class="<%= iconWrapperClass('/admin/community/approvals') %>">
+                        <i class="fa-solid fa-shield-halved text-lg"></i>
+                    </div>
+                    <div class="flex-1 flex items-center justify-between">
+                        <span class="font-bold text-[15px] tracking-tight group-hover:translate-x-1 transition-transform uppercase">Approvals</span>
+                        <span class="text-[8px] font-black uppercase tracking-widest text-orange-500 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-md">Mod</span>
+                    </div>
+                </a>
+
             <% } else { %>
                 <!-- Dashboard (User) -->
                 <a href="/dashboard" class="<%= navItemClass('/dashboard') %>">

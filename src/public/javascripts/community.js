@@ -519,11 +519,20 @@ async function addComment(event, postId) {
         });
 
         const data = await response.json();
-
+        
         if (data.success) {
             input.value = '';
-            // Reload posts to show new comment
-            loadPosts();
+            
+            if (window.isAdmin) {
+                // Admins see immediate success and feed refresh
+                showFeedback('Comment added successfully!', 'success');
+                loadPosts();
+            } else {
+                // Regular users get the moderation notice
+                showFeedback('Comment submitted! It will appear after admin approval.', 'success');
+            }
+        } else {
+            showFeedback(data.message || 'Failed to add comment', 'error');
         }
     } catch (error) {
         console.error('Failed to add comment:', error);
@@ -649,8 +658,8 @@ function showFeedback(message, type) {
 document.addEventListener('DOMContentLoaded', () => {
     // Initial load
     loadPosts().then(() => {
-        // Start smart polling every 5 seconds after initial load completes
-        postRefreshInterval = setInterval(pollNewPosts, 10000);
+        // Start smart polling every 30 seconds after initial load completes
+        postRefreshInterval = setInterval(pollNewPosts, 30000);
     });
 });
 
