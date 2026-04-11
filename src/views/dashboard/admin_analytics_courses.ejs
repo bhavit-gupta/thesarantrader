@@ -77,7 +77,7 @@
             </div>
             <div class="sm:ml-auto flex items-center gap-2 flex-wrap">
                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filter:</span>
-                <% [['all','All'],['active','Active'],['deleted','Deleted'],['published','Published'],['unpublished','Unpublished'],['promoted','Promoted'],['live','Live Now']].forEach(([f,l]) => { %>
+                <% [['all','All'],['active','Active'],['deleted','Deleted'],['published','Published'],['unpublished','Unpublished'],['live','Live Now']].forEach(([f,l]) => { %>
                     <a href="?sort=<%= sort %>&filter=<%= f %>" class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all <%= filter === f ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' %>"><%= l %></a>
                 <% }) %>
             </div>
@@ -106,7 +106,6 @@
                 <% } %>
                 <% if (c.isLive) { %><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest bg-red-500 text-white animate-pulse">● LIVE</span><% } %>
                 <% if (!c.isPublished && !c.isDeleted) { %><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-500">Draft</span><% } %>
-                <% if (c.isPromoted) { %><span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest bg-brand-gold/20 text-brand-gold">⭐ Promoted</span><% } %>
             </div>
 
             <!-- Title -->

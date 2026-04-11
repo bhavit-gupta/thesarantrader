@@ -247,7 +247,6 @@ model Course {
   dailyLiveTime      String?   // [New] Daily time for live class (Admin only)
   thumbnailUrl       String?   // [New] Main banner image for the course card
   isPublished        Boolean   @default(true) // [New] Show/Hide course from users
-  isPromoted         Boolean   @default(false) // [New] Featured/Promoted status
   deletedAt          DateTime? //  Soft delete timestamp (null = active)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt

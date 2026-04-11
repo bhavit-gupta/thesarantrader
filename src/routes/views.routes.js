@@ -1043,7 +1043,6 @@ router.get('/admin/analytics/courses', verifyAdminInDatabase, async (req, res) =
         let filtered = enrichedCourses;
         if (filter === 'published') filtered = enrichedCourses.filter(c => c.isPublished);
         else if (filter === 'unpublished') filtered = enrichedCourses.filter(c => !c.isPublished);
-        else if (filter === 'promoted') filtered = enrichedCourses.filter(c => c.isPromoted);
         else if (filter === 'live') filtered = enrichedCourses.filter(c => c.isLive);
 
         if (sort === 'revenue') filtered.sort((a, b) => b.revenue - a.revenue);
