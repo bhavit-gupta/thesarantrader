@@ -1034,17 +1034,14 @@ router.get('/admin/analytics/courses', verifyAdminInDatabase, async (req, res) =
             revenuePerSeat: (c.users > 0 && revenueMap[c.id]?.revenue) ? Math.round(revenueMap[c.id].revenue / c.users) : 0,
             folderCount: folderMap[c.id] || 0,
             resourceCount: resourceMap[c.id] || 0,
-            discountPct: c.originalPrice > c.price ? Math.round(((c.originalPrice - c.price) / c.originalPrice) * 100) : 0,
-            isDeleted: !!c.deletedAt
+            discountPct: c.originalPrice > c.price ? Math.round(((c.originalPrice - c.price) / c.originalPrice) * 100) : 0
         }));
 
         const sort = req.query.sort || 'revenue';
         const filter = req.query.filter || 'all';
 
         let filtered = enrichedCourses;
-        if (filter === 'active') filtered = enrichedCourses.filter(c => !c.deletedAt);
-        else if (filter === 'deleted') filtered = enrichedCourses.filter(c => c.deletedAt);
-        else if (filter === 'published') filtered = enrichedCourses.filter(c => !c.deletedAt && c.isPublished);
+        if (filter === 'published') filtered = enrichedCourses.filter(c => c.isPublished);
         else if (filter === 'unpublished') filtered = enrichedCourses.filter(c => !c.isPublished);
         else if (filter === 'promoted') filtered = enrichedCourses.filter(c => c.isPromoted);
         else if (filter === 'live') filtered = enrichedCourses.filter(c => c.isLive);
@@ -1064,8 +1061,6 @@ router.get('/admin/analytics/courses', verifyAdminInDatabase, async (req, res) =
             courses: filtered, allCourses: enrichedCourses,
             sort, filter,
             totalRevenue, totalEnrollments,
-            activeCourses: enrichedCourses.filter(c => !c.deletedAt).length,
-            deletedCourses: enrichedCourses.filter(c => c.deletedAt).length,
             avgRevenue: enrichedCourses.length > 0 ? Math.round(totalRevenue / enrichedCourses.length) : 0,
             avgEnrollments: enrichedCourses.length > 0 ? Math.round(totalEnrollments / enrichedCourses.length) : 0
         });

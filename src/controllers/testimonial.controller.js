@@ -407,9 +407,12 @@ exports.getAdminTestimonials = async (req, res) => {
     }
 
     try {
-        // 2. Fetch all testimonials (all statuses) with retry
+        // 2. Fetch all testimonials (PENDING and APPROVED only)
         const allTestimonials = await withRetry(
             () => prisma.testimonial.findMany({
+                where: {
+                    status: { in: ['PENDING', 'APPROVED'] }
+                },
                 orderBy: { submittedAt: 'desc' }
             }),
             2
@@ -418,8 +421,7 @@ exports.getAdminTestimonials = async (req, res) => {
         // 3. Categorize by status for admin tabs
         return res.render('dashboard/admin_testimonials', {
             pendingTestimonials: allTestimonials.filter(t => t.status === 'PENDING' || t.status === 'pending'),
-            approvedTestimonials: allTestimonials.filter(t => t.status === 'APPROVED' || t.status === 'approved'),
-            rejectedTestimonials: allTestimonials.filter(t => t.status === 'REJECTED' || t.status === 'rejected')
+            approvedTestimonials: allTestimonials.filter(t => t.status === 'APPROVED' || t.status === 'approved')
         });
     } catch (error) {
         console.error("❌ Admin Fetch Error:", error);
@@ -554,41 +556,28 @@ exports.rejectTestimonial = async (req, res) => {
             });
         }
 
-        // 3. Check if testimonial is already rejected 
-        if (existingTestimonial.status === 'REJECTED' || existingTestimonial.status === 'rejected') {
+        // 3. Check if testimonial is already approved (cannot reject approved ones in this UI flow usually, but safety check)
+        if (existingTestimonial.status === 'APPROVED' || existingTestimonial.status === 'approved') {
             return res.status(400).json({
                 success: false,
-                message: 'Testimonial is already rejected'
+                message: 'Cannot reject an already approved testimonial. Please delete it instead.'
             });
         }
 
-        // 4. Update status to 'rejected' with optional reason
-        const updateData = {
-            status: 'REJECTED',
-            isFeatured: false,
-            reviewedAt: new Date()
-        };
-
-        // Add rejection reason if schema supports it
-        if (reason) {
-            updateData.rejectionReason = sanitizeContent(reason.trim().substring(0, 500));
-        }
-
-        const testimonial = await withRetry(
-            () => prisma.testimonial.update({
-                where: { id: testimonialId },
-                data: updateData
+        // 4. PERMANENT DELETE instead of status update
+        await withRetry(
+            () => prisma.testimonial.delete({
+                where: { id: testimonialId }
             }),
             2
         );
 
-        console.log(`❌ [TESTIMONIAL REJECTED] #${testimonialId}${reason ? ` - Reason: ${reason}` : ''}`);
+        console.log(`🗑️ [TESTIMONIAL DELETED/REJECTED] #${testimonialId}${reason ? ` - Reason: ${reason}` : ''}`);
 
-        // 5. Return updated testimonial
+        // 5. Return success
         return res.json({
             success: true,
-            message: 'Testimonial rejected',
-            testimonial
+            message: 'Testimonial rejected and permanently deleted'
         });
     } catch (error) {
         console.error("❌ Rejection Error:", error);

@@ -444,9 +444,9 @@ router.get('/api/community/posts',
     asyncHandler(communityController.getPosts)
 );
 
-// Create Post with validation and CSRF
+// Create Post with validation and CSRF (Admin Only)
 router.post('/api/community/posts',
-    isAuthenticated,
+    isAdmin,
     validateUserExists,
     csrfProtection,
     authLimiter,

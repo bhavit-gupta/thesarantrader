@@ -178,13 +178,35 @@ exports.createFolder = async (req, res) => {
 exports.deleteFolder = async (req, res) => {
     const { folderId } = req.params;
     try {
-        // Simple protection: only delete if empty or handle recursive (we'll do simple for now)
-        await prisma.courseFolder.delete({ where: { id: folderId } });
+        // 1. Recursive cleanup in a transaction
+        await prisma.$transaction(async (tx) => {
+            // Find all resources in this folder (and subfolders would be harder with deleteMany, 
+            // but we'll at least clean files for current level resources)
+            const resources = await tx.courseResource.findMany({
+                where: { folderId },
+                select: { path: true }
+            });
+
+            for (const res of resources) {
+                if (res.path) {
+                    const filePath = path.join(__dirname, '../public', res.path);
+                    await fs.unlink(filePath).catch(() => { });
+                }
+            }
+
+            // Delete sub-resources
+            await tx.courseResource.deleteMany({ where: { folderId } });
+
+            // Delete the folder itself
+            await tx.courseFolder.delete({ where: { id: folderId } });
+        });
+
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Delete failed (Ensure folder is empty)' });
+        console.error('[Folder Delete Error]:', error);
+        res.status(500).json({ success: false, message: 'Delete failed' });
     }
-};
+}
 
 /**
  * ADMIN: Add Resource
@@ -222,9 +244,19 @@ exports.addResource = async (req, res) => {
 exports.deleteResource = async (req, res) => {
     const { resourceId } = req.params;
     try {
+        // 1. Find resource to get file path
+        const resource = await prisma.courseResource.findUnique({ where: { id: resourceId } });
+        
+        if (resource && resource.path) {
+            const filePath = path.join(__dirname, '../public', resource.path);
+            await fs.unlink(filePath).catch(() => { });
+        }
+
+        // 2. Delete from DB
         await prisma.courseResource.delete({ where: { id: resourceId } });
         res.json({ success: true });
     } catch (error) {
+        console.error('[Resource Delete Error]:', error);
         res.status(500).json({ success: false, message: 'Failed to delete material' });
     }
 };

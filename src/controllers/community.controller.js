@@ -157,7 +157,16 @@ exports.createPost = async (req, res) => {
         return res.status(401).json({ success: false, message: 'Please log in to post' });
     }
 
-    // 2. Removed Admin-Only Check to allow users to post
+    // 2. Admin-Only Enforcement: Only admins can create new community posts
+    if (req.session.user.role !== 'ADMIN') {
+        if (req.file) {
+            try { await fs.promises.unlink(req.file.path); } catch (e) { /* ignore */ }
+        }
+        return res.status(403).json({ 
+            success: false, 
+            message: 'Only Academy Admins can publish official updates.' 
+        });
+    }
 
     const userId = req.session.user.id;
     const { title, content } = req.body;
@@ -249,8 +258,7 @@ exports.createPost = async (req, res) => {
                     title: sanitizedTitle,
                     content: sanitizedContent,
                     imageUrl: finalImageUrl,
-                    likes: 0,
-                    status: req.session.user.role === 'ADMIN' ? 'APPROVED' : 'PENDING'
+                    likes: 0
                 }
             }),
             2 // Max 2 retries for user-facing operations
@@ -327,8 +335,8 @@ exports.getPosts = async (req, res) => {
             // 1. Fetch only new posts created after the given timestamp with retry
             const newPosts = await withRetry(
                 () => prisma.communityPost.findMany({
-                    where: { createdAt: { gt: afterDate }, status: 'APPROVED' },
-                    orderBy: { createdAt: 'asc' } // Ascending for chronological order
+                    where: { createdAt: { gt: afterDate } },
+                    orderBy: { createdAt: 'asc' } 
                 }),
                 2
             );
@@ -364,12 +372,11 @@ exports.getPosts = async (req, res) => {
         const [posts, totalPosts] = await withRetry(
             () => prisma.$transaction([
                 prisma.communityPost.findMany({
-                    where: { status: 'APPROVED' },
-                    orderBy: { createdAt: 'desc' }, // Descending for newest first
+                    orderBy: { createdAt: 'desc' }, 
                     skip,
                     take: limit
                 }),
-                prisma.communityPost.count({ where: { status: 'APPROVED' } })
+                prisma.communityPost.count({})
             ]),
             2
         );
@@ -671,7 +678,12 @@ exports.deletePost = async (req, res) => {
             }
         }
 
-        // 5. Delete post from database
+        // 5. Delete associated records (Cascading Likes)
+        // Note: Comments are embedded, so they are deleted automatically.
+        // But Likes are in a separate collection and must be cleared manually.
+        await prisma.communityLike.deleteMany({ where: { postId: postId } });
+
+        // 6. Delete post from database
         await prisma.communityPost.delete({ where: { id: postId } });
         console.log(`🗑️ [DELETE] Post #${postId} removed by ${currentUserId}`);
 
@@ -827,7 +839,20 @@ exports.cleanupOldPosts = async () => {
             }
         }
 
-        // 4. Delete all old posts from database
+        // 4. Delete associated records (Likes)
+        // Note: MongoDB/Prisma doesn't auto-cascade for separate models
+        const deletedPostsIds = await prisma.communityPost.findMany({
+            where: { createdAt: { lt: fifteenDaysAgo } },
+            select: { id: true }
+        }).then(posts => posts.map(p => p.id));
+
+        if (deletedPostsIds.length > 0) {
+            await prisma.communityLike.deleteMany({
+                where: { postId: { in: deletedPostsIds } }
+            });
+        }
+
+        // 5. Delete all old posts from database
         const deleted = await prisma.communityPost.deleteMany({
             where: {
                 createdAt: { lt: fifteenDaysAgo }

@@ -1138,31 +1138,7 @@ router.get('/admin/community/approvals', isAdmin, async (req, res) => {
     }
 });
 
-/**
- * Review Pending Post
- */
-router.put('/api/admin/community/posts/:postId/review', isAdmin, express.json(), async (req, res) => {
-    try {
-        const { action } = req.body;
-        const { postId } = req.params;
 
-        if (action === 'approve') {
-            await prisma.communityPost.update({
-                where: { id: postId },
-                data: { status: 'APPROVED' }
-            });
-        } else if (action === 'reject') {
-            await prisma.communityPost.delete({
-                where: { id: postId }
-            });
-        }
-
-        res.json({ success: true, message: `Post ${action}d successfully` });
-    } catch (error) {
-        console.error('[Community] Post review error:', error);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
-    }
-});
 
 /**
  * Review Pending Comment

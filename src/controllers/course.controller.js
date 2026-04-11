@@ -279,13 +279,7 @@ exports.getAllCourses = async (req, res) => {
                                 { enrollmentDeadline: null }                   // No deadline
                             ]
                         },
-                        {
-                            OR: [
-                                { deletedAt: null },
-                                { deletedAt: { isSet: false } }
-                            ]
-                        }
-                    ]
+                        ]
                 },
                 orderBy: { startDate: 'asc' }
             }),
@@ -346,14 +340,7 @@ exports.getAdminCourses = async (req, res) => {
     try {
         // 2. Fetch only non-deleted courses for admin visibility
         const courses = await withRetry(
-            () => prisma.course.findMany({
-                where: {
-                    OR: [
-                        { deletedAt: null },
-                        { deletedAt: { isSet: false } }
-                    ]
-                }
-            }),
+            () => prisma.course.findMany({}),
             2
         );
 
@@ -519,19 +506,44 @@ exports.deleteCourse = async (req, res) => {
         }
 
         // 3. Execute all cleanup operations as a single atomic transaction with retry
-        // If any step fails, all changes are rolled back
         await withRetry(
             () => prisma.$transaction(async (tx) => {
-                // [SOFT DELETE] We stop deleting chat messages and the course record
-                // to preserve history for analytics as requested.
+                // 3a. Find and delete physical files for resources
+                const resources = await tx.courseResource.findMany({
+                    where: { courseId },
+                    select: { path: true }
+                });
+
+                for (const resource of resources) {
+                    if (resource.path) {
+                        const filePath = path.join(__dirname, '../public', resource.path);
+                        await fs.unlink(filePath).catch(() => { }); // Ignore errors if file already gone
+                    }
+                }
+
+                // 3b. Delete database records in logical order (child to parent)
                 
-                // 3a. Revoke access: Remove course from all users' enrollment lists
+                // Delete Chat Messages
+                await tx.chatMessage.deleteMany({ where: { courseId } });
+
+                // Delete Resources
+                await tx.courseResource.deleteMany({ where: { courseId } });
+
+                // Delete Folders
+                await tx.courseFolder.deleteMany({ where: { courseId } });
+
+                // Delete Legacy Videos (if collection exists)
+                // Note: wrapped in try-catch in case model is already removed from prisma client but remains in DB
+                try {
+                    await tx.courseVideo.deleteMany({ where: { courseId } });
+                } catch (vErr) { /* ignore */ }
+
+                // 3c. Revoke access: Remove course from all users' enrollment lists
                 const usersWithCourse = await tx.user.findMany({
                     where: { purchasedCourseIds: { has: courseId } },
                     select: { id: true, purchasedCourseIds: true }
                 });
 
-                // Update each enrolled user's course list
                 for (const user of usersWithCourse) {
                     const newIds = user.purchasedCourseIds.filter(id => id !== courseId);
                     await tx.user.update({
@@ -540,23 +552,19 @@ exports.deleteCourse = async (req, res) => {
                     });
                 }
 
-                // 3b. Soft delete the course record
-                await tx.course.update({ 
-                    where: { id: courseId },
-                    data: { 
-                        deletedAt: new Date(),
-                        isPublished: false,
-                        isLive: false,
-                        isPromoted: false 
-                    }
-                });
+                // 3d. Delete the course record permanently
+                await tx.course.delete({ where: { id: courseId } });
             }),
             3 // Critical operation: 3 retries
         );
 
-        // Note: Purchase records in the Purchase table are NOT deleted
-        // This preserves financial history for accounting and refund tracking
-        // 4. Invalidate cache and respond
+        // 4. Delete Thumbnail from disk
+        if (course.thumbnailUrl && course.thumbnailUrl.startsWith('/uploads/thumbnails/')) {
+            const thumbPath = path.join(__dirname, '../public', course.thumbnailUrl);
+            await fs.unlink(thumbPath).catch(() => { });
+        }
+
+        // 5. Invalidate cache and respond
         invalidateCourseCache();
 
         // AJAX response check (Safe header check)

@@ -215,7 +215,7 @@
         <div class="mt-12 border-t border-white/10 pt-6 text-center text-sm text-slate-500">
 
             <p>
-                © <%= new Date().getFullYear() %> The Saran Trader Inc. All rights reserved. <span class="ml-2 text-[10px] bg-white/10 px-2 py-0.5 rounded font-mono">v<%= version %></span>
+                © <%= new Date().getFullYear() %> The Saran Trader Inc. All rights reserved. <span class="ml-2 text-[10px] bg-white/10 px-2 py-0.5 rounded font-mono">v<%= typeof version !== 'undefined' ? version : '2.0' %></span>
             </p>
 
             <p class="mt-2">
