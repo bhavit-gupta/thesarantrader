@@ -76,7 +76,7 @@ const VALID_ROLES = Object.freeze({
 if (process.env.NODE_ENV === 'production') {
     console.error('❌ SECURITY: Cannot seed production database!');
     console.error('   Set ALLOW_PRODUCTION_SEED=true to override (not recommended)');
-    
+
     if (process.env.ALLOW_PRODUCTION_SEED !== 'true') {
         process.exit(1);
     }
@@ -94,7 +94,7 @@ if (!process.env.DATABASE_URL) {
 if (process.env.DATABASE_URL.includes('production')) {
     console.error('⚠️ WARNING: DATABASE_URL contains "production"');
     console.error('   This might be the real production database!');
-    
+
     if (process.env.FORCE_SEED !== 'true') {
         console.error('   Set FORCE_SEED=true to proceed');
         process.exit(1);
@@ -107,7 +107,7 @@ if (process.env.DATABASE_URL.includes('production')) {
 
 //  Configure Prisma logging based on DEBUG env var
 const prisma = new PrismaClient({
-    log: process.env.DEBUG === 'true' 
+    log: process.env.DEBUG === 'true'
         ? ['query', 'info', 'warn', 'error']
         : ['error']
 });
@@ -162,38 +162,38 @@ const normalizePhone = (phone) => {
  */
 const validateUser = (user) => {
     const errors = [];
-    
+
     // Email validation
     if (!user.email || !isValidEmail(user.email)) {
         errors.push(`Invalid email: ${user.email}`);
     }
-    
+
     // Phone validation
     const normalizedPhone = normalizePhone(user.phone || '');
     if (!isValidPhone(normalizedPhone)) {
         errors.push(`Invalid phone: ${user.phone} (must be 10 digits)`);
     }
-    
+
     // Username validation 
     if (!user.username || !isValidUsername(user.username)) {
         errors.push(`Invalid username: ${user.username} (must be 3-30 chars, alphanumeric + underscore)`);
     }
-    
+
     // Name validation
     if (!user.name || user.name.trim().length === 0) {
         errors.push('Name cannot be empty');
     }
-    
+
     // Role validation 
     if (!Object.values(VALID_ROLES).includes(user.role)) {
         errors.push(`Invalid role: ${user.role} (must be '${VALID_ROLES.ADMIN}' or '${VALID_ROLES.USER}')`);
     }
-    
+
     // Password validation 
     if (!user.password || user.password.length < 8) {
         errors.push('Password must be at least 8 characters');
     }
-    
+
     return errors;
 };
 
@@ -257,7 +257,7 @@ const users = [
 async function main() {
     const startTime = Date.now(); //  Duration tracking
     console.log(`🌱 Seeding ${SEED_NAME} v${SEED_VERSION}...`);
-    
+
     //  Handle --reset flag
     const shouldReset = process.argv.includes('--reset');
     if (shouldReset) {
@@ -265,12 +265,12 @@ async function main() {
         await prisma.user.deleteMany({});
         console.log('✓ All users deleted');
     }
-    
+
     // ========================================================================
     // VALIDATE ALL USERS FIRST 
     // ========================================================================
     console.log('\n📋 Validating user data...');
-    
+
     for (const u of users) {
         const validationErrors = validateUser(u);
         if (validationErrors.length > 0) {
@@ -280,12 +280,12 @@ async function main() {
         }
     }
     console.log('✓ All user data valid');
-    
+
     // ========================================================================
     // PRE-COMPUTE PASSWORD HASHES 
     // ========================================================================
     console.log('\n🔐 Hashing passwords...');
-    
+
     const usersWithHashedPasswords = await Promise.all(
         users.map(async (u) => ({
             ...u,
@@ -293,16 +293,16 @@ async function main() {
         }))
     );
     console.log('✓ Passwords hashed');
-    
+
     // ========================================================================
     // SEED USERS WITH TRANSACTION 
     // ========================================================================
     console.log('\n📝 Seeding users...');
-    
+
     let created = 0;
     let skipped = 0;
     const results = [];
-    
+
     try {
         await prisma.$transaction(async (tx) => {
             for (const u of usersWithHashedPasswords) {
@@ -310,29 +310,29 @@ async function main() {
                 const emailUser = await tx.user.findUnique({
                     where: { email: u.email }
                 });
-                
+
                 if (emailUser && emailUser.username !== u.username) {
                     throw new Error(
                         `Email ${u.email} already used by different user: ${emailUser.username}`
                     );
                 }
-                
+
                 //  Check phone uniqueness
                 const phoneUser = await tx.user.findUnique({
                     where: { phone: u.phone }
                 });
-                
+
                 if (phoneUser && phoneUser.username !== u.username) {
                     throw new Error(
                         `Phone ${u.phone} already used by different user: ${phoneUser.username}`
                     );
                 }
-                
+
                 // Check if user exists before upsert 
                 const existingUser = await tx.user.findUnique({
                     where: { username: u.username }
                 });
-                
+
                 //  Upsert by username (immutable identifier)
                 //  Update fields if user exists
                 const user = await tx.user.upsert({
@@ -346,7 +346,7 @@ async function main() {
                     },
                     create: u
                 });
-                
+
                 //  Log created vs skipped
                 if (existingUser) {
                     console.log(`ℹ️  User UPDATED: ${user.username} (${user.email})`);
@@ -363,15 +363,15 @@ async function main() {
         console.error(`❌ Transaction rolled back due to error:`, error.message);
         throw error;
     }
-    
+
     // ========================================================================
     // FINAL SUMMARY 
     // ========================================================================
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    
+
     console.log('\n📊 Seed Results:');
     console.table(results); //  Table format instead of loop
-    
+
     console.log(`\n✅ Seeding finished in ${duration}s!`);
     console.log(`   Created: ${created}, Updated: ${skipped}, Total: ${users.length}`);
 }
